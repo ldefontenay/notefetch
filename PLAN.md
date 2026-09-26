@@ -160,6 +160,13 @@ Full findings in `test-milestone-1.txt`. The ones that change the design:
 - **Times are UTC; default names are local.** `[proven]`
 - **Transcript segments have end times.** `[proven]` Contrary to another project's report.
 
+### Answers after milestone 1 (26 September 2026)
+
+- **Audio saved as `.ogg`.** Laurent: "Yes, both played. Agreed on using .ogg". Upload forms accept `.ogg` more often than `.opus`.
+- **Transcription happens in Heidi Health.** Laurent: "I'll be uploading lectures to Heidi Health to transcribe, using a lecture template I've set up there." Heidi's public help and developer pages do not list accepted audio formats (checked 26 September 2026). Laurent is asked to try uploading the sample. If Heidi refuses Ogg Opus, the fallback is an optional "also save as MP3" setting that uses FFmpeg when it is installed (it is on Laurent's machine), not a converter shipped inside NoteFetch, which would make the exe many times larger.
+- **Folders, one per recording, mirroring File Explorer.** Laurent: "Folder is good, and ideally what shows in the app will also mirror what shows in Windows Explorer, so tags may be a bit much." So the disk is the source of truth: a folder is a subfolder of the output folder, and NoteFetch reads the folder structure from disk on every refresh rather than keeping its own copy that could disagree. One level only, to keep both the list and File Explorer simple to move around by keyboard. `[reasoned]`
+- **Save every part Plaud has, and nothing empty.** Laurent: "Everything for now please. No empty placeholders for recordings where these items don't exist." So the cleaned transcript, outline and highlights are saved when present. Highlights arrive in `get_file`'s `source_list` only when the recorder's button was pressed, so no extra call is needed.
+
 ### Name: NoteFetch
 
 - Rejected names:

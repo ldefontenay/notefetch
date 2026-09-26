@@ -58,10 +58,11 @@ Plaud runs a hosted MCP server. NoteFetch is a native MCP client of that server.
 A modeless dialog built from a resource template, like StableSound's settings dialog. Controls, in tab order:
 
 1. "Show" combo box, with the choices "All recordings", "Downloaded", "Not yet downloaded", "Incomplete" and "Deleted". The Deleted view is part of the same list, not a separate window, so the keys and context menu work the same way everywhere.
-2. "Filter by name" edit box. Filtering happens locally as the user types, after a short pause.
-3. "Recordings" list view in report view, with the columns Name, Date, Duration and Status.
-4. Buttons: "Sync new", "Download selected", "Open folder".
-5. "Log", a read-only multi-line edit box holding the running record of what happened, reviewable with the arrow keys.
+2. "Folder" combo box, with "All folders", "Not in a folder", then each folder by name in alphabetical order. See "Folders".
+3. "Filter by name" edit box. Filtering happens locally as the user types, after a short pause.
+4. "Recordings" list view in report view, with the columns Name, Folder, Date, Duration and Status.
+5. Buttons: "Sync new", "Download selected", "Open folder".
+6. "Log", a read-only multi-line edit box holding the running record of what happened, reviewable with the arrow keys.
 
 Presentation rules for the list:
 
@@ -89,6 +90,7 @@ The keys listed under "In the recordings list" work only when the list has focus
 - Ctrl+M: open the summary of the focused recording.
 - Ctrl+Shift+C: copy the full path of the focused recording's audio file.
 - Ctrl+Shift+O: open the focused recording's folder in File Explorer.
+- Ctrl+Shift+M: move the selected recordings to a folder.
 - Ctrl+A: select all visible recordings.
 
 ### Anywhere in the window
@@ -102,7 +104,7 @@ The keys listed under "In the recordings list" work only when the list has focus
 - Escape: cancel the running operation. It does not close the app.
 - Alt+F4: exit. If a download is running, the app asks first.
 
-The app also has a menu bar (File, Recording, Actions, Help) that lists every command with its shortcut, so commands can be discovered without the help file. The Recording menu holds the same commands as the context menu.
+The app also has a menu bar (File, Recording, Folder, Actions, Help) that lists every command with its shortcut, so commands can be discovered without the help file. The Recording menu holds the same commands as the context menu.
 
 ## Sync
 
@@ -151,9 +153,18 @@ These let the user work out which recording is which, give it a meaningful name,
 
 - A recording that has never been downloaded can be marked "Don't download", for example a test recording. Sync then leaves it alone. Skipped recordings appear in the Deleted view, and can be downloaded from there like deleted ones.
 
-## Organising recordings
+## Folders
 
-Laurent asked for features that help him keep recordings organised. The design waits for milestone 1 to show whether the server returns Plaud's folders or tags. If it does, the list and the output folder follow them. If not, NoteFetch offers groups of its own, for example one per course, each with a subfolder. Either way it is specified here before it is built.
+Plaud's MCP server does not expose the folders in the Plaud app (proven in milestone 1), so NoteFetch keeps its own. Laurent's decision: "Folder is good, and ideally what shows in the app will also mirror what shows in Windows Explorer, so tags may be a bit much."
+
+- **The disk is the truth.** A folder is a subfolder of the output folder that is not itself a recording (it has no `metadata.json`). A recording is in a folder when its recording folder sits inside that subfolder. What NoteFetch shows is always what File Explorer shows.
+- **One level only.** Folders sit directly in the output folder, and recordings sit directly in a folder or directly in the output folder. Anything deeper is not scanned, and the Log says so once per refresh, naming the place.
+- **A recording is recognised by the Plaud ID in its `metadata.json`,** wherever it sits within those two levels, so moving it never makes it look deleted.
+- **Changes made in File Explorer are picked up** on the next refresh: a recording moved into or out of a folder, a folder renamed, an empty folder created. A folder deleted in File Explorer deletes the recordings inside it, so they count as Deleted, the same as any recording folder deleted outside the app.
+- **New downloads go to the output folder itself**, shown as "Not in a folder".
+- **Move to folder** (Ctrl+Shift+M, and on the context menu and Recording menu) works on all selected recordings. It opens a small dialog with a "Folders" list, holding "Not in a folder" and every folder, and a "New folder name" edit box. Enter or OK moves them; Escape cancels. Focus returns to the list, on the same recording. If a recording's files are open in another program, it is left where it was and the Log says why.
+- **The Folder menu** holds New folder, Rename folder and Delete folder. Rename and delete act on the folder chosen in the "Folder" combo box, and are disabled when "All folders" or "Not in a folder" is chosen. Delete folder asks first, then moves its recordings back to the output folder and removes the empty folder. It never sends recordings to the Recycle Bin.
+- Folder names are cleaned in the same way as recording names.
 
 ## Context menu
 
@@ -166,6 +177,7 @@ Opened with the Applications key or Shift+F10 on the focused recording. The menu
   - Open folder
   - Copy audio file path
   - Rename
+  - Move to folder
   - Download missing parts, shown only if a transcript or summary is missing
   - Delete
 - Not yet downloaded:
@@ -174,7 +186,7 @@ Opened with the Applications key or Shift+F10 on the focused recording. The menu
 - Deleted or skipped:
   - Download again (default)
 
-With several recordings selected, only the items that make sense for a group are available: Download, Delete and Don't download. The others are shown but disabled, so the menu does not change shape unexpectedly.
+With several recordings selected, only the items that make sense for a group are available: Download, Move to folder, Delete and Don't download. The others are shown but disabled, so the menu does not change shape unexpectedly.
 
 ## What is saved
 
@@ -193,12 +205,17 @@ Plaud's default name for a recording is its date and time, such as "2026-09-09 1
 
 Every file inside the folder carries the same base name as the folder, so a file keeps its meaning when it is copied elsewhere, for example into a transcription tool. With the base name `Cognitive neuroscience week 3, 2026-09-24 1430`, the folder holds:
 
-- `Cognitive neuroscience week 3, 2026-09-24 1430.opus`: the audio. Plaud serves Ogg Opus (`audio/ogg`), mono, about 34 kilobits per second, so two hours is about 30 MB. The extension, `.opus` or `.ogg`, is still to be settled with Laurent.
-- `Cognitive neuroscience week 3, 2026-09-24 1430 transcript.txt`: one line per segment, as start time, speaker, then text, from the `transaction` block.
-- `Cognitive neuroscience week 3, 2026-09-24 1430 summary.md`: the note on the Summary tab. Each other tab in the Plaud app is saved as its own file named after the tab, for example `... Meeting minutes.md`.
+- `Cognitive neuroscience week 3, 2026-09-24 1430.ogg`: the audio. Plaud serves Ogg Opus (`audio/ogg`), mono, about 34 kilobits per second, so two hours is about 30 MB. The extension is `.ogg`, chosen by Laurent, because upload forms accept it more often than `.opus`.
+- `... transcript.txt`: one line per segment, as start time, speaker, then text, from the `transaction` block.
+- `... cleaned transcript.txt`: the same, from Plaud's AI-cleaned `transaction_polish` block.
+- `... outline.txt`: one line per topic, as start time then topic, from the `outline` block.
+- `... highlights.txt`: the moments flagged with the recorder's button, from the `mark_memo` block.
+- `... summary.md`: the note on the Summary tab. Each other tab in the Plaud app is saved as its own Markdown file named after the tab, for example `... Meeting minutes.md`.
 - `metadata.json`: Plaud ID, original Plaud name, current local name, start time, duration, and when each part was downloaded. This keeps a fixed name, because the app uses it to recognise the folder.
 
-Settings choose which of audio, transcript and summary to download. All three are on by default.
+A file is written only when Plaud has content for it. There are no empty placeholder files (Laurent: "No empty placeholders for recordings where these items don't exist"). A part that appears later, such as a summary Plaud generates after the recording, is written on a later sync.
+
+Settings choose which parts to download: audio, transcript, summary, and the other parts (cleaned transcript, outline and highlights) together. All are on by default.
 
 ## Downloads and network behaviour
 
@@ -223,7 +240,7 @@ A dialog built from a resource template, with:
 - output folder, set with the Windows folder picker (`IFileOpenDialog` with `FOS_PICKFOLDERS`);
 - sync on start (on or off);
 - confirm before deleting (on or off);
-- what to download (audio, transcript, summary);
+- what to download (audio, transcript, summary, other parts);
 - how many days to keep checking for missing transcripts and summaries;
 - announcement level and completion tone;
 - a Sign out button.
@@ -263,8 +280,6 @@ These are hard requirements, not preferences.
 
 ## Open questions
 
-Milestone 1 answered the earlier questions; see `test-milestone-1.txt`. Still open:
-
-- The audio file extension, `.opus` or `.ogg`, and whether Laurent's player and transcription tool accept Opus.
-- The organisation feature (Plaud exposes no folders or tags).
+- Whether Heidi Health accepts Ogg Opus uploads. Its public documentation does not say. If not, the fallback is an optional conversion to MP3 using FFmpeg when it is installed, rather than shipping a converter. See PLAN.md.
+- The exact shape of the `mark_memo` highlights block. None of Laurent's recordings tried had any.
 - Whether plain paging of `list_files` goes past 500 recordings. The test account has 71.

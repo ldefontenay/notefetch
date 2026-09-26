@@ -44,19 +44,19 @@ Both extensions describe the same file. On your computer, .opus, .ogg and .mp3 a
 To hear it for yourself, there are two copies of your newest recording in the NoteFetch folder, under test-data, milestone-1, audio: "sample recording.opus" and "sample recording.ogg". Pressing Enter on each in File Explorer should play it. Did both play?
 
 ANSWER:
-
+Yes, both played. Agreed on using .ogg
 #### Question 2: which transcription tool do you plan to use?
 
 If it does not accept Opus audio at all, NoteFetch would need to convert to MP3, which means shipping a converter. I would rather know now.
 
 ANSWER:
-
+I'll be uploading lectures to Heidi Health to transcribe, using a lecture template I've set up there. Please check if you can whether it accepts .ogg -- I think it does, but not sure.
 #### Question 3: is the folder proposal right?
 
 Is "Folder" the right word, or would you prefer "Course", "Group" or something else? Is one folder per recording enough, or do you want a recording in several at once, like tags?
 
 ANSWER:
-
+Folder is good, and ideally what shows in the app will also mirror what shows in Windows Explorer, so tags may be a bit much.
 #### Question 4: which extra transcript parts do you want?
 
 Besides the transcript and the notes, Plaud can provide:
@@ -66,8 +66,8 @@ Besides the transcript and the notes, Plaud can provide:
 - the moments you flagged with the button on the recorder while recording, if you use it.
 
 Which of these, if any, should NoteFetch save?
-
 ANSWER:
+Everything for now please. No empty placeholders for recordings where these items don't exist.
 
 ## 2026-09-26: Your answers applied, repository created, and the probe ready for your sign-in
 

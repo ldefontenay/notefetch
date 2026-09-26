@@ -30,7 +30,7 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 - [x] Wait for the access token to expire and confirm that refresh works.
 - [x] Write findings to `test-milestone-1.txt`, and update SPEC.md "Open questions" and PLAN.md.
 - [x] Decision gate: if loopback redirects are refused, stop and follow the fallback in PLAN.md before going further. (Accepted first time.)
-- [ ] Design the organisation feature from what the server provides, add it to SPEC.md, and add a milestone for it here.
+- [x] Design the organisation feature from what the server provides, add it to SPEC.md, and add a milestone for it here. (Folders mirroring File Explorer; engine work in milestone 2, interface in milestones 3 and 4.)
 
 ## Milestone 2: core engine, no interface
 
@@ -46,6 +46,7 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
   - the state of each part;
   - the local name alongside the original Plaud name;
   - the Deleted and Skipped states, which sync must never override.
+- [ ] Writing parts: audio as `.ogg`; transcript, cleaned transcript, outline and highlights as text; each note tab as Markdown named after its tab; no file for a part Plaud does not have.
 - [ ] `naming` module: base name building (name first, then a comma and the date and time; a trailing Plaud date and time removed from the name, and "Untitled" if nothing is left), setting modified dates to the recording start time, cleaning, shortening and clash handling, applied to the folder and every file in it. Unit tests, including reserved names, trailing dots, very long names and non-Latin characters.
 - [ ] `download` module:
   - [ ] streaming to `.part`, with a size check and rename on completion;
@@ -57,7 +58,8 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
   - [ ] Rename folder and files together, putting everything back if any step fails.
   - [ ] Move a folder to the Recycle Bin with `IFileOperation`.
   - [ ] On refresh, reconcile the database with the disk: folders missing count as deleted, and folders that reappear count as downloaded again.
-  - [ ] Unit tests for the rename rollback and the reconciliation rules.
+  - [ ] Folders: scan the output folder one level deep, recognise recordings by `metadata.json` wherever they are, create, rename and delete folders, and move recordings between them with the same all-or-nothing rule as rename.
+  - [ ] Unit tests for the rename rollback, the reconciliation rules and folder moves.
 - [ ] `sync` module: the logic for what to fetch (new, incomplete, still waiting for a transcript or summary), including the first-sync cutoff.
 - [ ] A hidden `--sync` developer flag that runs a sync and prints plain progress lines, so the engine can be tested before the interface exists.
 - [ ] `cargo test` and `cargo clippy -- -D warnings` both clean.
@@ -68,7 +70,7 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 - [ ] Menu bar listing every command with its shortcut.
 - [ ] Accelerator table for the window-wide keys only, handled before `IsDialogMessage` in the message loop. The list's own keys are handled in the list view's subclass, so they do not fire in the filter box.
 - [ ] List view: report view, full-row select, keeps its selection visible, newest first. Selection is kept by Plaud ID across refreshes.
-- [ ] Filter box and "Show" combo box.
+- [ ] Filter box, "Show" combo box, "Folder" combo box, and the Folder column.
 - [ ] Log edit box: read-only, multi-line, capped at a sensible length, newest entry at the top, caret at the start after every write.
 - [ ] A small test of `UiaRaiseNotificationEvent` from the dialog, to learn early whether JAWS speaks it.
 - [ ] Worker thread running the tokio runtime. Commands go in through a channel. Events come out through a queue, with `PostMessageW` sent to the dialog as a signal that events are waiting. The interface thread is the only one that touches windows.
@@ -86,6 +88,7 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 - [ ] "Don't download" for recordings never downloaded.
 - [ ] The Deleted view in the Show combo box, with Download again.
 - [ ] Copy audio file path.
+- [ ] Move to folder (Ctrl+Shift+M) with its small dialog, and the Folder menu (new, rename, delete).
 - [ ] After each of these actions, focus stays on or near the same row, and the Log says what happened.
 - [ ] Test script and `test-milestone-4.txt`. Check in particular:
   - [ ] how JAWS reads the context menu and its default item;
