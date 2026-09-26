@@ -34,35 +34,37 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 
 ## Milestone 2: core engine, no interface
 
-- [ ] Cargo project at the repository root, with `build.rs` using `embed-resource` as StableSound does.
-- [ ] `config` module: read and write `notefetch.conf`, beside the exe or in `%APPDATA%` as a fallback.
-- [ ] `auth` module:
-  - [ ] the sign-in flow, from the spike's code adapted from plaud-cli (MIT notice kept), with a fresh registration at each sign-in;
-  - [ ] the loopback callback listener;
-  - [ ] the accessible success page returned to the browser;
-  - [ ] DPAPI storage in `auth.bin`.
-- [ ] `plaud` module: the small MCP client (plain JSON or SSE replies, the safety envelope unwrapped, re-`initialize` after a token refresh, one refresh at a time with the rotated refresh token saved at once), and typed wrappers for `list_files` and `get_file` (with `get_transcript` and `get_note` as fallbacks) with response types based on the milestone 1 JSON. Times converted from UTC to local, with unit tests around the clock changes.
-- [ ] `store` module: rusqlite database of recordings, with migrations. It holds:
+- [x] Cargo project at the repository root, with `build.rs` using `embed-resource` as StableSound does.
+- [x] `config` module: read and write `notefetch.conf`, beside the exe or in `%APPDATA%` as a fallback.
+- [x] `auth` module:
+  - [x] the sign-in flow, from the spike's code adapted from plaud-cli (MIT notice kept), with a fresh registration at each sign-in;
+  - [x] the loopback callback listener;
+  - [x] the accessible success page returned to the browser;
+  - [x] DPAPI storage in `auth.bin`.
+- [x] `plaud` module: the small MCP client (plain JSON or SSE replies, the safety envelope unwrapped, re-`initialize` after a token refresh, one refresh at a time with the rotated refresh token saved at once), and typed wrappers for `list_files` and `get_file` (with `get_transcript` and `get_note` as fallbacks) with response types based on the milestone 1 JSON. Times converted from UTC to local, with unit tests around the clock changes.
+- [x] `store` module: rusqlite database of recordings, with migrations. It holds:
   - the state of each part;
   - the local name alongside the original Plaud name;
   - the Deleted and Skipped states, which sync must never override.
-- [ ] Writing parts: audio as `.ogg`; transcript, cleaned transcript, outline and highlights as text; each note tab as Markdown named after its tab; no file for a part Plaud does not have.
-- [ ] `naming` module: base name building (name first, then a comma and the date and time; a trailing Plaud date and time removed from the name, and "Untitled" if nothing is left), setting modified dates to the recording start time, cleaning, shortening and clash handling, applied to the folder and every file in it. Unit tests, including reserved names, trailing dots, very long names and non-Latin characters.
-- [ ] `download` module:
-  - [ ] streaming to `.part`, with a size check and rename on completion;
-  - [ ] refetching an expired link;
-  - [ ] retries with increasing delay;
-  - [ ] at most two downloads at once;
-  - [ ] cancellation.
-- [ ] `library` module: local operations on downloaded recordings.
-  - [ ] Rename folder and files together, putting everything back if any step fails.
-  - [ ] Move a folder to the Recycle Bin with `IFileOperation`.
-  - [ ] On refresh, reconcile the database with the disk: folders missing count as deleted, and folders that reappear count as downloaded again.
-  - [ ] Folders: scan the output folder one level deep, recognise recordings by `metadata.json` wherever they are, create, rename and delete folders, and move recordings between them with the same all-or-nothing rule as rename.
-  - [ ] Unit tests for the rename rollback, the reconciliation rules and folder moves.
-- [ ] `sync` module: the logic for what to fetch (new, incomplete, still waiting for a transcript or summary), including the first-sync cutoff.
-- [ ] A hidden `--sync` developer flag that runs a sync and prints plain progress lines, so the engine can be tested before the interface exists.
-- [ ] `cargo test` and `cargo clippy -- -D warnings` both clean.
+- [x] Writing parts: audio as `.ogg`; transcript, cleaned transcript, outline and highlights as text; each note tab as Markdown named after its tab; no file for a part Plaud does not have.
+- [x] `naming` module: base name building (name first, then a comma and the date and time; a trailing Plaud date and time removed from the name, and "Untitled" if nothing is left), setting modified dates to the recording start time, cleaning, shortening and clash handling, applied to the folder and every file in it. Unit tests, including reserved names, trailing dots, very long names and non-Latin characters.
+- [x] `download` module:
+  - [x] streaming to `.part`, with a size check and rename on completion;
+  - [x] refetching an expired link;
+  - [x] retries with increasing delay;
+  - [x] at most two downloads at once;
+  - [x] cancellation.
+- [x] `library` module: local operations on downloaded recordings.
+  - [x] Rename folder and files together, putting everything back if any step fails.
+  - [x] Move a folder to the Recycle Bin with `IFileOperation`.
+  - [x] On refresh, reconcile the database with the disk: folders missing count as deleted, and folders that reappear count as downloaded again.
+  - [x] Folders: scan the output folder one level deep, recognise recordings by `metadata.json` wherever they are, create, rename and delete folders, and move recordings between them with the same all-or-nothing rule as rename.
+  - [x] Unit tests for the rename rollback, the reconciliation rules and folder moves.
+- [x] `sync` module: the logic for what to fetch (new, incomplete, still waiting for a transcript or summary), including the first-sync cutoff.
+- [x] A hidden `--sync` developer flag that runs a sync and prints plain progress lines, so the engine can be tested before the interface exists.
+- [x] `cargo test` and `cargo clippy -- -D warnings` both clean.
+- [x] Also done: developer flags for rename, move, delete, skip and folders (`src/main.rs`), and `NOTEFETCH_DATA` to keep development data in `test-data`.
+- [ ] Test script `test-milestone-2.txt`: names and files in File Explorer with JAWS.
 
 ## Milestone 3: main window
 

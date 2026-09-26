@@ -27,7 +27,6 @@ pub const TRANSCRIPT: &str = " transcript.txt";
 pub const CLEANED_TRANSCRIPT: &str = " cleaned transcript.txt";
 pub const OUTLINE: &str = " outline.txt";
 pub const HIGHLIGHTS: &str = " highlights.txt";
-pub const SUMMARY: &str = " summary.md";
 pub const METADATA: &str = "metadata.json";
 
 /// The name part for a recording from its Plaud name. Plaud's default name is

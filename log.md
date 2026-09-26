@@ -2,6 +2,46 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-09-27: Milestone 2 built: the engine works on your real recordings
+
+### The short version
+
+- **The engine is built and works.** It lists all 71 of your recordings, downloads them with every part Plaud has, and handles renaming, folders, moving and deleting. There is no window yet; that is milestone 3.
+- **I tried it on two of your real recordings,** downloaded into the NoteFetch folder under test-data, output, away from your Documents. It took 15 seconds for both.
+- **Please do a short test in File Explorer:** test-milestone-2.txt, in the NoteFetch folder. It checks how JAWS reads the folder and file names, the transcript layout, and whether the audio plays. Eleven steps, about ten minutes.
+- **One question below,** about Heidi Health.
+- All automatic checks pass: 59 tests, plus 2 that touch the real machine (encrypting your sign-in, and the Recycle Bin).
+
+### Your answers, applied
+
+- **.ogg:** the audio is saved as .ogg.
+- **Folders mirror File Explorer.** A folder in NoteFetch is simply a folder inside the output folder. Move a recording in File Explorer, and NoteFetch sees it in its new place next time. I tested exactly that.
+- **Everything saved, nothing empty.** Your 24 September recording got its audio, transcript, summary and outline. Plaud had no cleaned transcript or highlights for it, so there are no files for them. The 21 September recording has audio only, because Plaud has no transcript or summary for it.
+
+### What I checked on your recordings
+
+- **Names:** the 21 September recording had no name in Plaud, so it became "Untitled, 2026-09-21 1601". I then renamed it to "Test lecture": the folder and every file in it changed together, and the name in Plaud stayed as it was.
+- **Times:** the folders say 0900 and 1601, the local start times in UK summer time, and File Explorer's Date modified shows the same times rather than today.
+- **Folders:** created a folder, moved the recording into it, renamed the folder, moved the recording out by hand as File Explorer would, then deleted the folder. NoteFetch followed every step, and deleting the folder moved nothing to the Recycle Bin.
+- **Recycle Bin:** a small test folder called "NoteFetch recycle test" went to your Recycle Bin during testing. You can empty it or leave it.
+- **Renaming when a file is open:** tested with the audio held open, as a media player would hold it. Windows refused, and NoteFetch put back everything it had already renamed, so nothing was left half-renamed.
+
+### Things worth knowing
+
+- **Size:** the program is 2.5 MB. StableSound is 1 MB. The difference is the database and secure connection code built into it, so nothing extra has to be installed. I think that is fine for a single-file app.
+- **Default save location:** a NoteFetch folder in your Documents, changeable in Settings once Settings exists.
+- **Not yet tried:** cancelling a download half way. The window's Escape key will test it in milestone 3.
+
+### Question
+
+#### Question 1: does Heidi Health accept the .ogg file?
+
+Heidi's help pages and developer pages do not say which audio formats it accepts. The only sure way to know is to try. When convenient, please upload a short .ogg recording to Heidi as you normally would. The 21 September one in test-data, output, "Test lecture", is half an hour long.
+
+If Heidi refuses it, NoteFetch can also save an MP3 copy using FFmpeg, which is already installed on your computer, without making NoteFetch itself bigger. I would add that as a setting, off by default.
+
+ANSWER:
+
 ## 2026-09-26: Milestone 1 finished: Plaud works on your free plan
 
 ### The short version

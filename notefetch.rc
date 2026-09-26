@@ -1,0 +1,38 @@
+// NoteFetch's resources, compiled into the exe by build.rs.
+//
+// Milestone 2 has only the manifest and version. The dialogs, menu and
+// accelerators arrive in milestone 3.
+
+#include <windows.h>
+
+1 RT_MANIFEST "notefetch.manifest"
+
+// Keep the numbers in step with the version in Cargo.toml.
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION    0,1,0,0
+PRODUCTVERSION 0,1,0,0
+FILEFLAGSMASK  VS_FFI_FILEFLAGSMASK
+FILEFLAGS      0
+FILEOS         VOS_NT_WINDOWS32
+FILETYPE       VFT_APP
+FILESUBTYPE    VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080904B0"   // UK English, Unicode
+        BEGIN
+            VALUE "CompanyName",      "Laurent de Fontenay"
+            VALUE "FileDescription",  "Download your Plaud recordings, transcripts and summaries"
+            VALUE "FileVersion",      "0.1.0.0"
+            VALUE "InternalName",     "notefetch"
+            VALUE "LegalCopyright",   "MIT licensed"
+            VALUE "OriginalFilename", "notefetch.exe"
+            VALUE "ProductName",      "NoteFetch"
+            VALUE "ProductVersion",   "0.1.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x809, 1200
+    END
+END

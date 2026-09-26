@@ -167,6 +167,15 @@ Full findings in `test-milestone-1.txt`. The ones that change the design:
 - **Folders, one per recording, mirroring File Explorer.** Laurent: "Folder is good, and ideally what shows in the app will also mirror what shows in Windows Explorer, so tags may be a bit much." So the disk is the source of truth: a folder is a subfolder of the output folder, and NoteFetch reads the folder structure from disk on every refresh rather than keeping its own copy that could disagree. One level only, to keep both the list and File Explorer simple to move around by keyboard. `[reasoned]`
 - **Save every part Plaud has, and nothing empty.** Laurent: "Everything for now please. No empty placeholders for recordings where these items don't exist." So the cleaned transcript, outline and highlights are saved when present. Highlights arrive in `get_file`'s `source_list` only when the recorder's button was pressed, so no extra call is needed.
 
+### Milestone 2: the engine (27 September 2026)
+
+- **Built and tried live** on a development copy (`NOTEFETCH_DATA=test-data\dev`, output in `test-data\output`): listing all 71 recordings, a first sync of the last 10 days (2 recordings, 15 seconds), rename, folder create, rename and delete, moves, a recording moved by hand and found on refresh, and Don't download. `[proven]` on the machine, not yet by Laurent.
+- **Web requests use Windows' own TLS (schannel).** reqwest 0.13 changed its default to rustls with aws-lc-rs, which needs extra build tools; `native-tls` is set explicitly, as this plan intended.
+- **Local time through Windows' zone rules** (`SystemTimeToTzSpecificLocalTimeEx`), not a time crate, so there is no zone database to ship. Tests pin the UK zone and cover both clock changes of 2026.
+- **The default output folder is `Documents\NoteFetch`**, wherever Windows has put Documents (it may be in OneDrive). `[reasoned]`: it is where a user looks first. Changeable in Settings.
+- **Release exe is 2.5 MB**, against StableSound's 1 MB. Most of it is SQLite, compiled in, and the HTTP stack. Acceptable for a single-file app; revisit only if it matters to anyone.
+- **Not yet tried:** cancelling a download part way (the code path exists and removes the `.part` file; the window's Escape will exercise it in milestone 3). A process killed mid-download leaves a `.part` file until that recording is next fetched, when it is overwritten.
+
 ### Name: NoteFetch
 
 - Rejected names:

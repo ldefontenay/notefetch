@@ -42,7 +42,7 @@ The skill has nothing yet on list views, context menus in a dialog, in-place lab
 
 ## Current state
 
-Check TASKS.md for the first unticked milestone before starting work. Milestone 1's spike in `spike/plaud-probe` answered the sign-in and server questions; its findings are in `test-milestone-1.txt`. `cargo run -- raw <tool> '<json>'` there calls any tool and saves the reply to `test-data/milestone-1/`.
+Check TASKS.md for the first unticked milestone before starting work. Milestone 1's spike in `spike/plaud-probe` answered the sign-in and server questions; its findings are in `test-milestone-1.txt`. Its `raw` command calls any tool and saves the reply to `test-data/milestone-1/`. Milestone 2 built the engine, with no window yet.
 
 ## Hard rules
 
@@ -76,37 +76,39 @@ Check TASKS.md for the first unticked milestone before starting work. Milestone 
 ```
 cargo build --release
 cargo test
-cargo clippy -- -D warnings
-cargo test -- --ignored
-cargo test naming::            # one module's tests
-cargo test some_test_name      # a single test, by name or substring
-cargo run -- --sync            # hidden developer flag: run a sync with plain progress lines, no interface
-cargo run --manifest-path spike/plaud-probe/Cargo.toml   # milestone 1 spike, a separate crate
+cargo clippy --all-targets -- -D warnings
+cargo test -- --ignored                    # DPAPI and the Recycle Bin, on the real machine
+cargo test naming::                        # one module's tests
+cargo test spring_clock_change             # a single test, by name or substring
+cargo run --manifest-path spike/plaud-probe/Cargo.toml -- raw list_files '{"page":1,"page_size":10}'
 ```
 
 - Clippy must stay clean.
-- The `--ignored` tests are those that touch the real machine or the network, such as DPAPI round trips and live Plaud calls.
-- The `--sync` flag and the spike do not exist until milestones 2 and 1 respectively.
+- Until the window exists, hidden developer flags drive the engine: `--sign-in`, `--sign-out`, `--refresh`, `--sync` (add `--first=all`, `--first=now` or `--first=N` the first time), `--list`, `--rename ID NAME`, `--move ID FOLDER`, `--delete ID`, `--skip ID`, `--new-folder`, `--rename-folder`, `--delete-folder` and `--write-settings`. See the top of `src/main.rs`.
+- For development, set `NOTEFETCH_DATA` to `test-data\dev` so the settings, sign-in and database live there, never in the user's profile. `test-data\dev\notefetch.conf` points the output folder at `test-data\output`.
 
-## Architecture (planned, see TASKS.md milestones 2 and 3)
+## Architecture
 
-One binary crate at the repository root. `build.rs` compiles the `.rc` file (dialogs, menu, accelerators, version resource, manifest, help) with `embed-resource`.
+One binary crate at the repository root. `build.rs` compiles `notefetch.rc` with `embed-resource`: the manifest and version now, and the dialogs, menu, accelerators and help from milestone 3.
 
-Two threads:
+Two threads (from milestone 3):
 
 - The interface thread owns the modeless main dialog and every window. Its message loop runs the accelerator table (window-wide keys only) before `IsDialogMessage`. The list's own keys (Enter, Delete, F2, Ctrl+A and so on) are handled in the list view's subclass so they never fire in the filter box.
 - The worker thread runs a tokio runtime. Commands reach it through a channel. Events come back through a queue, and the worker posts a message to the dialog to say events are waiting. The dialog drains the queue, updates controls, writes to the Log and raises any UI Automation announcement.
 
 Engine modules, none of which touch windows:
 
-- `config`: `notefetch.conf`, beside the exe or in `%APPDATA%\NoteFetch`.
-- `auth`: OAuth with a fresh client registration at each sign-in, the loopback callback listener and its accessible success page, and DPAPI storage in `auth.bin` (client ID and tokens).
-- `plaud`: the MCP client (`initialize`, `tools/call`, plain JSON or SSE replies, unwrapping Plaud's `<untrusted-user-data-XXXX>` envelope, and a new session after each token refresh) and typed wrappers. A sync needs only `list_files` and `get_file`, which returns notes and the full transcript with the audio link; `get_transcript` and `get_note` are fallbacks. Response types come from the raw JSON in `test-data/milestone-1/` and `test-milestone-1.txt`. Plaud times are UTC and are converted to local. Refresh tokens rotate: one refresh at a time, and save the new one at once.
-- `store`: rusqlite database in `%LOCALAPPDATA%\NoteFetch`, with migrations.
-- `naming`: base names (recording name, comma, local date and time), cleaning, shortening and clash handling, and setting modified dates to the recording start time.
-- `download`: streaming to `.part`, refetching expired links, retries and cancellation.
-- `library`: local rename, Recycle Bin and reconciliation of the database with the disk.
-- `sync`: decides what to fetch.
+- `config`: `notefetch.conf`, beside the exe or in `%APPDATA%\NoteFetch`, and where every file lives.
+- `auth`: sign-in with a fresh client registration each time, the loopback listener and its accessible page, refresh, and DPAPI storage in `auth.bin`. Carries plaud-cli's MIT notice.
+- `mcp`: the small MCP client. Unwraps Plaud's `<untrusted-user-data-XXXX>` envelope, retries, and renews the sign-in one task at a time because refresh tokens rotate.
+- `plaud`: `list_files` and `get_file` into typed values (`get_transcript` only for a block `get_file` left empty), and each part rendered as text. Shapes come from `test-milestone-1.txt`.
+- `clock`: Plaud's UTC times to local time through Windows' own zone rules; list dates, name suffixes, durations in words.
+- `naming`: base names (name first, comma, local date and time), cleaning, shortening, clash numbers, part suffixes.
+- `store`: the rusqlite database, with migrations and the status words.
+- `library`: the disk. Scans one folder level deep, reconciles the database with it, writes parts, sets dates, renames with rollback, moves, folders, Recycle Bin.
+- `download`: audio to `.part`, size check, fresh link once, retries, cancellation.
+- `sync`: the `Engine`; what to fetch, two at a time, reporting through `Event`s.
+- `actions`: rename, move, delete, skip and folder commands on the `Engine`, keeping the database in step.
 
 Rules that span several modules:
 

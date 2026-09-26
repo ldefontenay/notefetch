@@ -237,7 +237,7 @@ Settings choose which parts to download: audio, transcript, summary, and the oth
 
 A dialog built from a resource template, with:
 
-- output folder, set with the Windows folder picker (`IFileOpenDialog` with `FOS_PICKFOLDERS`);
+- output folder, set with the Windows folder picker (`IFileOpenDialog` with `FOS_PICKFOLDERS`), by default a NoteFetch folder in Documents;
 - sync on start (on or off);
 - confirm before deleting (on or off);
 - what to download (audio, transcript, summary, other parts);

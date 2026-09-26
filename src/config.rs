@@ -196,6 +196,9 @@ pub fn write_atomically(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
 /// The settings file: beside the exe if that folder is writable, else in
 /// `%APPDATA%\NoteFetch`.
 pub fn config_path() -> PathBuf {
+    if let Some(dir) = dev_dir() {
+        return dir.join(FILE_NAME);
+    }
     if let Some(dir) = std::env::current_exe().ok().and_then(|p| p.parent().map(Path::to_path_buf)) {
         let beside = dir.join(FILE_NAME);
         if beside.exists() || folder_is_writable(&dir) {
@@ -214,12 +217,19 @@ fn folder_is_writable(dir: &Path) -> bool {
 
 /// `%APPDATA%\NoteFetch`: sign-in, and settings when they cannot sit beside the exe.
 pub fn roaming_dir() -> PathBuf {
-    env_dir("APPDATA").join("NoteFetch")
+    dev_dir().unwrap_or_else(|| env_dir("APPDATA").join("NoteFetch"))
 }
 
 /// `%LOCALAPPDATA%\NoteFetch`: the database.
 pub fn local_dir() -> PathBuf {
-    env_dir("LOCALAPPDATA").join("NoteFetch")
+    dev_dir().unwrap_or_else(|| env_dir("LOCALAPPDATA").join("NoteFetch"))
+}
+
+/// Development only: `NOTEFETCH_DATA` puts the settings, sign-in and database
+/// in a folder of the developer's choosing, such as `test-data`, so trying
+/// things out never touches a real installation's state.
+fn dev_dir() -> Option<PathBuf> {
+    std::env::var_os("NOTEFETCH_DATA").filter(|v| !v.is_empty()).map(PathBuf::from)
 }
 
 fn env_dir(var: &str) -> PathBuf {
@@ -252,11 +262,13 @@ mod tests {
 
     #[test]
     fn round_trip() {
-        let mut c = Config::default();
-        c.output_folder = PathBuf::from(r"D:\Lectures");
-        c.download_other = false;
-        c.retry_days = 30;
-        c.announcements = Announcements::ErrorsAndCompletion;
+        let c = Config {
+            output_folder: PathBuf::from(r"D:\Lectures"),
+            download_other: false,
+            retry_days: 30,
+            announcements: Announcements::ErrorsAndCompletion,
+            ..Config::default()
+        };
         let (back, problems) = Config::parse(&c.to_text());
         assert!(problems.is_empty(), "{problems:?}");
         assert_eq!(back, c);

@@ -1,0 +1,109 @@
+NoteFetch milestone 2 test: names and files in File Explorer
+
+Milestone 2 has no NoteFetch window yet. What it does have is the way
+recordings are named and saved, and you will meet that every day in File
+Explorer. This test checks how JAWS reads it.
+
+I downloaded two of your recordings into the NoteFetch folder, under
+test-data, output. One is your two-hour recording from 24 September. The other
+is the half-hour recording from 21 September, which had no name in Plaud; I
+renamed it "Test lecture" to try renaming.
+
+Please write your answers after each ANSWER line. Leave any you cannot do
+blank. Save the file when you are done.
+
+
+SECTION 1: THE FOLDERS
+
+1. Press Windows+R, type or paste this, and press Enter:
+   C:\Users\ldefo\dev\NoteFetch\test-data\output
+   File Explorer opens on that folder. Press Down Arrow until JAWS reads the
+   first folder.
+   Expected: the recording's name first, then "2026-09-24 0900".
+   What did JAWS say?
+
+ANSWER:
+
+2. The folder names end in the date and time as "2026-09-24 0900". How does
+   JAWS read that part, and is it clear enough? If you would rather have
+   another form, such as "24 Sep 2026 0900", say which.
+
+ANSWER:
+
+3. Is the comma before the date a natural pause, or would you rather have
+   something else there?
+
+ANSWER:
+
+4. Press T.
+   Expected: focus moves to "Test lecture, 2026-09-21 1601". This is why the
+   name comes first.
+   Did it?
+
+ANSWER:
+
+5. Press Ctrl+Shift+6 to switch to Details view, then Up and Down Arrow
+   between the two folders.
+   Expected: JAWS reads a Date modified of 24/09/2026 09:00 for one and
+   21/09/2026 16:01 for the other, the times the recordings started, not
+   today. That is what keeps Date modified sorting in date order.
+   What did you hear for Date modified?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 2: INSIDE A RECORDING
+
+6. Go to the 24 September folder and press Enter. Arrow through the files.
+   Expected, in some order: the outline, the summary, the transcript, the
+   audio ending in .ogg, and metadata.json. Every file except metadata.json
+   starts with the same name as the folder.
+   Does any file name read awkwardly?
+
+ANSWER:
+
+7. Press Enter on the file ending "transcript.txt". It should open in
+   Notepad. Read the first few lines.
+   Expected: each line is a time, then the speaker, then what was said, for
+   example "00:14 Speaker 1: ...".
+   Does that layout work for you, or would you prefer something else, such as
+   the speaker first?
+
+ANSWER:
+
+8. Close Notepad. Press Enter on the file ending "outline.txt".
+   Expected: one topic per line, each starting with its time.
+   Useful, or not worth keeping?
+
+ANSWER:
+
+9. Close it. Press Enter on the file ending "summary.md".
+   Which program opened it, and could you read it? If Windows asked which
+   program to use, say so.
+
+ANSWER:
+
+10. Close it. Press Enter on the file ending ".ogg".
+    Expected: it plays in your usual player.
+    Did it?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 3: THE RENAMED RECORDING
+
+11. Go back to the output folder (Alt+Up Arrow) and into "Test lecture,
+    2026-09-21 1601". Plaud has no transcript or summary for this one, so
+    only the audio and metadata.json are there, with no empty files.
+    Is that what you find?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+ANYTHING ELSE YOU WANT TO SAY:
