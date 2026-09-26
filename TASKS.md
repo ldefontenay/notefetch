@@ -4,11 +4,11 @@ Work one milestone at a time. Each milestone ends with a keyboard test script fo
 
 ## Milestone 0: repository
 
-- [ ] `git init` in the existing folder, add an MIT `LICENSE`, and create the private repository from it with GitHub CLI: `gh repo create notefetch --private --source . --push`.
-- [ ] Add SPEC.md, PLAN.md, TASKS.md, CLAUDE.md, log.md and .gitignore.
-- [ ] Turn on secret scanning and push protection if the account's plan offers them for private repositories. If not, add a `gitleaks` pre-commit check.
-- [ ] Create a `test-data/` folder, which .gitignore excludes, for any real downloads used during development.
-- [ ] First commit.
+- [x] `git init` in the existing folder, add an MIT `LICENSE`, and create the private repository from it with GitHub CLI: `gh repo create notefetch --private --source . --push`.
+- [x] Add SPEC.md, PLAN.md, TASKS.md, CLAUDE.md, log.md and .gitignore.
+- [x] Turn on secret scanning and push protection if the account's plan offers them for private repositories. If not, add a `gitleaks` pre-commit check. (Not offered: GitHub replied "Secret scanning is not available for this repository". gitleaks 8.30.1 installed with winget; the hook is `hooks/pre-commit`, enabled with `git config core.hooksPath hooks`.)
+- [x] Create a `test-data/` folder, which .gitignore excludes, for any real downloads used during development.
+- [x] First commit.
 
 ## Milestone 1: spike (`spike/plaud-probe`)
 

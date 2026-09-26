@@ -1,0 +1,14 @@
+#!/bin/sh
+# Refuse the commit if gitleaks finds a secret in the staged changes.
+GITLEAKS="$(command -v gitleaks)"
+if [ -z "$GITLEAKS" ]; then
+    GITLEAKS="$(ls "$LOCALAPPDATA"/Microsoft/WinGet/Packages/Gitleaks.Gitleaks_*/gitleaks.exe 2>/dev/null | head -1)"
+fi
+if [ -z "$GITLEAKS" ]; then
+    echo "gitleaks is not installed, so staged files cannot be checked for secrets. Commit refused."
+    exit 1
+fi
+"$GITLEAKS" git --pre-commit --staged --redact --no-banner --no-color || {
+    echo "gitleaks found a possible secret in the staged files. Commit refused."
+    exit 1
+}

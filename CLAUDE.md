@@ -122,5 +122,5 @@ Rules that span several modules:
 - Work one milestone from TASKS.md at a time. Tick tasks off as they are done.
 - At the end of each milestone, write a keyboard test script for Laurent as `test-milestone-N.txt` (with `-round-2` and so on for repeat rounds): plain text, numbered steps giving the exact keystrokes and what JAWS should say or what should happen, each step immediately before its `ANSWER:` line, and an `ANYTHING ODD:` line per section. Never put test steps in the terminal. Wait for his results in the file, and record his own words in PLAN.md for anything he decides.
 - Treat hardware and screen reader results as the truth over what the code appears to do. If a result contradicts the design, record it in PLAN.md.
-- Before any commit, check the staged files for secrets and personal data.
+- Before any commit, check the staged files for secrets and personal data, including names of real recordings. The `hooks/pre-commit` gitleaks check backs this up; after a fresh clone, enable it with `git config core.hooksPath hooks`. Never bypass it.
 - This project does not handle client data, so Auto mode is appropriate.
