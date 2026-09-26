@@ -23,25 +23,25 @@ SECTION 1: THE FOLDERS
    What did JAWS say?
 
 ANSWER:
-
+Jaws said: Staff training, 2026-09-24 0900
 2. The folder names end in the date and time as "2026-09-24 0900". How does
    JAWS read that part, and is it clear enough? If you would rather have
    another form, such as "24 Sep 2026 0900", say which.
 
 ANSWER:
-
+"24 Sep 2026, 09:00" reads well with jaws. The letters and comma prevent it from sounding like number salad.
 3. Is the comma before the date a natural pause, or would you rather have
    something else there?
 
 ANSWER:
-
+Commas are good.
 4. Press T.
    Expected: focus moves to "Test lecture, 2026-09-21 1601". This is why the
    name comes first.
    Did it?
 
 ANSWER:
-
+Yes.
 5. Press Ctrl+Shift+6 to switch to Details view, then Up and Down Arrow
    between the two folders.
    Expected: JAWS reads a Date modified of 24/09/2026 09:00 for one and
@@ -50,9 +50,11 @@ ANSWER:
    What did you hear for Date modified?
 
 ANSWER:
-
+‎24/‎09/‎2026 ‏‎09:00
+‎24/‎09/‎2026 ‏‎09:00
+‎21/‎09/‎2026 ‏‎16:01
 ANYTHING ODD:
-
+No
 
 SECTION 2: INSIDE A RECORDING
 
@@ -61,8 +63,8 @@ SECTION 2: INSIDE A RECORDING
    audio ending in .ogg, and metadata.json. Every file except metadata.json
    starts with the same name as the folder.
    Does any file name read awkwardly?
-
 ANSWER:
+Yes. Please follow this naming convention, making it quicker for a screenreader user to find what they're looking for: "Transcript, Staff training, 24 Sep 2026, 0900.txt"
 
 7. Press Enter on the file ending "transcript.txt". It should open in
    Notepad. Read the first few lines.
@@ -72,27 +74,29 @@ ANSWER:
    the speaker first?
 
 ANSWER:
+The current format is fine.
 
 8. Close Notepad. Press Enter on the file ending "outline.txt".
    Expected: one topic per line, each starting with its time.
    Useful, or not worth keeping?
 
 ANSWER:
+Useful, could help if I wanted to review bits of the actual recording.
 
 9. Close it. Press Enter on the file ending "summary.md".
    Which program opened it, and could you read it? If Windows asked which
    program to use, say so.
 
 ANSWER:
-
+I already have a default programme for .md files, Leasy Word in my case. 
 10. Close it. Press Enter on the file ending ".ogg".
     Expected: it plays in your usual player.
     Did it?
 
 ANSWER:
-
+Yes
 ANYTHING ODD:
-
+No.
 
 SECTION 3: THE RENAMED RECORDING
 
@@ -102,8 +106,11 @@ SECTION 3: THE RENAMED RECORDING
     Is that what you find?
 
 ANSWER:
-
+Yes
 ANYTHING ODD:
+No
 
+NOTE: the real recording name in answers 1 and 6 was changed to "Staff training" to keep work details out of the repository.
 
 ANYTHING ELSE YOU WANT TO SAY:
+I really like the fact that the summary is a markdown file. However, some users may find it easier to load a .txt file --rarer nowadays. In settings, provide an option to save files as a .txt (essentially just changing the extention), keeping .md as the default for files where this is available.

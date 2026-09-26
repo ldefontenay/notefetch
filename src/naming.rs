@@ -1,10 +1,13 @@
 //! Folder and file names. SPEC.md "What is saved".
 //!
-//! Every recording's folder and files share one base name: the recording's
-//! name first, then a comma, then the local start date and time, for example
-//! `Cognitive neuroscience week 3, 2026-09-24 1430`. The name comes first so a
-//! screen reader says the meaningful part first and first-letter navigation
-//! works in File Explorer.
+//! Every recording's folder has one base name: the recording's name first,
+//! then the local start date and time, for example
+//! `Cognitive neuroscience week 3, 24 Sep 2026, 1430`. Each file inside is the
+//! part first, then the base name: `Transcript, Cognitive neuroscience week 3,
+//! 24 Sep 2026, 1430.txt`. Laurent's rules from milestone 2: the meaningful
+//! word first, so first-letter navigation finds the transcript or the summary
+//! at once; commas as pauses; and a month in letters, so the date does not
+//! sound like "number salad".
 
 use std::path::Path;
 
@@ -13,20 +16,34 @@ use crate::clock::Stamp;
 /// Full paths are kept under this length (SPEC.md).
 pub const MAX_PATH_CHARS: usize = 240;
 
-/// Room kept for the longest part suffix, such as " cleaned transcript.txt"
-/// or a note tab name, plus a clash number.
-const SUFFIX_ROOM: usize = 40;
+/// Room kept for the longest part label and extension, such as
+/// "Cleaned transcript, " and ".txt" or a note tab name, plus a clash number.
+const PART_ROOM: usize = 40;
 
 /// Longest note tab name kept in a file name.
 const TAB_NAME_CHARS: usize = 30;
 
 pub const UNTITLED: &str = "Untitled";
 
-pub const AUDIO: &str = ".ogg";
-pub const TRANSCRIPT: &str = " transcript.txt";
-pub const CLEANED_TRANSCRIPT: &str = " cleaned transcript.txt";
-pub const OUTLINE: &str = " outline.txt";
-pub const HIGHLIGHTS: &str = " highlights.txt";
+/// One file in a recording's folder: its label and extension.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Part<'a> {
+    pub label: &'a str,
+    pub ext: &'a str,
+}
+
+impl Part<'_> {
+    /// "Transcript, Lecture, 24 Sep 2026, 1430.txt".
+    pub fn file_name(&self, base: &str) -> String {
+        format!("{}, {base}{}", self.label, self.ext)
+    }
+}
+
+pub const AUDIO: Part<'static> = Part { label: "Audio", ext: ".ogg" };
+pub const TRANSCRIPT: Part<'static> = Part { label: "Transcript", ext: ".txt" };
+pub const CLEANED_TRANSCRIPT: Part<'static> = Part { label: "Cleaned transcript", ext: ".txt" };
+pub const OUTLINE: Part<'static> = Part { label: "Outline", ext: ".txt" };
+pub const HIGHLIGHTS: Part<'static> = Part { label: "Highlights", ext: ".txt" };
 pub const METADATA: &str = "metadata.json";
 
 /// The name part for a recording from its Plaud name. Plaud's default name is
@@ -117,9 +134,10 @@ fn is_reserved(name: &str) -> bool {
 /// leaves no room.
 pub fn fit_base(parent: &Path, name: &str, start_local: &Stamp) -> Option<String> {
     let suffix = format!(", {}", start_local.name_suffix());
-    // parent \ base \ base + part suffix
+    // The longest path is the parent, the folder, then a file holding the
+    // base name again with a part label and extension.
     let parent_chars = parent.as_os_str().to_string_lossy().chars().count();
-    let fixed = parent_chars + 2 + SUFFIX_ROOM + 2 * suffix.chars().count();
+    let fixed = parent_chars + 2 + PART_ROOM + 2 * suffix.chars().count();
     let room = MAX_PATH_CHARS.checked_sub(fixed)? / 2;
     if room == 0 {
         return None;
@@ -142,33 +160,66 @@ pub fn shorten(text: &str, max: usize) -> String {
     if tidy.is_empty() { cut } else { tidy.to_string() }
 }
 
-/// The name part of a base name: everything before the last ", ".
+/// The name part of a base name: what comes before ", 24 Sep 2026, 1430" and
+/// any clash number.
 pub fn name_of_base(base: &str) -> &str {
-    match base.rfind(", ") {
-        Some(i) => &base[..i],
-        None => base,
+    let without_clash = match base.rfind(" (") {
+        Some(i) if base.ends_with(')') && base[i + 2..base.len() - 1].parse::<u32>().is_ok() => &base[..i],
+        _ => base,
+    };
+    // ", D Mon YYYY, HHMM" or ", DD Mon YYYY, HHMM" at the end.
+    for len in [18, 19] {
+        if without_clash.len() > len && without_clash.is_char_boundary(without_clash.len() - len) {
+            let (head, tail) = without_clash.split_at(without_clash.len() - len);
+            if is_suffix(tail) {
+                return head;
+            }
+        }
     }
+    base
+}
+
+fn is_suffix(s: &str) -> bool {
+    // ", 4 Sep 2026, 1430" or ", 24 Sep 2026, 1430"
+    let Some(rest) = s.strip_prefix(", ") else { return false };
+    let parts: Vec<&str> = rest.splitn(4, ' ').collect();
+    let [day, month, year, time] = parts.as_slice() else { return false };
+    let digits = |x: &str, n: usize| x.len() == n && x.bytes().all(|b| b.is_ascii_digit());
+    (digits(day, 1) || digits(day, 2))
+        && month.len() == 3
+        && month.bytes().all(|b| b.is_ascii_alphabetic())
+        && year.strip_suffix(',').is_some_and(|y| digits(y, 4))
+        && digits(time, 4)
 }
 
 /// A base name with a clash number, for a second recording with the same name
-/// started in the same minute: "Lecture, 2026-09-24 1430 (2)".
+/// started in the same minute: "Lecture, 24 Sep 2026, 1430 (2)".
 pub fn numbered(base: &str, n: u32) -> String {
     if n <= 1 { base.to_string() } else { format!("{base} ({n})") }
 }
 
-/// The file name suffix for a note tab. The Summary tab gives " summary.md";
-/// any other tab keeps Plaud's name for it, for example " Meeting minutes.md".
-/// `seen` holds suffixes already used for this recording, so two tabs with the
-/// same name get " 2", " 3" and so on.
-pub fn note_suffix(tab_name: &str, seen: &mut Vec<String>) -> String {
+/// A file name with the base name changed, or `None` if the file does not
+/// carry the old base name as NoteFetch writes it: "Label, base.ext".
+pub fn rebase(file_name: &str, old_base: &str, new_base: &str) -> Option<String> {
+    // A note label may itself hold a comma, so look for the base name itself.
+    let at = file_name.find(&format!(", {old_base}"))?;
+    let (label, ext) = (&file_name[..at], &file_name[at + 2 + old_base.len()..]);
+    (ext.is_empty() || (ext.starts_with('.') && !ext[1..].contains(' '))).then(|| format!("{label}, {new_base}{ext}"))
+}
+
+/// The label for a note tab: "Summary" for the summary, otherwise Plaud's own
+/// name for the tab, for example "Meeting minutes". `seen` holds labels already
+/// used for this recording, so two tabs with the same name get " 2", " 3" and
+/// so on.
+pub fn note_label(tab_name: &str, seen: &mut Vec<String>) -> String {
     let label = if tab_name.trim().eq_ignore_ascii_case("summary") || tab_name.trim().is_empty() {
-        "summary".to_string()
+        "Summary".to_string()
     } else {
         shorten(&clean(tab_name), TAB_NAME_CHARS)
     };
     let mut n = 1;
     loop {
-        let candidate = if n == 1 { format!(" {label}.md") } else { format!(" {label} {n}.md") };
+        let candidate = if n == 1 { label.clone() } else { format!("{label} {n}") };
         if !seen.iter().any(|s| s.eq_ignore_ascii_case(&candidate)) {
             seen.push(candidate.clone());
             return candidate;
@@ -242,7 +293,7 @@ mod tests {
     #[test]
     fn base_name_puts_the_name_first() {
         let base = fit_base(Path::new(r"C:\Users\x\Documents\NoteFetch"), "Cognitive neuroscience week 3", &at("2026-09-24T14:30:00")).unwrap();
-        assert_eq!(base, "Cognitive neuroscience week 3, 2026-09-24 1430");
+        assert_eq!(base, "Cognitive neuroscience week 3, 24 Sep 2026, 1430");
         assert_eq!(name_of_base(&base), "Cognitive neuroscience week 3");
     }
 
@@ -251,9 +302,9 @@ mod tests {
         let parent = Path::new(r"C:\Users\someone\Documents\NoteFetch\A folder");
         let long = "word ".repeat(100);
         let base = fit_base(parent, long.trim(), &at("2026-09-24T14:30:00")).unwrap();
-        let longest = format!("{}\\{base}\\{base} cleaned transcript.txt (2)", parent.display());
+        let longest = format!("{}\\{base} (2)\\{}", parent.display(), CLEANED_TRANSCRIPT.file_name(&format!("{base} (2)")));
         assert!(longest.chars().count() < MAX_PATH_CHARS, "{} characters", longest.chars().count());
-        assert!(base.ends_with(", 2026-09-24 1430"));
+        assert!(base.ends_with(", 24 Sep 2026, 1430"));
         assert!(!name_of_base(&base).ends_with(' '));
     }
 
@@ -274,17 +325,44 @@ mod tests {
 
     #[test]
     fn clashes_are_numbered_at_the_end() {
-        assert_eq!(numbered("Lecture, 2026-09-24 1430", 1), "Lecture, 2026-09-24 1430");
-        assert_eq!(numbered("Lecture, 2026-09-24 1430", 2), "Lecture, 2026-09-24 1430 (2)");
+        assert_eq!(numbered("Lecture, 24 Sep 2026, 1430", 1), "Lecture, 24 Sep 2026, 1430");
+        assert_eq!(numbered("Lecture, 24 Sep 2026, 1430", 2), "Lecture, 24 Sep 2026, 1430 (2)");
     }
 
     #[test]
-    fn note_tabs_become_suffixes() {
+    fn note_tabs_become_labels() {
         let mut seen = Vec::new();
-        assert_eq!(note_suffix("Summary", &mut seen), " summary.md");
-        assert_eq!(note_suffix("Meeting minutes", &mut seen), " Meeting minutes.md");
-        assert_eq!(note_suffix("Meeting minutes", &mut seen), " Meeting minutes 2.md");
-        assert_eq!(note_suffix("", &mut seen), " summary 2.md");
-        assert_eq!(note_suffix("Ask: what next?", &mut seen), " Ask. what next.md");
+        assert_eq!(note_label("Summary", &mut seen), "Summary");
+        assert_eq!(note_label("Meeting minutes", &mut seen), "Meeting minutes");
+        assert_eq!(note_label("Meeting minutes", &mut seen), "Meeting minutes 2");
+        assert_eq!(note_label("", &mut seen), "Summary 2");
+        assert_eq!(note_label("Ask: what next?", &mut seen), "Ask. what next");
+    }
+
+    #[test]
+    fn files_start_with_their_part() {
+        assert_eq!(TRANSCRIPT.file_name("Lecture, 24 Sep 2026, 0900"), "Transcript, Lecture, 24 Sep 2026, 0900.txt");
+        assert_eq!(AUDIO.file_name("Lecture, 24 Sep 2026, 0900"), "Audio, Lecture, 24 Sep 2026, 0900.ogg");
+        let note = Part { label: "Meeting minutes", ext: ".md" };
+        assert_eq!(note.file_name("Lecture, 24 Sep 2026, 0900"), "Meeting minutes, Lecture, 24 Sep 2026, 0900.md");
+    }
+
+    #[test]
+    fn the_name_is_found_inside_a_base_name() {
+        assert_eq!(name_of_base("Lecture, week 3, 24 Sep 2026, 0900"), "Lecture, week 3");
+        assert_eq!(name_of_base("Lecture, 4 Sep 2026, 0900"), "Lecture");
+        assert_eq!(name_of_base("Lecture, 24 Sep 2026, 0900 (2)"), "Lecture");
+        assert_eq!(name_of_base("Something else"), "Something else");
+    }
+
+    #[test]
+    fn rebase_changes_only_files_named_by_notefetch() {
+        let old = "Lecture, 24 Sep 2026, 0900";
+        let new = "Seminar, 24 Sep 2026, 0900";
+        assert_eq!(rebase("Transcript, Lecture, 24 Sep 2026, 0900.txt", old, new).as_deref(), Some("Transcript, Seminar, 24 Sep 2026, 0900.txt"));
+        assert_eq!(rebase("Q&A, part 2, Lecture, 24 Sep 2026, 0900.md", old, new).as_deref(), Some("Q&A, part 2, Seminar, 24 Sep 2026, 0900.md"));
+        assert_eq!(rebase("metadata.json", old, new), None);
+        assert_eq!(rebase("My notes.txt", old, new), None);
+        assert_eq!(rebase("Transcript, Lecture, 24 Sep 2026, 0900 (2).txt", old, new), None, "another recording's file");
     }
 }

@@ -190,9 +190,9 @@ With several recordings selected, only the items that make sense for a group are
 
 ## What is saved
 
-One folder per recording inside the output folder. The folder name is the recording name first, then a comma, then the local start date and time, for example `Cognitive neuroscience week 3, 2026-09-24 1430`.
+One folder per recording inside the output folder. The folder name is the recording name first, then a comma, then the local start date and time with the month in letters, for example `Cognitive neuroscience week 3, 24 Sep 2026, 1430`. Laurent chose this form in milestone 2: the letters and commas keep a screen reader from running the date into "number salad". There is no colon in the time because Windows forbids colons in names.
 
-Plaud's default name for a recording is its date and time, such as "2026-09-09 17:27:14", and a renamed recording may keep them at the end, such as "Staff training 2026-09-24 09:00:26". A trailing date and time in that form is removed from the Plaud name before the base name is built, so it is not repeated. If nothing is left, the name is "Untitled", for example `Untitled, 2026-09-09 1727`.
+Plaud's default name for a recording is its date and time, such as "2026-09-09 17:27:14", and a renamed recording may keep them at the end, such as "Staff training 2026-09-24 09:00:26". A trailing date and time in that form is removed from the Plaud name before the base name is built, so it is not repeated. If nothing is left, the name is "Untitled", for example `Untitled, 9 Sep 2026, 1727`.
 
 - The name comes first so that screen reader users hear the meaningful part straight away, and first-letter navigation works in File Explorer and file dialogs.
 - The date and time suffix keeps names unique when the same name is used twice, for example a weekly lecture.
@@ -203,19 +203,19 @@ Plaud's default name for a recording is its date and time, such as "2026-09-09 1
 - A clash that remains, such as two recordings with the same name started in the same minute, gets " (2)" added at the end.
 - If the recording is later renamed in Plaud, nothing local changes; `metadata.json` records the new Plaud name.
 
-Every file inside the folder carries the same base name as the folder, so a file keeps its meaning when it is copied elsewhere, for example into a transcription tool. With the base name `Cognitive neuroscience week 3, 2026-09-24 1430`, the folder holds:
+Every file inside the folder starts with what it is, then the folder's base name, so first-letter navigation in File Explorer finds the transcript or summary at once, and a file keeps its meaning when it is copied elsewhere, for example into a transcription tool. Laurent's convention from milestone 2: "Transcript, <name>, 24 Sep 2026, 0900.txt". With the base name `Cognitive neuroscience week 3, 24 Sep 2026, 1430`, the folder holds:
 
-- `Cognitive neuroscience week 3, 2026-09-24 1430.ogg`: the audio. Plaud serves Ogg Opus (`audio/ogg`), mono, about 34 kilobits per second, so two hours is about 30 MB. The extension is `.ogg`, chosen by Laurent, because upload forms accept it more often than `.opus`.
-- `... transcript.txt`: one line per segment, as start time, speaker, then text, from the `transaction` block.
-- `... cleaned transcript.txt`: the same, from Plaud's AI-cleaned `transaction_polish` block.
-- `... outline.txt`: one line per topic, as start time then topic, from the `outline` block.
-- `... highlights.txt`: the moments flagged with the recorder's button, from the `mark_memo` block.
-- `... summary.md`: the note on the Summary tab. Each other tab in the Plaud app is saved as its own Markdown file named after the tab, for example `... Meeting minutes.md`.
+- `Audio, Cognitive neuroscience week 3, 24 Sep 2026, 1430.ogg`: the audio. Plaud serves Ogg Opus (`audio/ogg`), mono, about 34 kilobits per second, so two hours is about 30 MB. The extension is `.ogg`, chosen by Laurent, because upload forms accept it more often than `.opus`. Heidi Health accepts it (tested by Laurent).
+- `Transcript, ... .txt`: one line per segment, as start time, speaker, then text, from the `transaction` block.
+- `Cleaned transcript, ... .txt`: the same, from Plaud's AI-cleaned `transaction_polish` block.
+- `Outline, ... .txt`: one line per topic, as start time then topic, from the `outline` block.
+- `Highlights, ... .txt`: the moments flagged with the recorder's button, from the `mark_memo` block.
+- `Summary, ... .md`: the note on the Summary tab. Each other tab in the Plaud app is saved as its own Markdown file labelled with the tab's name, for example `Meeting minutes, ... .md`. A setting saves notes as `.txt` instead, with the same text inside.
 - `metadata.json`: Plaud ID, original Plaud name, current local name, start time, duration, and when each part was downloaded. This keeps a fixed name, because the app uses it to recognise the folder.
 
 A file is written only when Plaud has content for it. There are no empty placeholder files (Laurent: "No empty placeholders for recordings where these items don't exist"). A part that appears later, such as a summary Plaud generates after the recording, is written on a later sync.
 
-Settings choose which parts to download: audio, transcript, summary, and the other parts (cleaned transcript, outline and highlights) together. All are on by default.
+Settings choose which parts to download: audio, transcript, summary, and the other parts (cleaned transcript, outline and highlights) together. All are on by default. Another setting saves notes as `.txt` rather than `.md`; off by default.
 
 ## Downloads and network behaviour
 
@@ -241,6 +241,7 @@ A dialog built from a resource template, with:
 - sync on start (on or off);
 - confirm before deleting (on or off);
 - what to download (audio, transcript, summary, other parts);
+- save notes as .txt instead of .md (off by default);
 - how many days to keep checking for missing transcripts and summaries;
 - announcement level and completion tone;
 - a Sign out button.

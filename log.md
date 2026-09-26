@@ -41,7 +41,7 @@ Heidi's help pages and developer pages do not say which audio formats it accepts
 If Heidi refuses it, NoteFetch can also save an MP3 copy using FFmpeg, which is already installed on your computer, without making NoteFetch itself bigger. I would add that as a setting, off by default.
 
 ANSWER:
-
+I've tested the .ogg file with Heidi and it works perfectly.
 ## 2026-09-26: Milestone 1 finished: Plaud works on your free plan
 
 ### The short version

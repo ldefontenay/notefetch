@@ -176,6 +176,20 @@ Full findings in `test-milestone-1.txt`. The ones that change the design:
 - **Release exe is 2.5 MB**, against StableSound's 1 MB. Most of it is SQLite, compiled in, and the HTTP stack. Acceptable for a single-file app; revisit only if it matters to anyone.
 - **Not yet tried:** cancelling a download part way (the code path exists and removes the `.part` file; the window's Escape will exercise it in milestone 3). A process killed mid-download leaves a `.part` file until that recording is next fetched, when it is overwritten.
 
+### What Laurent's milestone 2 test settled (27 September 2026)
+
+Full answers in `test-milestone-2.txt`. This replaces the naming in "Every file named after the recording, name first" above, which stays as the record of what was first decided.
+
+- **Dates in names are "24 Sep 2026, 0900".** Laurent: "\"24 Sep 2026, 09:00\" reads well with jaws. The letters and comma prevent it from sounding like number salad." The colon is left out because Windows forbids it in names. `[proven]` that JAWS reads the old ISO form as numbers; the new form is `[reasoned]` until he hears it.
+- **Each file starts with what it is.** Laurent: "Please follow this naming convention, making it quicker for a screenreader user to find what they're looking for: \"Transcript, [name], 24 Sep 2026, 0900.txt\"". So every file is "Label, base name.ext": Audio, Transcript, Cleaned transcript, Outline, Highlights, Summary, or a note tab's own name. The audio follows the same pattern as the rest, `[reasoned]`: consistent, and A for Audio works with first-letter navigation.
+- **Commas as pauses:** "Commas are good."
+- **Name first works:** pressing T went straight to "Test lecture". `[proven]`
+- **Date modified shows the recording start.** JAWS read 24/09/2026 09:00 and 21/09/2026 16:01. `[proven]`
+- **Transcript layout stays** (time, speaker, text): "The current format is fine."
+- **The outline is worth keeping:** "Useful, could help if I wanted to review bits of the actual recording."
+- **Markdown summaries open in Laurent's own program** (Leasy Word). He asked for a setting: "provide an option to save files as a .txt (essentially just changing the extention), keeping .md as the default". Added as `notes_as_txt`.
+- **Heidi Health accepts the .ogg audio.** Laurent: "I've tested the .ogg file with Heidi and it works perfectly." No MP3 conversion is needed.
+
 ### Name: NoteFetch
 
 - Rejected names:

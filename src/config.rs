@@ -29,6 +29,8 @@ pub struct Config {
     pub download_summary: bool,
     /// The cleaned transcript, outline and highlights.
     pub download_other: bool,
+    /// Save notes, which are Markdown, with .txt instead of .md.
+    pub notes_as_txt: bool,
     /// Days after a recording's start during which missing parts are retried.
     pub retry_days: u32,
     pub announcements: Announcements,
@@ -46,6 +48,7 @@ impl Default for Config {
             download_transcript: true,
             download_summary: true,
             download_other: true,
+            notes_as_txt: false,
             retry_days: 14,
             announcements: Announcements::All,
             completion_tone: false,
@@ -82,6 +85,7 @@ impl Config {
                 "download_transcript" => set_bool(&mut c.download_transcript, value),
                 "download_summary" => set_bool(&mut c.download_summary, value),
                 "download_other" => set_bool(&mut c.download_other, value),
+                "notes_as_txt" => set_bool(&mut c.notes_as_txt, value),
                 "retry_days" => value.parse().map(|v| c.retry_days = v).is_ok(),
                 "announcements" => match value.to_ascii_lowercase().as_str() {
                     "all" => Some(Announcements::All),
@@ -135,6 +139,10 @@ impl Config {
              download_summary = {}\n\
              download_other = {}\n\
              \n\
+             # Save summaries and other notes as .txt instead of .md. The\n\
+             # text inside is the same Markdown either way.\n\
+             notes_as_txt = {}\n\
+             \n\
              # For how many days after a recording to keep checking for a\n\
              # transcript or summary that Plaud has not made yet.\n\
              retry_days = {}\n\
@@ -154,6 +162,7 @@ impl Config {
             yn(self.download_transcript),
             yn(self.download_summary),
             yn(self.download_other),
+            yn(self.notes_as_txt),
             self.retry_days,
             yn(self.completion_tone),
             yn(self.log_to_file),
@@ -265,6 +274,7 @@ mod tests {
         let c = Config {
             output_folder: PathBuf::from(r"D:\Lectures"),
             download_other: false,
+            notes_as_txt: true,
             retry_days: 30,
             announcements: Announcements::ErrorsAndCompletion,
             ..Config::default()

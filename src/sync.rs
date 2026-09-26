@@ -251,10 +251,11 @@ impl Engine {
         let now = clock::now_utc().iso_utc();
 
         let texts = self.texts(&detail);
-        for (part, suffix, text) in &texts {
-            let existed = self.library.file_path(&location, suffix).exists();
-            if self.library.write_text(&location, suffix, text)? && !existed {
-                meta.parts.insert(part.clone(), now.clone());
+        for t in &texts {
+            let part = naming::Part { label: &t.label, ext: &t.ext };
+            let existed = self.library.file_path(&location, part).exists();
+            if self.library.write_text(&location, part, &t.text)? && !existed {
+                meta.parts.insert(t.key.clone(), now.clone());
             }
         }
         self.library.write_metadata(&location, &meta)?;
@@ -306,34 +307,49 @@ impl Engine {
         Ok(location)
     }
 
-    /// The text parts to write, as (metadata part name, file suffix, text).
-    fn texts(&self, d: &Detail) -> Vec<(String, String, String)> {
+    /// The text parts to write.
+    fn texts(&self, d: &Detail) -> Vec<Text> {
         let mut out = Vec::new();
+        let mut add = |key: String, part: naming::Part, text: String| {
+            out.push(Text { key, label: part.label.to_string(), ext: part.ext.to_string(), text });
+        };
         if self.config.download_transcript
             && let Some(t) = &d.transcript
         {
-            out.push(("transcript".into(), naming::TRANSCRIPT.into(), plaud::transcript_text(t)));
+            add("transcript".into(), naming::TRANSCRIPT, plaud::transcript_text(t));
         }
         if self.config.download_summary {
+            // Notes are Markdown. Laurent asked for a setting to save them as
+            // .txt for anyone whose programs do not open .md files.
+            let ext = if self.config.notes_as_txt { ".txt" } else { ".md" };
             let mut seen = Vec::new();
             for n in &d.notes {
-                let suffix = naming::note_suffix(&n.tab, &mut seen);
-                out.push((format!("note: {}", n.tab), suffix, n.markdown.clone()));
+                let label = naming::note_label(&n.tab, &mut seen);
+                add(format!("note: {}", n.tab), naming::Part { label: &label, ext }, n.markdown.clone());
             }
         }
         if self.config.download_other {
             if let Some(t) = &d.cleaned_transcript {
-                out.push(("cleaned transcript".into(), naming::CLEANED_TRANSCRIPT.into(), plaud::transcript_text(t)));
+                add("cleaned transcript".into(), naming::CLEANED_TRANSCRIPT, plaud::transcript_text(t));
             }
             if let Some(o) = &d.outline {
-                out.push(("outline".into(), naming::OUTLINE.into(), plaud::outline_text(o)));
+                add("outline".into(), naming::OUTLINE, plaud::outline_text(o));
             }
             if let Some(h) = &d.highlights {
-                out.push(("highlights".into(), naming::HIGHLIGHTS.into(), plaud::highlights_text(h)));
+                add("highlights".into(), naming::HIGHLIGHTS, plaud::highlights_text(h));
             }
         }
         out
     }
+}
+
+/// A text part: its name in metadata.json, its file label and extension, and
+/// its content.
+struct Text {
+    key: String,
+    label: String,
+    ext: String,
+    text: String,
 }
 
 /// "audio, transcript and summary", from what the database now says.

@@ -126,9 +126,11 @@ impl Stamp {
         )
     }
 
-    /// "2026-09-24 1430", the suffix of every folder and file name.
+    /// "24 Sep 2026, 1430", the end of every folder and file name. The month in
+    /// letters and the comma stop a screen reader running the numbers together
+    /// (Laurent, milestone 2). No colon, which Windows forbids in names.
     pub fn name_suffix(&self) -> String {
-        format!("{:04}-{:02}-{:02} {:02}{:02}", self.year, self.month, self.day, self.hour, self.minute)
+        format!("{} {} {}, {:02}{:02}", self.day, MONTHS[self.month as usize - 1], self.year, self.hour, self.minute)
     }
 }
 
@@ -318,7 +320,8 @@ mod tests {
     fn list_and_name_forms() {
         let s = Stamp::parse("2026-09-24T14:30:00").unwrap();
         assert_eq!(s.list_date(), "Thu 24 Sep 2026, 14:30");
-        assert_eq!(s.name_suffix(), "2026-09-24 1430");
+        assert_eq!(s.name_suffix(), "24 Sep 2026, 1430");
+        assert_eq!(Stamp::parse("2026-02-01T09:05:00").unwrap().name_suffix(), "1 Feb 2026, 0905");
         assert_eq!(Stamp::parse("2026-02-01T09:05:00").unwrap().list_date(), "Sun 1 Feb 2026, 09:05");
     }
 

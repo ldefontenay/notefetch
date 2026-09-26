@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::clock::{self, Stamp};
 use crate::error::{Error, Result, disk};
-use crate::naming::{self, METADATA};
+use crate::naming::{self, METADATA, Part};
 use crate::store::{Record, State, Store};
 
 /// `metadata.json` in every recording folder.
@@ -169,9 +169,8 @@ impl Library {
 
     /// Write a text part if Plaud has content for it and the file is not
     /// already there. Returns true if the file now exists.
-    pub fn write_text(&self, location: &str, suffix: &str, text: &str) -> Result<bool> {
-        let dir = self.path_of(location);
-        let path = dir.join(format!("{}{suffix}", base_of(location)));
+    pub fn write_text(&self, location: &str, part: Part, text: &str) -> Result<bool> {
+        let path = self.file_path(location, part);
         if path.exists() {
             return Ok(true);
         }
@@ -182,8 +181,8 @@ impl Library {
         Ok(true)
     }
 
-    pub fn file_path(&self, location: &str, suffix: &str) -> PathBuf {
-        self.path_of(location).join(format!("{}{suffix}", base_of(location)))
+    pub fn file_path(&self, location: &str, part: Part) -> PathBuf {
+        self.path_of(location).join(part.file_name(base_of(location)))
     }
 
     pub fn read_metadata(&self, location: &str) -> Option<Metadata> {
@@ -241,8 +240,8 @@ impl Library {
         let mut done: Vec<(PathBuf, PathBuf)> = Vec::new();
         let result = (|| -> Result<()> {
             for (name, path) in files(&old_dir)? {
-                if let Some(rest) = name.strip_prefix(&old_base) {
-                    let to = old_dir.join(format!("{new_base}{rest}"));
+                if let Some(renamed) = naming::rebase(&name, &old_base, &new_base) {
+                    let to = old_dir.join(renamed);
                     std::fs::rename(&path, &to).map_err(|e| disk("rename", &path, &e))?;
                     done.push((to, path));
                 }
@@ -400,8 +399,8 @@ fn read_recording(dir: &Path, location: &str) -> Option<Found> {
     let base = base_of(location);
     Some(Found {
         location: location.to_string(),
-        has_audio: dir.join(format!("{base}{}", naming::AUDIO)).is_file(),
-        has_transcript: dir.join(format!("{base}{}", naming::TRANSCRIPT)).is_file(),
+        has_audio: dir.join(naming::AUDIO.file_name(base)).is_file(),
+        has_transcript: dir.join(naming::TRANSCRIPT.file_name(base)).is_file(),
         metadata,
     })
 }
@@ -504,8 +503,8 @@ mod tests {
         let t = TempDir::new("base");
         let lib = Library::new(t.0.clone());
         let loc = make(&lib, "a", "Lecture");
-        assert_eq!(loc, "Lecture, 2026-09-24 1430");
-        assert!(t.0.join("Lecture, 2026-09-24 1430").join("Lecture, 2026-09-24 1430 transcript.txt").is_file());
+        assert_eq!(loc, "Lecture, 24 Sep 2026, 1430");
+        assert!(t.0.join("Lecture, 24 Sep 2026, 1430").join("Transcript, Lecture, 24 Sep 2026, 1430.txt").is_file());
     }
 
     #[test]
@@ -514,7 +513,7 @@ mod tests {
         let lib = Library::new(t.0.clone());
         let a = make(&lib, "a", "Lecture");
         let b = make(&lib, "b", "Lecture");
-        assert_eq!(b, "Lecture, 2026-09-24 1430 (2)");
+        assert_eq!(b, "Lecture, 24 Sep 2026, 1430 (2)");
         assert_eq!(lib.create_recording_folder("a", "Lecture", &start()).unwrap(), a);
     }
 
@@ -535,7 +534,7 @@ mod tests {
         lib.create_folder("Neuroscience").unwrap();
         lib.create_folder("Empty").unwrap();
         let moved = lib.move_to(&loc, Some("Neuroscience")).unwrap();
-        assert_eq!(moved, "Neuroscience\\Lecture, 2026-09-24 1430");
+        assert_eq!(moved, "Neuroscience\\Lecture, 24 Sep 2026, 1430");
         std::fs::create_dir_all(t.0.join("Neuroscience").join("Deeper")).unwrap();
         let scan = lib.scan().unwrap().unwrap();
         assert_eq!(scan.folders, ["Empty", "Neuroscience"]);
@@ -580,10 +579,10 @@ mod tests {
         let loc = make(&lib, "a", "Untitled");
         std::fs::write(t.0.join(&loc).join("notes of mine.txt"), b"x").unwrap();
         let new = lib.rename(&loc, "Neuroscience: week 3", &start()).unwrap();
-        assert_eq!(new, "Neuroscience. week 3, 2026-09-24 1430");
+        assert_eq!(new, "Neuroscience. week 3, 24 Sep 2026, 1430");
         let dir = t.0.join(&new);
-        assert!(dir.join("Neuroscience. week 3, 2026-09-24 1430.ogg").is_file());
-        assert!(dir.join("Neuroscience. week 3, 2026-09-24 1430 transcript.txt").is_file());
+        assert!(dir.join("Audio, Neuroscience. week 3, 24 Sep 2026, 1430.ogg").is_file());
+        assert!(dir.join("Transcript, Neuroscience. week 3, 24 Sep 2026, 1430.txt").is_file());
         assert!(dir.join("notes of mine.txt").is_file(), "files of the user's are left alone");
         assert_eq!(lib.read_metadata(&new).unwrap().local_name, "Neuroscience. week 3");
     }
@@ -593,16 +592,17 @@ mod tests {
         let t = TempDir::new("rollback");
         let lib = Library::new(t.0.clone());
         let loc = make(&lib, "a", "Lecture");
-        // Hold the audio open without sharing delete access, as a media
-        // player might, so Windows refuses to rename it.
+        // Hold the transcript open without sharing delete access, as an editor
+        // might, so Windows refuses to rename it. The audio sorts first, so it
+        // is renamed before the refusal and must be put back.
         use std::os::windows::fs::OpenOptionsExt;
-        let held = std::fs::OpenOptions::new().read(true).share_mode(1).open(lib.file_path(&loc, naming::AUDIO)).unwrap();
+        let held = std::fs::OpenOptions::new().read(true).share_mode(1).open(lib.file_path(&loc, naming::TRANSCRIPT)).unwrap();
         assert!(lib.rename(&loc, "New name", &start()).is_err());
         drop(held);
         let dir = t.0.join(&loc);
-        assert!(dir.join("Lecture, 2026-09-24 1430.ogg").is_file());
-        assert!(dir.join("Lecture, 2026-09-24 1430 transcript.txt").is_file(), "the transcript was put back");
-        assert!(!t.0.join("New name, 2026-09-24 1430").exists());
+        assert!(dir.join("Audio, Lecture, 24 Sep 2026, 1430.ogg").is_file(), "the audio was put back");
+        assert!(dir.join("Transcript, Lecture, 24 Sep 2026, 1430.txt").is_file());
+        assert!(!t.0.join("New name, 24 Sep 2026, 1430").exists());
     }
 
     #[test]
@@ -611,7 +611,7 @@ mod tests {
         let lib = Library::new(t.0.clone());
         make(&lib, "a", "Lecture");
         let b = make(&lib, "b", "Lecture");
-        assert_eq!(lib.rename(&b, "Seminar", &start()).unwrap(), "Seminar, 2026-09-24 1430 (2)");
+        assert_eq!(lib.rename(&b, "Seminar", &start()).unwrap(), "Seminar, 24 Sep 2026, 1430 (2)");
     }
 
     #[test]
@@ -622,7 +622,7 @@ mod tests {
         lib.create_folder("Course").unwrap();
         lib.move_to(&loc, Some("Course")).unwrap();
         let moved = lib.delete_folder("Course").unwrap();
-        assert_eq!(moved, [("Course\\Lecture, 2026-09-24 1430".to_string(), "Lecture, 2026-09-24 1430".to_string())]);
+        assert_eq!(moved, [("Course\\Lecture, 24 Sep 2026, 1430".to_string(), "Lecture, 24 Sep 2026, 1430".to_string())]);
         assert!(!t.0.join("Course").exists());
         assert!(t.0.join(&loc).is_dir());
     }

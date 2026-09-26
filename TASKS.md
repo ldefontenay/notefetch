@@ -64,7 +64,8 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 - [x] A hidden `--sync` developer flag that runs a sync and prints plain progress lines, so the engine can be tested before the interface exists.
 - [x] `cargo test` and `cargo clippy -- -D warnings` both clean.
 - [x] Also done: developer flags for rename, move, delete, skip and folders (`src/main.rs`), and `NOTEFETCH_DATA` to keep development data in `test-data`.
-- [ ] Test script `test-milestone-2.txt`: names and files in File Explorer with JAWS.
+- [x] Test script `test-milestone-2.txt`: names and files in File Explorer with JAWS.
+- [x] After the test: dates as "24 Sep 2026, 0900", files labelled first ("Transcript, name, date.txt"), and the `notes_as_txt` setting.
 
 ## Milestone 3: main window
 
