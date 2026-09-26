@@ -30,14 +30,16 @@ Plaud runs a hosted MCP server. NoteFetch is a native MCP client of that server.
 - Authorisation: OAuth 2.1 as defined by the MCP authorisation spec. This was checked against the live discovery documents on 26 September 2026:
   - protected resource metadata names `https://mcp.plaud.ai/` as the authorisation server;
   - the authorisation server offers a registration endpoint (dynamic client registration), the authorisation code grant with PKCE S256, refresh tokens, and `none` as a token endpoint auth method (a public client with no secret).
-- Tools, as documented for the npm server and to be confirmed on the hosted one in milestone 1:
-  - `list_files`: list recordings, with optional name query, date range, page and page size;
-  - `get_file`: full details for one recording, including `presigned_url`, a temporary audio link valid for 24 hours;
-  - `get_transcript`: transcript with timestamps and speaker labels;
-  - `get_note`: AI summaries in Markdown, including those made with custom templates.
 - Client: a small MCP client of NoteFetch's own over reqwest, adapted from plaud-cli (MIT), not rmcp. See PLAN.md.
-- Times in replies carry no zone and are UTC. They are converted to local time everywhere they are shown or used in a name.
-- Plaud lists the MCP server (Beta) on every plan, including the free Starter plan. To be confirmed in milestone 1.
+- The server is stateless (no session ID) and wraps every tool reply in a safety envelope: a sentence, then the JSON between `<untrusted-user-data-XXXX ...>` and its closing tag, where XXXX is random. The client takes the JSON from inside the tag that starts a line.
+- The free Starter plan has full access (proven in milestone 1).
+- Tools used (proven in milestone 1, see `test-milestone-1.txt`):
+  - `list_files`: newest first, `page_size` from 10 to 100, no total count. NoteFetch asks for 100 per page and stops at the first page with fewer than 100.
+  - `get_file`: everything about one recording in one call: metadata, `presigned_url` (the audio link, valid 24 hours), every note (one per tab in the Plaud app, as Markdown) and every transcript block (as JSON).
+  - `get_transcript` and `get_note`: used only if `get_file` ever returns a block without its content. `get_transcript` pages 50 segments at a time with a cursor.
+- Times in replies carry no zone and are UTC (proven). They are converted to local time everywhere they are shown or used in a name.
+- Durations and transcript times are in milliseconds.
+- Signed links (`presigned_url`, and the `data_link` on every note and transcript block) are secrets and are never logged.
 
 ## Sign-in
 
@@ -48,7 +50,7 @@ Plaud runs a hosted MCP server. NoteFetch is a native MCP client of that server.
   4. It waits for the redirect, exchanges the code and stores the tokens.
 - The page returned to the browser after sign-in is plain, accessible HTML with `lang="en-GB"`, an `h1`, and one sentence telling the user to return to NoteFetch.
 - While waiting, the app says so in the log and offers Cancel. Sign-in times out after five minutes.
-- Tokens refresh automatically, and the MCP session is started again after each refresh. If refresh fails, the app says in plain words that the user needs to sign in again, and offers to do it.
+- Access tokens last 24 hours and refresh automatically. Each refresh returns a new refresh token, which is saved before anything else happens, and only one refresh runs at a time. If refresh fails, the app says in plain words that the user needs to sign in again, and offers to do it.
 - Sign out deletes the stored tokens and client registration.
 
 ## Main window
@@ -106,7 +108,7 @@ The app also has a menu bar (File, Recording, Actions, Help) that lists every co
 
 "Sync new" runs when the app starts (a setting, on by default) and on Ctrl+S.
 
-- It pages through `list_files` and compares against the local database.
+- It pages through `list_files` and compares against the local database, then calls `get_file` for each recording it needs.
 - It downloads anything not yet complete: new recordings, earlier failures, and recordings still waiting for a transcript or summary.
 - It never downloads recordings marked Deleted or Skipped. Only the user can bring those back, with Download again.
 - Recordings with no transcript or summary yet are checked again on later syncs for a set number of days (a setting, 14 by default), because Plaud may generate them later. After that the missing parts count as "not available" and are no longer retried.
@@ -191,9 +193,9 @@ Plaud's default name for a recording is its date and time, such as "2026-09-09 1
 
 Every file inside the folder carries the same base name as the folder, so a file keeps its meaning when it is copied elsewhere, for example into a transcription tool. With the base name `Cognitive neuroscience week 3, 2026-09-24 1430`, the folder holds:
 
-- `Cognitive neuroscience week 3, 2026-09-24 1430.mp3`: the audio, with the extension taken from the response content type (to be confirmed in milestone 1).
-- `Cognitive neuroscience week 3, 2026-09-24 1430 transcript.txt`: one line per segment, as timestamp, speaker, then text.
-- `Cognitive neuroscience week 3, 2026-09-24 1430 summary.md`: the AI summary. Extra summaries are numbered (`summary 2.md` and so on), or named from the template title if Plaud provides one.
+- `Cognitive neuroscience week 3, 2026-09-24 1430.opus`: the audio. Plaud serves Ogg Opus (`audio/ogg`), mono, about 34 kilobits per second, so two hours is about 30 MB. The extension, `.opus` or `.ogg`, is still to be settled with Laurent.
+- `Cognitive neuroscience week 3, 2026-09-24 1430 transcript.txt`: one line per segment, as start time, speaker, then text, from the `transaction` block.
+- `Cognitive neuroscience week 3, 2026-09-24 1430 summary.md`: the note on the Summary tab. Each other tab in the Plaud app is saved as its own file named after the tab, for example `... Meeting minutes.md`.
 - `metadata.json`: Plaud ID, original Plaud name, current local name, start time, duration, and when each part was downloaded. This keeps a fixed name, because the app uses it to recognise the folder.
 
 Settings choose which of audio, transcript and summary to download. All three are on by default.
@@ -259,17 +261,10 @@ These are hard requirements, not preferences.
 - Logs do not contain transcript or summary text.
 - The repository must never contain tokens, real recordings, transcripts or summaries, even temporarily, because the full history becomes public on release.
 
-## Open questions for milestone 1
+## Open questions
 
-- Does Plaud's registration endpoint accept a loopback redirect address on a free port, as plaud-cli shows?
-- Does the free Starter plan have access?
-- Are the tool names and response shapes on the hosted server the same as those documented for the npm server, and as plaud-cli's code expects?
-- Does plain paging of `list_files` go beyond 500 recordings?
-- Do replies carry any folder or tag fields, for the organisation feature?
-- Are times UTC, as other projects report? Check against a recording whose default name holds its local start time.
-- Does `get_file` on the hosted server return `presigned_url`?
-- What audio format and content type do downloads have?
-- What is the maximum `list_files` page size, and how does paging behave?
-- How long do access and refresh tokens last?
-- What scope, if any, does the server require?
-- Default names are answered (see "What is saved"). Still check the exact form in `list_files` replies, which may differ from the web app.
+Milestone 1 answered the earlier questions; see `test-milestone-1.txt`. Still open:
+
+- The audio file extension, `.opus` or `.ogg`, and whether Laurent's player and transcription tool accept Opus.
+- The organisation feature (Plaud exposes no folders or tags).
+- Whether plain paging of `list_files` goes past 500 recordings. The test account has 71.

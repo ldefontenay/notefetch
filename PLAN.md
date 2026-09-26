@@ -146,6 +146,20 @@ Proposed in `log.md` and accepted by Laurent: "Happy with all of them."
 - Laurent, asked whether he uses Plaud folders: "I would like to be better organised, so please implement relevant features."
 - The documented `list_files` parameters are `query`, `date_from`, `date_to`, `page` and `page_size`, with no folder or tag. Milestone 1 checks whether the raw replies carry folder or tag fields anyway. The organisation feature is designed after that, in its own milestone, from what the server actually provides. If it provides nothing, NoteFetch can offer local groups (for example one per course) with a subfolder each.
 
+### What milestone 1 proved (26 September 2026)
+
+Full findings in `test-milestone-1.txt`. The ones that change the design:
+
+- **The free Starter plan works.** `[proven]`
+- **Loopback sign-in with a fresh registration works first time.** `[proven]` The fallback to the npm server is no longer needed.
+- **Refresh tokens rotate.** `[proven]` Every refresh returns a new refresh token. Save it at once, and let only one refresh run at a time, or two parallel downloads could each refresh and one would be left holding a dead token.
+- **Replies come in a safety envelope** with a random tag. `[proven]` plaud-cli predates it and reads nothing from the current server, so code borrowed from it must unwrap the envelope.
+- **`get_file` returns everything.** `[proven]` Notes as Markdown and the full transcript arrive with the audio link, so a sync needs `list_files` plus one `get_file` per recording. `get_transcript` and `get_note` stay as fallbacks.
+- **Audio is Ogg Opus, not MP3.** `[proven]` About 34 kilobits per second, mono. The `.mp3` in the original spec was an assumption. Which extension to use is being asked.
+- **No folders or tags are exposed.** `[proven]` Organisation has to be NoteFetch's own. Proposed to Laurent in `log.md`.
+- **Times are UTC; default names are local.** `[proven]`
+- **Transcript segments have end times.** `[proven]` Contrary to another project's report.
+
 ### Name: NoteFetch
 
 - Rejected names:
@@ -183,12 +197,7 @@ GitHub projects read on 26 September 2026:
 
 ## Not yet verified
 
-- Whether the free Starter plan can use the hosted server.
-- Loopback redirect acceptance at `/register` on Laurent's account (plaud-cli suggests yes).
-- Tool names and response shapes on the hosted server (plaud-cli's code gives a first picture).
-- Whether plain paging of `list_files` stops at 500 recordings.
-- Whether replies carry folder or tag fields.
-- The audio format of downloads.
-- Token lifetimes.
+- Whether plain paging of `list_files` stops at 500 recordings (the test account has 71).
+- How long a refresh token lasts if unused. The server does not say.
 - Plaud's terms of service on third-party clients, and use of the Plaud name.
 - Whether SignPath's free code signing for open-source projects is available for this project.

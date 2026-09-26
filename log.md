@@ -2,6 +2,121 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-09-26: Milestone 1 finished: Plaud works on your free plan
+
+### The short version
+
+- **Everything works on your free plan.** Sign-in, listing all 71 of your recordings, fetching a transcript and summary, downloading audio, and refreshing the sign-in.
+- **The audio is not MP3.** Plaud sends Ogg Opus, a compact format: your two-hour training session is 30 MB. I need your help deciding the file extension, see question 1.
+- **Plaud does not share its folders** with outside apps, so NoteFetch has to keep its own. I have a proposal below and would like your view before I build anything.
+- **Two surprises the other projects had not seen,** both handled: Plaud now wraps its replies in a safety envelope, and every refresh of the sign-in replaces the refresh token.
+- The full findings are in test-milestone-1.txt, in plain text. PLAN.md, SPEC.md, TASKS.md and CLAUDE.md are updated. Milestone 2, the engine, waits for your answers below, because two of them change what gets saved.
+
+### What the probe found
+
+- **Sign-in:** worked first time. The sign-in lasts 24 hours and then renews itself in the background. You will not normally see it again.
+- **The safety envelope:** each reply from Plaud now starts with a sentence saying the contents are recording data, not instructions, and puts the data inside a tag with a random name. This protects AI assistants from instructions hidden in a recording's name or transcript. plaud-cli was written before this and would find no recordings at all; my first run did the same until I handled it.
+- **Refresh tokens change each time.** NoteFetch must save the new one straight away, and must never renew twice at once, or it could lose your sign-in. That is now in the plan.
+- **One call per recording gets everything:** the audio link, the whole transcript (all 572 lines of your two-hour session), and every note tab. That makes syncing simpler and faster than planned.
+- **Times:** Plaud stores them in UTC. Your recording named "2026-09-09 17:27:14" has a start time of 16:27:14 UTC, which is 17:27 in British Summer Time. So the times in Plaud's names are local, and NoteFetch converts correctly.
+- **Transcripts** have start and end times and speaker names. Another project said end times were missing; they are not.
+- **Notes:** your recording had one note tab, "Summary", in Markdown. Other tabs, such as a template or a saved Ask Plaud answer, would each be saved as their own file named after the tab.
+- **Listing:** 10 to 100 recordings per page, newest first. Your oldest recording is from February 2026.
+- **Not testable:** whether listing stops at 500 recordings, since you have 71. Plaud's own description says the 500 limit applies to searching by name or date, which NoteFetch does not use.
+
+### Proposal: organising recordings
+
+Plaud has folders in its app, but they are invisible to outside apps. So NoteFetch would keep its own folders. My proposal, to change as you like:
+
+- **A recording can be put in one folder,** such as "Neuroscience" or "Work training". On disk, the folder is a subfolder of the output folder, so File Explorer shows the same organisation.
+- **A "Folder" combo box** after the "Show" combo box, with "All folders", "Not in a folder" and then each folder by name. Together with Show, this answers questions like "which neuroscience lectures have I not downloaded yet?"
+- **A Folder column** in the list, after Name.
+- **"Move to folder"** on the context menu and the Recording menu, with a shortcut such as Ctrl+Shift+M. It opens a small dialog: a list of existing folders, and an edit box to type a new folder's name. Moving works on several selected recordings at once.
+- **Rename and delete folders** from a Folder menu. Deleting a folder moves its recordings back to "Not in a folder", never to the Recycle Bin.
+- **Later, if useful:** automatic rules, such as "recordings whose name contains 'lecture' go to Neuroscience". Your recordings are mostly named by date until you rename them, so rules would rarely match, and I would leave this out of the first version.
+
+### Questions
+
+#### Question 1: .opus or .ogg?
+
+Both extensions describe the same file. On your computer, .opus, .ogg and .mp3 all open with the same default program, so playing is fine either way. The difference is other programs: many upload forms on transcription websites accept ".ogg" but not ".opus". I recommend .ogg.
+
+To hear it for yourself, there are two copies of your newest recording in the NoteFetch folder, under test-data, milestone-1, audio: "sample recording.opus" and "sample recording.ogg". Pressing Enter on each in File Explorer should play it. Did both play?
+
+ANSWER:
+
+#### Question 2: which transcription tool do you plan to use?
+
+If it does not accept Opus audio at all, NoteFetch would need to convert to MP3, which means shipping a converter. I would rather know now.
+
+ANSWER:
+
+#### Question 3: is the folder proposal right?
+
+Is "Folder" the right word, or would you prefer "Course", "Group" or something else? Is one folder per recording enough, or do you want a recording in several at once, like tags?
+
+ANSWER:
+
+#### Question 4: which extra transcript parts do you want?
+
+Besides the transcript and the notes, Plaud can provide:
+
+- an AI-cleaned transcript, tidier to read but further from what was actually said (empty for the recording I tried);
+- an outline of the recording's topics;
+- the moments you flagged with the button on the recorder while recording, if you use it.
+
+Which of these, if any, should NoteFetch save?
+
+ANSWER:
+
+## 2026-09-26: Your answers applied, repository created, and the probe ready for your sign-in
+
+### The short version
+
+- **I need you for one step.** A Plaud sign-in page should now be open in your default browser. Please sign in there. The page afterwards says "Signed in to Plaud"; then close the tab. I am waiting for up to five minutes. When it succeeds, I run the rest of the probe and report here.
+- **All your answers are in the plan.** PLAN.md records each decision with your words; SPEC.md, TASKS.md and CLAUDE.md are updated to match.
+- **Milestone 0 is done.** The private repository is at github.com/ldefontenay/notefetch, with three commits.
+- **The milestone 1 probe is written and has passed its first step.** Plaud's discovery documents read exactly as in PLAN.md.
+
+### Your free plan
+
+Plaud's own pricing page lists "Plaud MCP server (Beta)" for every plan, including the free Starter plan. One outside article says Pro is needed. The first call after your sign-in settles it. If Starter is refused, I stop and tell you here before anything else.
+
+### What changed in the plan, from your answers
+
+- **rmcp dropped.** NoteFetch gets its own small client, adapted from plaud-cli, with Lee Gonzales's MIT notice kept in the code.
+- **Web requests use Windows' own security layer.** The web library's newest version defaults to a different one that needs extra build tools, so I switched it back to Windows' own, as PLAN.md intended.
+- **Names.** Your examples showed that Plaud's default name is the date and time, and that you add the date and time to renamed ones too. So NoteFetch removes a date and time from the end of a Plaud name before adding its own. An unnamed recording becomes "Untitled, 2026-09-09 1727", so all the unnamed ones sit together under U in File Explorer, ready to rename. Say if you would rather have something else.
+- **Statuses.** "No transcript", "No summary", and "Audio only" when both are missing, as you asked. "Waiting for transcript" is gone.
+- **Organising.** You asked for features to help you stay organised. Plaud's documentation shows no folder or tag options in the server, but the probe checks whether the replies carry folder or tag information anyway. I will design the feature from what the probe finds and bring it to you before building. If Plaud gives us nothing, NoteFetch can keep its own groups, for example one per course, each with its own subfolder.
+- **The other changes you accepted** (fresh registration at each sign-in, UTC times, list keys only in the list, an early announcement test, plain error messages) are all recorded.
+
+### Milestone 0: the repository
+
+- Created privately on GitHub with the planning files, log.md and the MIT licence (the same wording as StableSound's).
+- GitHub's secret scanning is not available for private repositories on your account. GitHub replied "Secret scanning is not available for this repository".
+- Instead, I installed gitleaks with winget and added a check that runs before every commit. It is in the repository's hooks folder, so it survives a fresh copy. I tested it: it refused a commit holding a made-up GitHub token.
+
+### One change to your words
+
+Your example of a renamed recording named a workplace training course. The repository will be public one day, with its whole history, so I replaced it with "Staff training 2026-09-24 09:00:26" in PLAN.md, SPEC.md and in your answer in this log, with a note saying so. The date and time, which were the point of the example, are unchanged.
+
+### The probe
+
+It is a small throwaway program in spike/plaud-probe. It prints plain text only and never prints tokens, client IDs, codes or audio links. Anything it saves goes in test-data, which git ignores. It does, in order:
+
+1. Discovery (done): the server, sign-in and registration addresses, PKCE, and a public client with no secret are all as PLAN.md says.
+2. Sign-in (waiting for you): registers on a free port, opens your browser, and records how long tokens last.
+3. The tool list and their parameters.
+4. Your account details, which is also the free plan check.
+5. list_files at page sizes from 1 to 1000, then every page, to count recordings and see whether paging stops at 500.
+6. Any folder or tag fields.
+7. Whether times are UTC, by comparing recordings whose name is still their date and time with their start time.
+8. get_file, get_transcript and get_note on your newest recording.
+9. Downloading that recording's audio, to learn its format.
+
+Token refresh is checked later, once the first token has expired.
+
 ## 2026-09-26: Plan review, and what already exists on GitHub
 
 ### The short version

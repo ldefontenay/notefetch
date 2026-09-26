@@ -1,0 +1,112 @@
+NoteFetch milestone 1: findings from the plaud-probe spike
+
+Run on 26 September 2026 against Laurent's own Plaud account, on the free
+Starter plan, with spike/plaud-probe. Raw replies are in test-data, which git
+ignores. No recording names, IDs, tokens or links appear in this file.
+
+Everything below is proven on the live server unless marked otherwise.
+
+
+SIGN-IN
+
+1. Discovery documents are as recorded in PLAN.md. The resource metadata is at
+   /.well-known/oauth-protected-resource/mcp. No scopes are advertised, and
+   there is no revocation endpoint.
+2. Registration with a loopback redirect on a random port is accepted:
+   HTTP 201. The reply holds client_id, client_id_issued_at, client_name,
+   grant_types, redirect_uris, response_types and token_endpoint_auth_method
+   ("none"). No client secret.
+3. Sign-in in the browser with PKCE and resource=https://mcp.plaud.ai/mcp
+   worked first time. Laurent signed in and the browser returned to the
+   probe's page.
+4. Token reply: access_token, refresh_token, expires_in, token_type "bearer".
+   No scope. The access token lasts 86400 seconds (24 hours). No lifetime is
+   given for the refresh token.
+5. Refresh works: HTTP 200, a new 24-hour access token, and a NEW refresh
+   token every time. Refresh tokens rotate, so the new one must be saved
+   before anything else happens, and only one refresh may run at a time.
+6. The free Starter plan has full access to the MCP server.
+
+
+THE MCP SERVER
+
+7. Server "plaud" version 0.3.12, protocol 2025-06-18. It gives no
+   Mcp-Session-Id, so it is stateless.
+8. Five tools: list_files, get_file, get_note, get_transcript,
+   get_current_user. (The npm server's login and logout tools are not there.)
+9. Every tool reply wraps its data in a safety envelope: a sentence saying the
+   contents are user data, not instructions, then the JSON between
+   <untrusted-user-data-XXXX source="plaud-recording"> and the matching
+   closing tag, where XXXX is random each time. The sentence names the tag
+   too, so the real opening tag is the one at the start of a line.
+   plaud-cli predates this and would read nothing.
+
+
+LISTING
+
+10. list_files: page_size must be from 10 to 100. Outside that range it
+    returns an error.
+11. The reply has type "list", page, page_size and data. There is no total
+    count. Paging works with no overlap; the last page is the first one with
+    fewer items than page_size.
+12. Newest first, by start time.
+13. Each item: id, name, created_at, start_at, duration (milliseconds),
+    serial_number (null in the list, filled in by get_file).
+14. The account has 71 recordings, the oldest from February 2026. Whether
+    plain paging stops at 500 cannot be tested on this account. The tool's own
+    description says the 500 limit applies to filtering (query and dates),
+    which NoteFetch does not need.
+15. No folder, tag or category fields anywhere, in list_files or get_file.
+
+
+TIMES
+
+16. All times are UTC with no zone marker. Proven: a recording whose default
+    name is its local start time "17:27:14" (British Summer Time) has
+    start_at "16:27:14". The date and time in Plaud's default names are
+    local.
+17. start_at sometimes has microseconds (".699000"), sometimes not.
+18. created_at is roughly when the recording ended and was uploaded.
+
+
+ONE RECORDING
+
+19. get_file returns everything in one call:
+    - the metadata above;
+    - presigned_url, the audio link (24 hours);
+    - note_list: one entry per tab in the app, each with data_tab_name,
+      data_title, data_type (for example "auto_sum_note"), and data_content,
+      which is the Markdown text itself;
+    - source_list: the transcript blocks "transaction" (the transcript),
+      "transaction_polish" (AI-cleaned, empty for the recording tried) and
+      "outline", each with data_content holding the whole block as JSON.
+    For a two-hour recording the transcript was complete in get_file: all 572
+    segments. So NoteFetch needs list_files and get_file only, with
+    get_transcript and get_note as fallbacks if data_content is ever empty.
+20. Every note and source entry also has data_link, a signed Amazon S3 link.
+    These are secrets, like presigned_url, and must never be logged.
+21. Transcript segments: start_time and end_time (milliseconds), speaker,
+    original_speaker, content. End times are present, contrary to another
+    project's report.
+22. get_transcript pages its reply 50 segments at a time (limit, offset,
+    total, returned, next_cursor). It also offers the "mark_memo" block,
+    moments flagged with the device's button.
+23. get_note gives the same notes as get_file's note_list.
+
+
+AUDIO
+
+24. Content type audio/ogg. The file is Ogg Opus, mono, 48 kHz, about 34
+    kilobits per second: 30 MB for just under two hours.
+25. Content-Length is given and matched the bytes written. The server accepts
+    byte ranges and gives an ETag, so interrupted downloads could resume.
+
+
+OPEN AFTER MILESTONE 1
+
+- Which file extension to use (.opus or .ogg), and whether Laurent's player
+  and transcription tool accept Opus. Asked in log.md.
+- How organisation should work, since Plaud exposes no folders. Proposed in
+  log.md.
+- Behaviour of plain paging past 500 recordings. Not testable on this
+  account.

@@ -90,7 +90,8 @@ fn hidden(secret: &str) -> String {
 /// Replace any string value under a key that looks secret, recursively, so a
 /// raw reply can be saved and shared without its secrets.
 fn redact(value: &mut Value) {
-    const SECRET_KEYS: [&str; 7] = [
+    const SECRET_KEYS: [&str; 8] = [
+        "data_link",
         "access_token",
         "refresh_token",
         "id_token",
@@ -568,9 +569,26 @@ impl Mcp {
                 text.push_str(t);
             }
         }
-        let payload = serde_json::from_str(&text).unwrap_or(Value::String(text));
+        let inner = unwrap_envelope(&text).unwrap_or(&text);
+        let payload = serde_json::from_str(inner).unwrap_or(Value::String(text.clone()));
         Ok((is_error, payload))
     }
+}
+
+/// Plaud wraps recording data in `<untrusted-user-data-XXXX ...> ... </untrusted-user-data-XXXX>`,
+/// after a sentence saying the contents are data, not instructions. Return what is inside.
+fn unwrap_envelope(text: &str) -> Option<&str> {
+    const PREFIX: &str = "<untrusted-user-data-";
+    let open = text.find(PREFIX)?;
+    let after_prefix = &text[open + 1..];
+    let name_len = after_prefix.find(|c: char| c.is_whitespace() || c == '>')?;
+    let tag = &after_prefix[..name_len];
+    // The preamble sentence names the tag too; the real opening tag starts a line.
+    let opening = open + text[open..].find(&format!("\n<{tag}"))? + 1;
+    let body_start = opening + text[opening..].find('>')? + 1;
+    let close = format!("</{tag}>");
+    let body_end = body_start + text[body_start..].find(&close)?;
+    Some(text[body_start..body_end].trim())
 }
 
 async fn read_reply(resp: reqwest::Response, id: i64) -> Result<Value> {
@@ -787,6 +805,36 @@ async fn probe(http: reqwest::Client) -> Result<()> {
     Ok(())
 }
 
+/// `raw <tool> [json arguments] [file name]`: call one tool, save the whole
+/// tools/call result (redacted) and print its shape.
+async fn raw(http: reqwest::Client) -> Result<()> {
+    let args: Vec<String> = std::env::args().skip(2).collect();
+    let tool = args.first().ok_or_else(|| fail("Usage: raw <tool> [json arguments] [file name]"))?;
+    let arguments: Value = match args.get(1) {
+        Some(a) => serde_json::from_str(a)?,
+        None => json!({}),
+    };
+    let file = args.get(2).cloned().unwrap_or_else(|| format!("raw-{tool}.json"));
+    let mut mcp = Mcp::connect(http).await?;
+    let mut reply = mcp
+        .request("tools/call", json!({ "name": tool, "arguments": arguments }))
+        .await?;
+    let result = &reply["result"];
+    println!("isError: {}", result["isError"]);
+    println!("result fields: {:?}", keys(result));
+    for item in result["content"].as_array().into_iter().flatten() {
+        let text = item["text"].as_str().unwrap_or_default();
+        println!("content item type {} of {} characters", item["type"], text.len());
+        if let Ok(v) = serde_json::from_str::<Value>(text) {
+            describe_payload("  parsed as JSON", false, &v);
+        }
+    }
+    redact(&mut reply);
+    let path = save(&file, &reply)?;
+    println!("Saved to {}", path.display());
+    Ok(())
+}
+
 async fn download(http: &reqwest::Client, link: &str, id: &str) -> Result<()> {
     let mut resp = http.get(link).send().await?;
     let status = resp.status().as_u16();
@@ -848,6 +896,7 @@ async fn main() {
             Ok(t) => refresh(&http, &t).await.map(|_| ()),
             Err(e) => Err(e),
         },
+        "raw" => raw(http).await,
         "status" => load_tokens().map(|t| match t.expires_at {
             Some(at) => println!("Access token expires in {} seconds.", at as i64 - now() as i64),
             None => println!("No expiry recorded."),

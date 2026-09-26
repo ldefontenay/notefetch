@@ -42,7 +42,7 @@ The skill has nothing yet on list views, context menus in a dialog, in-place lab
 
 ## Current state
 
-Check TASKS.md for the first unticked milestone before starting work. Milestone 1 is a spike in `spike/plaud-probe` that must answer the "Open questions" in SPEC.md, including whether the free Plaud plan has access and whether loopback redirects are accepted, before the real app is written. If loopback redirects are refused, follow the fallback in PLAN.md.
+Check TASKS.md for the first unticked milestone before starting work. Milestone 1's spike in `spike/plaud-probe` answered the sign-in and server questions; its findings are in `test-milestone-1.txt`. `cargo run -- raw <tool> '<json>'` there calls any tool and saves the reply to `test-data/milestone-1/`.
 
 ## Hard rules
 
@@ -101,7 +101,7 @@ Engine modules, none of which touch windows:
 
 - `config`: `notefetch.conf`, beside the exe or in `%APPDATA%\NoteFetch`.
 - `auth`: OAuth with a fresh client registration at each sign-in, the loopback callback listener and its accessible success page, and DPAPI storage in `auth.bin` (client ID and tokens).
-- `plaud`: the MCP client (`initialize`, `tools/call`, plain JSON or SSE replies, and a new session after each token refresh) and typed wrappers for `list_files`, `get_file`, `get_transcript` and `get_note`. Response types come from the raw JSON saved in `test-data/` during milestone 1. Plaud times are UTC and are converted to local.
+- `plaud`: the MCP client (`initialize`, `tools/call`, plain JSON or SSE replies, unwrapping Plaud's `<untrusted-user-data-XXXX>` envelope, and a new session after each token refresh) and typed wrappers. A sync needs only `list_files` and `get_file`, which returns notes and the full transcript with the audio link; `get_transcript` and `get_note` are fallbacks. Response types come from the raw JSON in `test-data/milestone-1/` and `test-milestone-1.txt`. Plaud times are UTC and are converted to local. Refresh tokens rotate: one refresh at a time, and save the new one at once.
 - `store`: rusqlite database in `%LOCALAPPDATA%\NoteFetch`, with migrations.
 - `naming`: base names (recording name, comma, local date and time), cleaning, shortening and clash handling, and setting modified dates to the recording start time.
 - `download`: streaming to `.part`, refetching expired links, retries and cancellation.
@@ -114,7 +114,7 @@ Rules that span several modules:
 - Sync must never override the Deleted or Skipped states, and never overwrite a local name.
 - A rename covers the folder and every file in it, and either completes fully or is fully undone.
 - `metadata.json` keeps its fixed name so a renamed folder can still be recognised. Every other file uses the folder's base name.
-- Presigned audio links count as secrets. They must not appear in the Log, `notefetch.log` or error text.
+- Signed links count as secrets: `presigned_url` and the `data_link` on every note and transcript block. They must not appear in the Log, `notefetch.log` or error text.
 - Transcript and summary text must not appear in logs.
 
 ## Working method

@@ -16,20 +16,20 @@ A throwaway command-line program. Plain text output only, with no colour codes o
 
 Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike confirms it on Laurent's account and records what nobody has published. Its sign-in and MCP client code, adapted from plaud-cli, is the first draft of the real `auth` and `plaud` modules.
 
-- [ ] Fetch the discovery documents and print the key fields.
-- [ ] Bind a free loopback port and register a client for it. Record exactly what `/register` accepts and returns (with the client ID shortened in anything printed).
-- [ ] Complete sign-in in the browser, with PKCE and the `resource` value, and record the token lifetimes and any scope in the response.
-- [ ] First gate: the first tool call shows whether the free Starter plan has access. If refused, stop and report to Laurent.
-- [ ] `initialize`, then `tools/list`, and save the full tool schemas to `test-data/`.
-- [ ] Call `list_files` with several page sizes. Record the minimum and maximum page size, the paging behaviour, and whether paging goes past 500 recordings if the account has that many.
-- [ ] Record any folder or tag fields in `list_files` and `get_file` replies.
-- [ ] Check that times are UTC, by comparing `start_at` with a recording whose Plaud name is still its default date and time.
-- [ ] Call `get_file` on one recording and confirm `presigned_url` is present.
-- [ ] Download the audio. Record the content type, extension and size.
-- [ ] Call `get_transcript` and `get_note`, and save the raw JSON to `test-data/`.
-- [ ] Wait for the access token to expire and confirm that refresh works.
-- [ ] Write findings to `test-milestone-1.txt`, and update SPEC.md "Open questions" and PLAN.md.
-- [ ] Decision gate: if loopback redirects are refused, stop and follow the fallback in PLAN.md before going further.
+- [x] Fetch the discovery documents and print the key fields.
+- [x] Bind a free loopback port and register a client for it. Record exactly what `/register` accepts and returns (with the client ID shortened in anything printed).
+- [x] Complete sign-in in the browser, with PKCE and the `resource` value, and record the token lifetimes and any scope in the response.
+- [x] First gate: the first tool call shows whether the free Starter plan has access. If refused, stop and report to Laurent.
+- [x] `initialize`, then `tools/list`, and save the full tool schemas to `test-data/`.
+- [x] Call `list_files` with several page sizes. Record the minimum and maximum page size, the paging behaviour, and whether paging goes past 500 recordings if the account has that many. (10 to 100; the account has 71, so the 500 question stays open.)
+- [x] Record any folder or tag fields in `list_files` and `get_file` replies.
+- [x] Check that times are UTC, by comparing `start_at` with a recording whose Plaud name is still its default date and time.
+- [x] Call `get_file` on one recording and confirm `presigned_url` is present.
+- [x] Download the audio. Record the content type, extension and size.
+- [x] Call `get_transcript` and `get_note`, and save the raw JSON to `test-data/`.
+- [x] Wait for the access token to expire and confirm that refresh works.
+- [x] Write findings to `test-milestone-1.txt`, and update SPEC.md "Open questions" and PLAN.md.
+- [x] Decision gate: if loopback redirects are refused, stop and follow the fallback in PLAN.md before going further. (Accepted first time.)
 - [ ] Design the organisation feature from what the server provides, add it to SPEC.md, and add a milestone for it here.
 
 ## Milestone 2: core engine, no interface
@@ -41,7 +41,7 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
   - [ ] the loopback callback listener;
   - [ ] the accessible success page returned to the browser;
   - [ ] DPAPI storage in `auth.bin`.
-- [ ] `plaud` module: the small MCP client (plain JSON or SSE replies, re-`initialize` after a token refresh), and typed wrappers for the four tools with response types based on the milestone 1 JSON. Times converted from UTC to local, with unit tests around the clock changes.
+- [ ] `plaud` module: the small MCP client (plain JSON or SSE replies, the safety envelope unwrapped, re-`initialize` after a token refresh, one refresh at a time with the rotated refresh token saved at once), and typed wrappers for `list_files` and `get_file` (with `get_transcript` and `get_note` as fallbacks) with response types based on the milestone 1 JSON. Times converted from UTC to local, with unit tests around the clock changes.
 - [ ] `store` module: rusqlite database of recordings, with migrations. It holds:
   - the state of each part;
   - the local name alongside the original Plaud name;
