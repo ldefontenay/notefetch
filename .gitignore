@@ -1,0 +1,30 @@
+# Build output
+/target/
+spike/*/target/
+
+# Secrets and local state: never commit
+auth.bin
+*.token
+tokens*.json
+notefetch.conf
+*.db
+*.db-journal
+*.db-wal
+*.sqlite
+notefetch.log
+
+# Real recordings and text used during development
+/test-data/
+*.part
+*.mp3
+*.m4a
+*.opus
+*.ogg
+*.wav
+*.aac
+
+# Editor and OS clutter
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
