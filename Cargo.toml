@@ -1,0 +1,34 @@
+[workspace]
+# spike/ holds the milestone 1 probe. Built on its own, so it does not drag
+# the app's lockfile around.
+exclude = ["spike"]
+
+[package]
+name = "notefetch"
+version = "0.1.0"
+edition = "2024"
+description = "Download your Plaud recordings, transcripts and summaries"
+license = "MIT"
+
+[dependencies]
+base64 = "0.23.1"
+rand = "0.10.3"
+reqwest = { version = "0.13.5", default-features = false, features = ["json", "form", "native-tls", "http2", "system-proxy", "charset"] }
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sha2 = "0.11.0"
+tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "net", "io-util", "time", "fs", "sync"] }
+url = "2.5.8"
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Cryptography", "Win32_System_Memory", "Win32_System_Time", "Win32_System_Com", "Win32_UI_Shell", "Win32_UI_Shell_Common", "Win32_Storage_FileSystem", "Win32_System_SystemInformation"] }
+
+[build-dependencies]
+embed-resource = "3"
+
+# Size matters: the aim is a small portable exe, as with StableSound.
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
