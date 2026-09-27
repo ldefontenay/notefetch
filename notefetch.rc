@@ -1,11 +1,121 @@
 // NoteFetch's resources, compiled into the exe by build.rs.
 //
-// Milestone 2 has only the manifest and version. The dialogs, menu and
-// accelerators arrive in milestone 3.
+// THREE RULES FOR THE MAIN WINDOW. Breaking any of them breaks the reading
+// for a screen reader user while looking perfectly fine on screen.
+//
+// 1. Every label comes immediately before the control it names. Windows
+//    reads a static label as the name of the control that FOLLOWS it in this
+//    file, and only looks backwards. Move a label after its control and the
+//    control has no name at all.
+// 2. Every Alt letter is unique across the controls AND the menu bar titles,
+//    because both answer Alt+letter in the same window. In use:
+//      Menu bar:  F File, R Recording, L Folder, A Actions, H Help
+//      Controls:  S Show, E Folder, N Filter by name, C Recordings,
+//                 Y Sync new, D Download selected, O Open output folder,
+//                 G Log
+// 3. Every label reads correctly on its own. A screen reader user hears one
+//    control at a time; JAWS does not reliably announce group boxes, so there
+//    are none.
+//
+// Tab order is the order of this file, and follows SPEC.md "Main window".
 
 #include <windows.h>
+#include <commctrl.h>
 
 1 RT_MANIFEST "notefetch.manifest"
+
+#define IDD_MAIN            100
+#define IDR_MENU            200
+#define IDR_ACCEL           201
+
+#define IDC_SHOW           1001
+#define IDC_FOLDER         1002
+#define IDC_FILTER         1003
+#define IDC_LIST           1004
+#define IDC_SYNC           1005
+#define IDC_DOWNLOAD       1006
+#define IDC_OPEN_OUTPUT    1007
+#define IDC_LOG            1008
+
+#define IDM_EXIT           2001
+#define IDM_DOWNLOAD       2010
+#define IDM_SELECT_ALL     2011
+#define IDM_OPEN_RECORDING 2012
+#define IDM_SYNC           2020
+#define IDM_REFRESH        2021
+#define IDM_CANCEL         2022
+#define IDM_FIND           2023
+#define IDM_OPEN_OUTPUT    2024
+#define IDM_TEST_SPEECH    2030
+
+IDD_MAIN DIALOGEX 0, 0, 400, 292
+STYLE DS_SETFONT | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
+EXSTYLE WS_EX_APPWINDOW
+CAPTION "NoteFetch"
+MENU IDR_MENU
+FONT 9, "Segoe UI", 400, 0, 0x1
+BEGIN
+    LTEXT       "&Show:", -1, 7, 9, 26, 8
+    COMBOBOX    IDC_SHOW, 36, 7, 120, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_GROUP | WS_TABSTOP
+
+    LTEXT       "Fold&er:", -1, 170, 9, 28, 8
+    COMBOBOX    IDC_FOLDER, 200, 7, 193, 160, CBS_DROPDOWNLIST | WS_VSCROLL | WS_GROUP | WS_TABSTOP
+
+    LTEXT       "Filter by &name:", -1, 7, 27, 56, 8
+    EDITTEXT    IDC_FILTER, 66, 25, 327, 12, ES_AUTOHSCROLL | WS_GROUP | WS_TABSTOP
+
+    LTEXT       "Re&cordings:", -1, 7, 44, 100, 8
+    CONTROL     "", IDC_LIST, "SysListView32", LVS_REPORT | LVS_SHOWSELALWAYS | WS_BORDER | WS_GROUP | WS_TABSTOP, 7, 54, 386, 146
+
+    PUSHBUTTON  "S&ync new", IDC_SYNC, 7, 205, 70, 14, WS_GROUP | WS_TABSTOP
+    PUSHBUTTON  "&Download selected", IDC_DOWNLOAD, 82, 205, 84, 14, WS_TABSTOP
+    PUSHBUTTON  "&Open output folder", IDC_OPEN_OUTPUT, 171, 205, 84, 14, WS_TABSTOP
+
+    LTEXT       "Lo&g:", -1, 7, 225, 100, 8
+    EDITTEXT    IDC_LOG, 7, 235, 386, 50, ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL | WS_GROUP | WS_TABSTOP
+END
+
+// Every command with its shortcut, so commands can be found without the help.
+IDR_MENU MENU
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "E&xit\tAlt+F4", IDM_EXIT
+    END
+    POPUP "&Recording"
+    BEGIN
+        MENUITEM "&Download selected\tCtrl+D", IDM_DOWNLOAD
+        MENUITEM "Open the recording's &folder\tCtrl+Shift+O", IDM_OPEN_RECORDING
+        MENUITEM "Select &all\tCtrl+A", IDM_SELECT_ALL
+    END
+    POPUP "Fo&lder"
+    BEGIN
+        MENUITEM "&Open output folder\tCtrl+O", IDM_OPEN_OUTPUT
+    END
+    POPUP "&Actions"
+    BEGIN
+        MENUITEM "&Sync new\tCtrl+S", IDM_SYNC
+        MENUITEM "&Refresh the list from Plaud\tF5", IDM_REFRESH
+        MENUITEM "&Cancel what is running\tEscape", IDM_CANCEL
+        MENUITEM SEPARATOR
+        MENUITEM "Move to the &filter box\tCtrl+F", IDM_FIND
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&Test a spoken announcement", IDM_TEST_SPEECH
+    END
+END
+
+// Window-wide keys only. Keys that belong to the list (Ctrl+A, Ctrl+D,
+// Ctrl+Shift+O, and later Enter, Delete and F2) are handled by the list
+// itself, so they keep their usual meaning in the filter box.
+IDR_ACCEL ACCELERATORS
+BEGIN
+    "S", IDM_SYNC, VIRTKEY, CONTROL
+    VK_F5, IDM_REFRESH, VIRTKEY
+    "F", IDM_FIND, VIRTKEY, CONTROL
+    "O", IDM_OPEN_OUTPUT, VIRTKEY, CONTROL
+END
 
 // Keep the numbers in step with the version in Cargo.toml.
 VS_VERSION_INFO VERSIONINFO

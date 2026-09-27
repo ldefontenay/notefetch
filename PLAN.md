@@ -190,6 +190,17 @@ Full answers in `test-milestone-2.txt`. This replaces the naming in "Every file 
 - **Markdown summaries open in Laurent's own program** (Leasy Word). He asked for a setting: "provide an option to save files as a .txt (essentially just changing the extention), keeping .md as the default". Added as `notes_as_txt`.
 - **Heidi Health accepts the .ogg audio.** Laurent: "I've tested the .ogg file with Heidi and it works perfectly." No MP3 conversion is needed.
 
+### Milestone 3: the main window (27 September 2026)
+
+- **Built from the template, as planned.** A modeless dialog with a menu and an accelerator table, pumped by our own loop: accelerators, then `IsDialogMessageW`. The list's keys (Ctrl+A, Ctrl+D, Ctrl+Shift+O) are handled in a subclass of the list, so Ctrl+A in the filter box selects the text.
+- **Alt letters shared with the menu bar.** Controls and menu titles both answer Alt+letter in one window, so the menu took F, R, L, A and H, and the controls S, E, N, C, Y, D, O and G. A unit test reads `notefetch.rc` and fails if any letter is used twice.
+- **The probe, run on the live window:** every control is named by its label, every Alt key is present and unique, and the list rows carry their other columns as the description ("Date: ..., Duration: ..., Status: ..."). `[proven]` by the probe. Its one warning: ten rows are all named "Untitled", which a listener hearing only names cannot tell apart. The description carries the date, so whether this matters depends on how JAWS reads rows; asked in `test-milestone-3.txt`.
+- **Focus in the list is remembered by Plaud ID** from the list's own change notifications, not read back from the list, because rebuilding the list moved its focus before it could be restored (seen once on the live window: focus landed on the second row). The fix is `[untested]` live: the check was stopped because Laurent was using the computer, and a test window takes the foreground.
+- **The Log reports only what changed.** A recording checked again for a missing transcript now logs "Checked ... again: Plaud has no transcript or summary for it yet." rather than "Downloaded", and the final line of a sync is no longer logged twice.
+- **Announcements** use `UiaRaiseNotificationEvent` on the provider from `UiaHostProviderFromHwnd`. `[untested]` with JAWS; the Help menu has "Test a spoken announcement" for this round.
+- **Known limits in this version:** no sign-in from the window, no first-sync question, no Settings, no Help file, and Enter in the list does nothing. The worker's "not signed in" message tells the user to use a Sign in command that does not exist until milestone 5.
+- **Testing on the development data:** `test-data\Start NoteFetch test.cmd` sets `NOTEFETCH_DATA` and starts the release build, so Laurent can test without a sign-in dialog.
+
 ### Name: NoteFetch
 
 - Rejected names:

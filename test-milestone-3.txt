@@ -1,0 +1,215 @@
+NoteFetch milestone 3 test: the main window
+
+This is the first test of NoteFetch's own window. It runs on a test copy of
+your data, in the NoteFetch folder under test-data, so nothing touches your
+Documents folder.
+
+Not in this version yet, so please do not count them as faults: signing in
+from the window, the question about how much history to download, Settings,
+the Help file (F1 does nothing yet), Enter on a recording, the context menu,
+renaming and deleting. Those come in milestones 4 to 6.
+
+Please write your answers after each ANSWER line. Leave any you cannot do
+blank, and say so. Save the file when you are done.
+
+
+SECTION 1: OPENING THE WINDOW
+
+1. In File Explorer, go to C:\Users\ldefo\dev\NoteFetch\test-data and press
+   Enter on "Start NoteFetch test.cmd". A black command window may flash for
+   a moment; then NoteFetch opens.
+   Expected: JAWS reads the window title, NoteFetch, then the Recordings list
+   and the first recording. Within a few seconds you should also hear
+   "Syncing with Plaud." and then "Sync finished. Everything is up to date."
+   What did JAWS say, and did you hear both announcements?
+
+ANSWER:
+
+2. If you did not hear the announcements, which JAWS version do you have?
+   (Insert+J, then Help, About, or however you normally check.)
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 2: THE RECORDINGS LIST
+
+3. Press Down Arrow a few times, then Up Arrow back to the top.
+   Expected: each row reads its name, then Date, Duration and Status, for
+   example "Test lecture, Mon 21 Sep 2026, 16:01, 29 minutes, Audio only",
+   probably with the column names. Recordings never named in Plaud read as
+   "Untitled".
+   What does JAWS read for one row? Is the order right, and is anything
+   missing or too much?
+
+ANSWER:
+
+4. Most of your recordings are called "Untitled", so the name alone does not
+   tell them apart; the date does. Is that workable, or would you rather the
+   Name column also carried the date, as the folder names do ("Untitled, 9
+   Sep 2026, 1727")?
+
+ANSWER:
+
+5. Press Ctrl+A.
+   Expected: "All 71 recordings selected." Then press Down Arrow once so only
+   one is selected again.
+   What happened?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 3: GETTING AROUND
+
+6. With focus in the list, press Tab repeatedly and note each thing JAWS
+   reads, until you are back in the list.
+   Expected, in this order: Sync new button, Download selected button, Open
+   output folder button, Log, Show combo box, Folder combo box, Filter by name
+   edit, then the Recordings list again.
+   Was the order the same? Did every control have a clear name?
+
+ANSWER:
+
+7. Try each Alt key: Alt+S (Show), Alt+E (Folder), Alt+N (Filter by name),
+   Alt+C (Recordings), Alt+Y (Sync new), Alt+D (Download selected), Alt+O
+   (Open output folder), Alt+G (Log).
+   Did each one go where its name says? Note that Alt+Y and Alt+D press the
+   button: Alt+Y starts a sync, and Alt+D downloads whatever is selected in
+   the list, so make sure nothing new is selected first, or skip Alt+D.
+
+ANSWER:
+
+8. Press Alt on its own, then Right Arrow through the menus: File,
+   Recording, Folder, Actions, Help. Down Arrow into each.
+   Expected: every command shows its shortcut, for example "Sync new
+   Ctrl+S". Press Escape twice to leave the menus.
+   Anything missing, or named unclearly?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 4: SHOW, FOLDER AND FILTER
+
+9. Press Alt+S, then Down Arrow once to choose "Downloaded". Press Alt+C to
+   go to the list.
+   Expected: only the 2 downloaded recordings are listed.
+   Were they?
+
+ANSWER:
+
+10. Press Alt+S and choose "All recordings" again. Press Alt+E, then Down
+    Arrow until "Neuroscience" is chosen, and go to the list with Alt+C.
+    Expected: only "Test lecture", which I put in a folder called
+    Neuroscience. Its Folder column says Neuroscience.
+    Did you get that?
+
+ANSWER:
+
+11. Press Alt+E and choose "All folders" again. Press Ctrl+F.
+    Expected: focus moves to the Filter by name box.
+    Type "test", wait a moment, then press Alt+C.
+    Expected: only "Test lecture". Then go back with Ctrl+F, clear the box
+    with Ctrl+A and Delete, and check all recordings return.
+    Did filtering work, and did Ctrl+A and Delete in the box act on the text
+    rather than on the recordings?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 5: THE LOG
+
+12. Press Alt+G.
+    Expected: JAWS says "Log, read only edit" and may say nothing more.
+    That is a known Windows limit: a multi-line box is not read out when it
+    gets focus. Press Down Arrow to read it.
+    Expected: the newest line is at the top, as you asked, for example "Sync
+    finished. Everything is up to date." first.
+    Was the newest at the top, and did the arrow keys read it line by line?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 6: DOWNLOADING, PROGRESS AND CANCEL
+
+13. Press Alt+S and choose "Not yet downloaded". Alt+C to the list. Pick one
+    recording (Down Arrow to it), then press Ctrl+D.
+    Expected: "Downloading 1 recording." then, after a few seconds,
+    "Download finished. 1 recording downloaded." The recording disappears
+    from this view, because it is now downloaded, and focus stays in the list.
+    What did you hear, and where was focus afterwards?
+
+ANSWER:
+
+14. Still in "Not yet downloaded", press Ctrl+A, then Ctrl+D to download
+    them all. Wait until you hear a progress announcement such as
+    "Downloaded 3 of 68". Then press Escape.
+    Expected: progress is spoken no more than about every 5 seconds; after
+    Escape you hear "Cancelling." and then "Cancelled. Anything already
+    downloaded has been kept." The window stays open.
+    What did you hear? Were the progress announcements too often, too rare,
+    or about right?
+
+ANSWER:
+
+15. Start the same again (Ctrl+A, Ctrl+D). While it runs, press Alt+F4.
+    Expected: a question, "NoteFetch is still downloading. Stop the download
+    and close NoteFetch?", with No already chosen. Press Enter (No).
+    Expected: NoteFetch stays open and carries on. Press Escape to cancel.
+    Did the question appear, and did No keep NoteFetch open?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 7: OPENING FOLDERS AND TESTING SPEECH
+
+16. Press Ctrl+O.
+    Expected: File Explorer opens the output folder. Close it with Alt+F4
+    and you should be back in NoteFetch.
+    Did it?
+
+ANSWER:
+
+17. In NoteFetch, press Alt+S, choose "Downloaded", Alt+C, arrow to a
+    recording and press Ctrl+Shift+O.
+    Expected: File Explorer opens that recording's own folder. Close it.
+    Did it?
+
+ANSWER:
+
+18. Press Alt+H, then Enter on "Test a spoken announcement".
+    Expected: "This is a test announcement from NoteFetch. If you heard
+    this, announcements work."
+    Did you hear it? Was it clear, or cut off by anything else JAWS said?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 8: CLOSING
+
+19. Press Alt+F4 while nothing is running.
+    Expected: NoteFetch closes at once with no question.
+    Did it?
+
+ANSWER:
+
+20. Open it again with "Start NoteFetch test.cmd". Does it come back with
+    the recordings you downloaded shown as Downloaded, and focus on the
+    first recording in the list?
+
+ANSWER:
+
+
+ANYTHING ELSE YOU WANT TO SAY:

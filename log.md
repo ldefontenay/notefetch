@@ -2,6 +2,45 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-09-27: Milestone 3 built: NoteFetch has a window
+
+### The short version
+
+- **Your milestone 2 answers are applied.** Names now read "Test lecture, 21 Sep 2026, 1601", and every file starts with what it is: "Transcript, Test lecture, 21 Sep 2026, 1601.txt", "Summary, ...", "Audio, ...". There is a setting to save summaries as .txt. And good news on Heidi: no conversion needed.
+- **NoteFetch now has its main window:** the Show and Folder boxes, the filter, the Recordings list, the three buttons, the Log with the newest line at the top, the menu bar, and the keyboard shortcuts.
+- **Please test it:** test-milestone-3.txt, 20 steps, perhaps 30 minutes. You start NoteFetch with "Start NoteFetch test.cmd" in the test-data folder, so it uses the test copy of your data and needs no sign-in.
+- **The most important question is in step 1:** whether JAWS speaks NoteFetch's announcements at all. Everything about progress and completion depends on it.
+- All automatic checks pass: 65 tests, and clippy is clean.
+
+### Your milestone 2 answers
+
+- **Dates:** "24 Sep 2026, 0900". The colon in 09:00 had to go, because Windows does not allow colons in file names.
+- **File names:** your convention, part first. I applied it to the audio too, "Audio, name, date.ogg", so every file follows one pattern and A finds the audio. Say if you would rather the audio had no label.
+- **Summaries as .txt:** a setting, off by default, as you asked. It will be in the Settings window in milestone 5; for now it is a line in the settings file.
+- **Heidi:** recorded in the plan with your words. No MP3 copy needed.
+
+### What I checked on the window myself
+
+I ran the accessibility probe from the skill against the live window before writing your test:
+
+- Every control is named by its label: "Show:", "Folder:", "Filter by name:", "Recordings:", the three buttons, and "Log:".
+- Every Alt key is present and different. There is also an automatic test that fails if two ever clash.
+- The list rows carry their other columns, so JAWS has the date, duration and status to read with each name.
+- The probe warned that ten rows are all called "Untitled". Heard one name at a time, they cannot be told apart; the date should make the difference, and step 4 asks you whether it does.
+
+### Two things I fixed after watching it run
+
+- **The Log said "1 recording fetched"** when NoteFetch had only checked a recording again for a transcript Plaud has not made. It now says "Checked ... again: Plaud has no transcript or summary for it yet."
+- **The last line of a sync appeared twice** in the Log. Now once.
+
+### One thing I could not finish checking
+
+When NoteFetch opens, focus should be on the newest recording. Once it landed on the second one. I changed how NoteFetch remembers the focused recording, but could not confirm the fix: while I was checking, you were using the computer, and my test window would have taken the focus from you. So I stopped opening windows on your desktop. Step 20 checks it.
+
+### Not in this version
+
+Signing in from the window, the first-sync question, Settings, Help, Enter on a recording, the context menu, renaming and deleting. The test file says so at the top.
+
 ## 2026-09-27: Milestone 2 built: the engine works on your real recordings
 
 ### The short version

@@ -69,16 +69,17 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 
 ## Milestone 3: main window
 
-- [ ] `.rc` dialog template with the controls, tab order and Alt mnemonics from SPEC.md.
-- [ ] Menu bar listing every command with its shortcut.
-- [ ] Accelerator table for the window-wide keys only, handled before `IsDialogMessage` in the message loop. The list's own keys are handled in the list view's subclass, so they do not fire in the filter box.
-- [ ] List view: report view, full-row select, keeps its selection visible, newest first. Selection is kept by Plaud ID across refreshes.
-- [ ] Filter box, "Show" combo box, "Folder" combo box, and the Folder column.
-- [ ] Log edit box: read-only, multi-line, capped at a sensible length, newest entry at the top, caret at the start after every write.
-- [ ] A small test of `UiaRaiseNotificationEvent` from the dialog, to learn early whether JAWS speaks it.
-- [ ] Worker thread running the tokio runtime. Commands go in through a channel. Events come out through a queue, with `PostMessageW` sent to the dialog as a signal that events are waiting. The interface thread is the only one that touches windows.
-- [ ] Escape cancels the running operation and does not close the window.
-- [ ] Test script and `test-milestone-3.txt`. Check in particular how JAWS reads list rows and columns, what Tab to the Log says, and whether the test announcement is spoken.
+- [x] `.rc` dialog template with the controls, tab order and Alt mnemonics from SPEC.md.
+- [x] Menu bar listing every command with its shortcut.
+- [x] Accelerator table for the window-wide keys only, handled before `IsDialogMessage` in the message loop. The list's own keys are handled in the list view's subclass, so they do not fire in the filter box.
+- [x] List view: report view, full-row select, keeps its selection visible, newest first. Selection is kept by Plaud ID across refreshes.
+- [x] Filter box, "Show" combo box, "Folder" combo box, and the Folder column.
+- [x] Log edit box: read-only, multi-line, capped at a sensible length, newest entry at the top, caret at the start after every write.
+- [x] A small test of `UiaRaiseNotificationEvent` from the dialog, to learn early whether JAWS speaks it.
+- [x] Worker thread running the tokio runtime. Commands go in through a channel. Events come out through a queue, with `PostMessageW` sent to the dialog as a signal that events are waiting. The interface thread is the only one that touches windows.
+- [x] Escape cancels the running operation and does not close the window.
+- [x] Accessibility probe run on the live window: names, labels, Alt keys and roles correct (see PLAN.md).
+- [ ] Laurent's results in `test-milestone-3.txt`. Test script written. Check in particular how JAWS reads list rows and columns, what Tab to the Log says, and whether the test announcement is spoken.
 
 ## Milestone 4: local recordings
 

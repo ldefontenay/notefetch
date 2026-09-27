@@ -1,7 +1,11 @@
+// No console window: NoteFetch is a window. The developer flags below still
+// print to a terminal by attaching to it.
+#![windows_subsystem = "windows"]
+
 //! NoteFetch: download Plaud recordings, transcripts and summaries.
 //!
-//! Milestone 2 has the engine but no window yet. Hidden developer flags drive
-//! it from a terminal, with plain-text output only:
+//! Run with no arguments, it opens the main window (`ui.rs`). Hidden developer
+//! flags drive the engine from a terminal instead, with plain-text output only:
 //!
 //! - `--sign-in` signs in to Plaud in the browser.
 //! - `--sign-out` forgets the sign-in.
@@ -18,6 +22,7 @@
 //! settings, sign-in and database there instead of in the user's profile.
 
 mod actions;
+mod announce;
 mod auth;
 mod cancel;
 mod clock;
@@ -30,6 +35,8 @@ mod naming;
 mod plaud;
 mod store;
 mod sync;
+mod ui;
+mod worker;
 
 use std::sync::{Arc, Mutex};
 
@@ -38,7 +45,7 @@ use crate::config::Config;
 use crate::error::{Error, Result};
 use crate::sync::{Engine, Event, FirstSync};
 
-fn http_client() -> Result<reqwest::Client> {
+pub fn http_client() -> Result<reqwest::Client> {
     reqwest::Client::builder()
         .user_agent(concat!("NoteFetch/", env!("CARGO_PKG_VERSION")))
         .connect_timeout(std::time::Duration::from_secs(20))
@@ -147,8 +154,8 @@ async fn run(args: Vec<String>) -> Result<()> {
                 );
             }
         }
-        _ => {
-            println!("NoteFetch {} has no window yet. See the developer flags at the top of src/main.rs.", env!("CARGO_PKG_VERSION"));
+        other => {
+            println!("NoteFetch does not know the option \"{other}\". See the developer flags at the top of src/main.rs.");
         }
     }
     Ok(())
@@ -156,6 +163,14 @@ async fn run(args: Vec<String>) -> Result<()> {
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.is_empty() {
+        std::process::exit(ui::run());
+    }
+    // A developer flag: print to the terminal NoteFetch was started from.
+    // SAFETY: attaching to the parent's console, if it has one.
+    unsafe {
+        let _ = windows::Win32::System::Console::AttachConsole(windows::Win32::System::Console::ATTACH_PARENT_PROCESS);
+    }
     let runtime = match tokio::runtime::Builder::new_multi_thread().enable_all().build() {
         Ok(r) => r,
         Err(_) => {

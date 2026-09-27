@@ -167,14 +167,15 @@ impl Engine {
         report.fetched = fetched;
         report.failed = failed;
         emit(Event::Log(match (fetched, failed) {
-            (f, 0) => format!("Sync finished. {} fetched.", plural(f, "recording")),
-            (f, n) => format!("Sync finished. {} fetched, {} failed. The Log above says why for each.", plural(f, "recording"), n),
+            (0, 0) => "Sync finished. Everything is up to date.".to_string(),
+            (f, 0) => format!("Sync finished. {} downloaded.", plural(f, "recording")),
+            (f, n) => format!("Sync finished. {} downloaded, {} failed. The Log says why for each.", plural(f, "recording"), n),
         }));
         Ok(report)
     }
 
     /// Fetch the given recordings whatever their state: Download selected and
-    /// Download again. Returns (fetched, failed).
+    /// Download again. Returns (recordings with something new, failures).
     pub async fn fetch_many(self: &Arc<Self>, ids: Vec<String>, cancel: &Cancel, emit: Emit) -> Result<(usize, usize)> {
         let total = ids.len();
         let gate = Arc::new(Semaphore::new(AT_ONCE));
@@ -191,20 +192,28 @@ impl Engine {
                 result
             });
         }
-        let (mut fetched, mut failed, mut cancelled) = (0, 0, false);
+        let (mut fetched, mut failed, mut done, mut cancelled) = (0, 0, 0, false);
         emit(Event::Progress { done: 0, total });
         while let Some(joined) = tasks.join_next().await {
             match joined {
-                Ok(Ok(())) => fetched += 1,
+                Ok(Ok(new)) => {
+                    if !new.is_empty() {
+                        fetched += 1;
+                    }
+                    done += 1;
+                }
                 Ok(Err(Error::Cancelled)) => cancelled = true,
                 Ok(Err(Error::SignInExpired)) => {
                     cancel.cancel();
                     tasks.abort_all();
                     return Err(Error::SignInExpired);
                 }
-                _ => failed += 1,
+                _ => {
+                    failed += 1;
+                    done += 1;
+                }
             }
-            emit(Event::Progress { done: fetched + failed, total });
+            emit(Event::Progress { done, total });
         }
         if cancelled {
             return Err(Error::Cancelled);
@@ -212,14 +221,18 @@ impl Engine {
         Ok((fetched, failed))
     }
 
-    fn after_fetch(&self, id: &str, result: &Result<()>, emit: &Emit) {
+    fn after_fetch(&self, id: &str, result: &Result<Vec<String>>, emit: &Emit) {
         let store = self.store();
         let Ok(Some(r)) = store.get(id) else { return };
         let name = library::display_name(&r);
         match result {
-            Ok(()) => {
+            Ok(new) if new.is_empty() => {
                 let _ = store.set_error(id, None);
-                emit(Event::Log(format!("Downloaded \"{name}\": {}.", describe_parts(&r))));
+                emit(Event::Log(format!("Checked \"{name}\" again: {}", still_missing(&r))));
+            }
+            Ok(new) => {
+                let _ = store.set_error(id, None);
+                emit(Event::Log(format!("Downloaded \"{name}\": {}.", join_words(new))));
             }
             Err(Error::Cancelled) | Err(Error::SignInExpired) => {}
             Err(e) => {
@@ -234,8 +247,8 @@ impl Engine {
     }
 
     /// Fetch one recording: every part Plaud has and the settings ask for,
-    /// skipping files already there.
-    pub async fn fetch_one(&self, id: &str, cancel: &Cancel) -> Result<()> {
+    /// skipping files already there. Returns the parts newly written, in words.
+    pub async fn fetch_one(&self, id: &str, cancel: &Cancel) -> Result<Vec<String>> {
         let detail = plaud::detail(&self.client, id).await?;
         cancel.check()?;
         let location = self.place(&detail)?;
@@ -249,6 +262,7 @@ impl Engine {
         });
         meta.plaud_name = detail.listed.name.clone();
         let now = clock::now_utc().iso_utc();
+        let mut new = Vec::new();
 
         let texts = self.texts(&detail);
         for t in &texts {
@@ -256,6 +270,7 @@ impl Engine {
             let existed = self.library.file_path(&location, part).exists();
             if self.library.write_text(&location, part, &t.text)? && !existed {
                 meta.parts.insert(t.key.clone(), now.clone());
+                new.push(t.label.to_lowercase());
             }
         }
         self.library.write_metadata(&location, &meta)?;
@@ -270,6 +285,7 @@ impl Engine {
                 crate::download::audio(&self.http, &self.client, id, link, &dest, cancel).await?;
                 meta.parts.insert("audio".into(), now.clone());
                 self.library.write_metadata(&location, &meta)?;
+                new.insert(0, "audio".into());
             }
         }
         self.library.set_dates(&location, &detail.listed.start);
@@ -281,7 +297,7 @@ impl Engine {
         store.set_location(id, Some(&location))?;
         store.set_parts(id, has_audio, has_transcript, meta.has_summary())?;
         store.set_checked(id, clock::now_utc().unix_millis())?;
-        Ok(())
+        Ok(new)
     }
 
     /// Where a recording goes: its existing folder if it has one on disk,
@@ -352,22 +368,22 @@ struct Text {
     text: String,
 }
 
-/// "audio, transcript and summary", from what the database now says.
-fn describe_parts(r: &Record) -> String {
-    let mut parts = Vec::new();
-    if r.has_audio {
-        parts.push("audio");
-    }
-    if r.has_transcript {
-        parts.push("transcript");
-    }
-    if r.has_summary {
-        parts.push("summary");
-    }
-    match parts.as_slice() {
+/// "audio, transcript and summary".
+fn join_words(parts: &[String]) -> String {
+    match parts {
         [] => "nothing new".into(),
-        [one] => (*one).into(),
+        [one] => one.clone(),
         [rest @ .., last] => format!("{} and {last}", rest.join(", ")),
+    }
+}
+
+/// Why a recording checked again gave nothing new.
+fn still_missing(r: &Record) -> String {
+    match (r.has_transcript, r.has_summary) {
+        (false, false) => "Plaud has no transcript or summary for it yet.".into(),
+        (false, true) => "Plaud has no transcript for it yet.".into(),
+        (true, false) => "Plaud has no summary for it yet.".into(),
+        (true, true) => "nothing new.".into(),
     }
 }
 
