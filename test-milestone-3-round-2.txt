@@ -1,0 +1,178 @@
+NoteFetch milestone 3 test, round 2: signing in, and the download steps
+
+This round checks the new Sign in and Sign out commands in the File menu,
+the question NoteFetch now asks when your sign-in has expired, the Ctrl+A
+announcement, and the three download steps you could not do last time.
+
+It runs on the same test copy of your data as round 1, so nothing touches
+your Documents folder. You will need your Plaud password, or a browser that
+is still signed in to Plaud.
+
+Please write your answers after each ANSWER line. Leave any you cannot do
+blank, and say so. Save the file when you are done.
+
+
+SECTION 1: SIGNING IN WHEN THE SIGN-IN HAS EXPIRED
+
+1. In File Explorer, go to C:\Users\ldefo\dev\NoteFetch\test-data and press
+   Enter on "Start NoteFetch test.cmd".
+   Expected: NoteFetch opens on the Recordings list, and JAWS says "Your
+   Plaud sign-in has expired. Choose Sign in from the File menu to sign in
+   again." Then a question box opens: "Your Plaud sign-in has expired. Sign
+   in again now? NoteFetch will open Plaud's sign-in page in your web
+   browser.", with the Yes button already chosen.
+   What did JAWS say? Was the question clear?
+
+ANSWER:
+All as expected and the question was clear.
+2. Press Enter (Yes).
+   Expected: your web browser opens on Plaud's sign-in page. Sign in there
+   as you normally would. When it is done, the browser shows a page headed
+   "Signed in to Plaud", saying you can close the tab and return to
+   NoteFetch.
+   Did the Plaud page open, and was the final page clear?
+
+ANSWER:
+Yes.
+3. Close the browser tab with Ctrl+W, then Alt+Tab back to NoteFetch if you
+   are not there already.
+   Expected: NoteFetch says "Signed in to Plaud.", then "Syncing with Plaud."
+   and "Sync finished." Some of this may have been said while you were
+   still in the browser, where JAWS may not speak it. Press Alt+G to read
+   the Log from the top: the newest line is first.
+   What did you hear, and what does the Log say?
+
+ANSWER:
+The expected messages were announced by NoteFetch while the browser was still open, which is very good. Also indicated that new recordings had been downloaded. 
+ANYTHING ODD:
+All new recordings were actually downloaded, as opposed to just syncronised. Not terrible, but still thinking through whether this is desireable behaviour or not.
+
+SECTION 2: SIGNING OUT, AND SAYING NO
+
+4. Press Alt+F to open the File menu, and Down Arrow through it.
+   Expected: "Sign in to Plaud...", "Sign out of Plaud", then "Exit Alt+F4".
+   Choose "Sign out of Plaud" with Enter.
+   Expected: "Signed out of Plaud. Your downloaded recordings are still in
+   the output folder. To sign in again, choose Sign in from the File menu."
+   Where was focus afterwards?
+
+ANSWER:
+Worked as expected. Focus back in the recordings list.
+5. Press Ctrl+S to sync.
+   Expected: "You are not signed in to Plaud. Choose Sign in from the File
+   menu.", then a question box: "You are not signed in to Plaud. Sign in
+   now?" Press N for No.
+   Expected: the box closes, you are back in NoteFetch, and the Log's top
+   line says "Not signed in. You can sign in at any time from the File menu."
+   What happened?
+
+ANSWER:
+All as expected.
+ANYTHING ODD:
+No.
+
+SECTION 3: CANCELLING A SIGN-IN
+
+6. Press Alt+F, then I, for "Sign in to Plaud...".
+   Expected: "Signing in to Plaud.", and the browser opens on Plaud's page.
+   This time do not sign in. Alt+Tab back to NoteFetch and press Escape.
+   Expected: "Cancelling." then "Sign-in cancelled. You can sign in later
+   from the File menu." Afterwards, close the browser tab.
+   What did you hear?
+
+ANSWER:
+Worked as expected when pressing escape in the app, with one strange anomaly: When pressing escape while in the log field, the app completely quits with no message instead of cancelling the sign-in process.
+7. Press Alt+F, then I again, and this time sign in fully, as in step 2.
+   Come back to NoteFetch.
+   Expected: "Signed in to Plaud.", then a sync, as in step 3. You need to
+   be signed in for the rest of the test.
+   Did it work?
+
+ANSWER:
+Yes.
+ANYTHING ODD:
+No.
+
+SECTION 4: CTRL+A
+
+Last time, JAWS read every recording's name when you pressed Ctrl+A, and
+"All 71 recordings selected." only reached the Log. NoteFetch now waits a
+moment before saying it, to see whether that lets it through.
+
+8. Alt+C to the list, then press Ctrl+A.
+   Expected: JAWS may still read names, but "All 71 recordings selected."
+   (or the number in view) should now be spoken, during or after them.
+   Was it spoken? If JAWS still reads every name first, is that tolerable?
+   Press Down Arrow afterwards so only one recording is selected.
+
+ANSWER:
+Jaws still reads each title, and then says "all 79 recordings selected". Realistically, nobody is going to listen to all the titles being read out, but it still indicates what's happpening. So fine as a second-class non-dealbreaking behaviour as is and screenreader users would be used to this. First class would be to have the message "all 79 recordings selected" immediately. If you could figure out how to do this, that would be fantastic and worth adding to the accessible apps skill, but it would be a bonus, not essential.
+ANYTHING ODD:
+No.
+
+SECTION 5: DOWNLOADING, PROGRESS AND CANCEL (steps 13 to 15 from round 1)
+
+9. Press Alt+S and choose "Not yet downloaded". Alt+C to the list. Pick one
+   recording (Down Arrow to it), then press Ctrl+D.
+   Expected: "Downloading 1 recording." then, after a few seconds,
+   "Download finished. 1 recording downloaded." The recording disappears
+   from this view, because it is now downloaded, and focus stays in the list.
+   What did you hear, and where was focus afterwards?
+
+ANSWER:
+As expected, indicated download starting and completing. Focus then jumped to the next undownloaded recording as the freshly downloaded one disappeared from the list.
+10. Still in "Not yet downloaded", press Ctrl+A, then Ctrl+D to download
+    them all. Wait until you hear a progress announcement such as
+    "Downloaded 3 of 68". Then press Escape.
+    Expected: progress is spoken no more than about every 5 seconds; after
+    Escape you hear "Cancelling." and then "Cancelled. Anything already
+    downloaded has been kept." The window stays open.
+    What did you hear? Were the progress announcements too often, too rare,
+    or about right?
+
+ANSWER:
+Very good. Messages just as expected and progress announcements timed well.
+11. Start the same again (Ctrl+A, Ctrl+D). While it runs, press Alt+F4.
+    Expected: a question, "NoteFetch is still downloading. Stop the download
+    and close NoteFetch? Anything already downloaded is kept.", with No
+    already chosen. Press Enter (No).
+    Expected: NoteFetch stays open and carries on. Press Escape to cancel.
+    Did the question appear, and did No keep NoteFetch open?
+
+ANSWER:
+Yes to both.
+ANYTHING ODD:
+I think that the total of recordings to be downloaded refreshed after pressing no, which may be a bit confusing.
+
+
+SECTION 6: CLOSING
+
+12. Press Alt+F4 while nothing is running.
+    Expected: NoteFetch closes at once with no question.
+    Open it again with "Start NoteFetch test.cmd".
+    Expected: no question about signing in this time, the recordings you
+    downloaded shown as Downloaded, and a sync that finishes by itself.
+    Did it?
+
+ANSWER:
+Yes, very good.
+ANYTHING ELSE YOU WANT TO SAY:
+
+This may not be a problem, just that I find the log a bit confusing. Probably no big deal, but I'm pasting the log from the last run below for you to see. Chances are that it reflects some very sensible default actions.
+
+Sync finished. 2 recordings downloaded.
+Checked "Untitled, 13 Oct 2026, 2018" again: Plaud has no transcript or summary for it yet.
+Checked "Untitled, 15 Oct 2026, 1229" again: Plaud has no transcript or summary for it yet.
+Downloaded "Untitled, 23 Jul 2026, 1232": audio.
+Checked "Untitled, 16 Oct 2026, 0900" again: Plaud has no transcript or summary for it yet.
+Downloaded "Untitled, 2 Jun 2026, 1447": audio.
+Checked "Untitled, 13 Oct 2026, 1343" again: Plaud has no transcript or summary for it yet.
+Checked "Untitled, 18 Oct 2026, 1047" again: Plaud has no transcript or summary for it yet.
+Downloaded 1 of 8.
+Checked "Untitled, 15 Oct 2026, 1229" again: Plaud has no transcript or summary for it yet.
+Plaud has 79 recordings. None are new.
+Syncing with Plaud.
+
+
+***
+Also: I believe when we last checked, that it was not possible to rename files on the Plaud cloud using this app. Please check whether anything has changed in this regard, as our knowledge of the capabilities dates from about a month ago. It would be good to see if any more useful functionality has been made available.

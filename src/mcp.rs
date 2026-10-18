@@ -113,6 +113,21 @@ impl Client {
         Ok(())
     }
 
+    /// The server's `tools/list` reply, for the `--tools` developer flag, to
+    /// see whether Plaud has added tools since milestone 1.
+    pub async fn list_tools(&self) -> Result<Value> {
+        let id = self.id();
+        let body = json!({ "jsonrpc": "2.0", "id": id, "method": "tools/list", "params": {} });
+        let token = self.access_token().await;
+        let resp = self.post_once(&body, &token).await?;
+        match resp.status().as_u16() {
+            200 => {}
+            401 | 403 => return Err(Error::SignInExpired),
+            s => return Err(Error::Plaud(format!("it would not list its tools (HTTP {s})."))),
+        }
+        Ok(read_reply(resp, id).await?["result"].clone())
+    }
+
     /// Call a tool and return the JSON inside its reply. Retries network
     /// failures, 429 and 5xx three times with increasing delay, and renews the
     /// sign-in once on 401.

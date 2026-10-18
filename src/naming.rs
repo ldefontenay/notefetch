@@ -160,13 +160,18 @@ pub fn shorten(text: &str, max: usize) -> String {
     if tidy.is_empty() { cut } else { tidy.to_string() }
 }
 
+/// The clash number at the end of a base name, with its space: " (2)".
+pub fn clash_of(base: &str) -> Option<&str> {
+    match base.rfind(" (") {
+        Some(i) if base.ends_with(')') && base[i + 2..base.len() - 1].parse::<u32>().is_ok() => Some(&base[i..]),
+        _ => None,
+    }
+}
+
 /// The name part of a base name: what comes before ", 24 Sep 2026, 1430" and
 /// any clash number.
 pub fn name_of_base(base: &str) -> &str {
-    let without_clash = match base.rfind(" (") {
-        Some(i) if base.ends_with(')') && base[i + 2..base.len() - 1].parse::<u32>().is_ok() => &base[..i],
-        _ => base,
-    };
+    let without_clash = &base[..base.len() - clash_of(base).map_or(0, str::len)];
     // ", D Mon YYYY, HHMM" or ", DD Mon YYYY, HHMM" at the end.
     for len in [18, 19] {
         if without_clash.len() > len && without_clash.is_char_boundary(without_clash.len() - len) {
@@ -352,6 +357,8 @@ mod tests {
         assert_eq!(name_of_base("Lecture, week 3, 24 Sep 2026, 0900"), "Lecture, week 3");
         assert_eq!(name_of_base("Lecture, 4 Sep 2026, 0900"), "Lecture");
         assert_eq!(name_of_base("Lecture, 24 Sep 2026, 0900 (2)"), "Lecture");
+        assert_eq!(clash_of("Lecture, 24 Sep 2026, 0900 (2)"), Some(" (2)"));
+        assert_eq!(clash_of("Lecture (draft), 24 Sep 2026, 0900"), None);
         assert_eq!(name_of_base("Something else"), "Something else");
     }
 

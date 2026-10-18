@@ -38,6 +38,8 @@
 #define IDC_LOG            1008
 
 #define IDM_EXIT           2001
+#define IDM_SIGN_IN        2002
+#define IDM_SIGN_OUT       2003
 #define IDM_DOWNLOAD       2010
 #define IDM_SELECT_ALL     2011
 #define IDM_OPEN_RECORDING 2012
@@ -80,6 +82,9 @@ IDR_MENU MENU
 BEGIN
     POPUP "&File"
     BEGIN
+        MENUITEM "Sign &in to Plaud...", IDM_SIGN_IN
+        MENUITEM "Sign &out of Plaud", IDM_SIGN_OUT
+        MENUITEM SEPARATOR
         MENUITEM "E&xit\tAlt+F4", IDM_EXIT
     END
     POPUP "&Recording"

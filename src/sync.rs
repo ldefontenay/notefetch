@@ -138,7 +138,8 @@ impl Engine {
                 .all()?
                 .into_iter()
                 .filter(|r| match r.state {
-                    State::New | State::Failed => r.start_ms >= from,
+                    State::New => self.config.sync_downloads_new && r.start_ms >= from,
+                    State::Failed => r.start_ms >= from,
                     State::Downloaded => {
                         let missing_text = (self.config.download_transcript && !r.has_transcript)
                             || (self.config.download_summary && !r.has_summary);
@@ -154,6 +155,11 @@ impl Engine {
     /// Sync new recordings. SPEC.md "Sync".
     pub async fn sync(self: &Arc<Self>, cancel: &Cancel, emit: Emit) -> Result<Report> {
         let mut report = Report { new_on_plaud: self.refresh(&emit).await?, ..Report::default() };
+        if report.new_on_plaud > 0 && !self.config.sync_downloads_new {
+            emit(Event::Log(
+                "New recordings are not downloaded when syncing, as set in the settings. They are in the \"Not yet downloaded\" view.".into(),
+            ));
+        }
         let Some(work) = self.work()? else {
             report.needs_first_sync_choice = true;
             return Ok(report);
@@ -162,10 +168,14 @@ impl Engine {
             emit(Event::Log("Everything is up to date.".into()));
             return Ok(report);
         }
+        emit(Event::Log(self.plan_line(&work)));
         let ids: Vec<String> = work.into_iter().map(|r| r.plaud_id).collect();
-        let (fetched, failed) = self.fetch_many(ids, cancel, emit.clone()).await?;
+        let (fetched, checked, failed) = self.fetch_many(ids, true, cancel, emit.clone()).await?;
         report.fetched = fetched;
         report.failed = failed;
+        if checked > 0 {
+            emit(Event::Log(checked_line(checked)));
+        }
         emit(Event::Log(match (fetched, failed) {
             (0, 0) => "Sync finished. Everything is up to date.".to_string(),
             (f, 0) => format!("Sync finished. {} downloaded.", plural(f, "recording")),
@@ -174,9 +184,33 @@ impl Engine {
         Ok(report)
     }
 
+    /// What a sync is about to fetch, and why, for the Log. Laurent found a
+    /// sync that said "None are new" and then downloaded two recordings
+    /// confusing (milestone 3, round 2).
+    fn plan_line(&self, work: &[Record]) -> String {
+        let (mut fresh, mut unfinished, mut recheck) = (0, 0, 0);
+        for r in work {
+            match r.state {
+                State::New | State::Failed => fresh += 1,
+                _ if self.config.download_audio && !r.has_audio => unfinished += 1,
+                _ => recheck += 1,
+            }
+        }
+        plan_words(work.len(), fresh, unfinished, recheck)
+    }
+
     /// Fetch the given recordings whatever their state: Download selected and
-    /// Download again. Returns (recordings with something new, failures).
-    pub async fn fetch_many(self: &Arc<Self>, ids: Vec<String>, cancel: &Cancel, emit: Emit) -> Result<(usize, usize)> {
+    /// Download again. With `fold_checks`, recordings checked again with
+    /// nothing new are counted rather than each given a line in the Log, as a
+    /// sync does. Returns (recordings with something new, recordings checked
+    /// with nothing new, failures).
+    pub async fn fetch_many(
+        self: &Arc<Self>,
+        ids: Vec<String>,
+        fold_checks: bool,
+        cancel: &Cancel,
+        emit: Emit,
+    ) -> Result<(usize, usize, usize)> {
         let total = ids.len();
         let gate = Arc::new(Semaphore::new(AT_ONCE));
         let mut tasks = JoinSet::new();
@@ -188,16 +222,18 @@ impl Engine {
                     return Err(Error::Cancelled);
                 }
                 let result = engine.fetch_one(&id, &cancel).await;
-                engine.after_fetch(&id, &result, &emit);
+                engine.after_fetch(&id, &result, fold_checks, &emit);
                 result
             });
         }
-        let (mut fetched, mut failed, mut done, mut cancelled) = (0, 0, 0, false);
+        let (mut fetched, mut checked, mut failed, mut done, mut cancelled) = (0, 0, 0, 0, false);
         emit(Event::Progress { done: 0, total });
         while let Some(joined) = tasks.join_next().await {
             match joined {
                 Ok(Ok(new)) => {
-                    if !new.is_empty() {
+                    if new.is_empty() {
+                        checked += 1;
+                    } else {
                         fetched += 1;
                     }
                     done += 1;
@@ -218,17 +254,19 @@ impl Engine {
         if cancelled {
             return Err(Error::Cancelled);
         }
-        Ok((fetched, failed))
+        Ok((fetched, checked, failed))
     }
 
-    fn after_fetch(&self, id: &str, result: &Result<Vec<String>>, emit: &Emit) {
+    fn after_fetch(&self, id: &str, result: &Result<Vec<String>>, fold_checks: bool, emit: &Emit) {
         let store = self.store();
         let Ok(Some(r)) = store.get(id) else { return };
         let name = library::display_name(&r);
         match result {
             Ok(new) if new.is_empty() => {
                 let _ = store.set_error(id, None);
-                emit(Event::Log(format!("Checked \"{name}\" again: {}", still_missing(&r))));
+                if !fold_checks {
+                    emit(Event::Log(format!("Checked \"{name}\" again: {}", still_missing(&r))));
+                }
             }
             Ok(new) => {
                 let _ = store.set_error(id, None);
@@ -387,6 +425,59 @@ fn still_missing(r: &Record) -> String {
     }
 }
 
+/// "Fetching 8 recordings: 2 not finished last time, and 6 to check again
+/// for a transcript or summary."
+fn plan_words(total: usize, fresh: usize, unfinished: usize, recheck: usize) -> String {
+    let mut parts = Vec::new();
+    if fresh > 0 {
+        parts.push(format!("{fresh} not yet downloaded"));
+    }
+    if unfinished > 0 {
+        parts.push(format!("{unfinished} not finished last time"));
+    }
+    if recheck > 0 {
+        parts.push(format!("{recheck} to check again for a transcript or summary"));
+    }
+    let list = match parts.as_slice() {
+        [] => String::new(),
+        [one] => one.clone(),
+        [rest @ .., last] => format!("{}, and {last}", rest.join(", ")),
+    };
+    format!("Fetching {}: {list}.", plural(total, "recording"))
+}
+
+fn checked_line(n: usize) -> String {
+    if n == 1 {
+        "Checked 1 recording again for a transcript or summary: Plaud has nothing new for it yet.".into()
+    } else {
+        format!("Checked {n} recordings again for a transcript or summary: Plaud has nothing new for them yet.")
+    }
+}
+
 fn plural(n: usize, unit: &str) -> String {
     if n == 1 { format!("1 {unit}") } else { format!("{n} {unit}s") }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_plan_says_why_each_recording_is_fetched() {
+        assert_eq!(
+            plan_words(8, 0, 2, 6),
+            "Fetching 8 recordings: 2 not finished last time, and 6 to check again for a transcript or summary."
+        );
+        assert_eq!(plan_words(1, 1, 0, 0), "Fetching 1 recording: 1 not yet downloaded.");
+        assert_eq!(
+            plan_words(6, 3, 1, 2),
+            "Fetching 6 recordings: 3 not yet downloaded, 1 not finished last time, and 2 to check again for a transcript or summary."
+        );
+    }
+
+    #[test]
+    fn checks_are_counted_in_one_line() {
+        assert!(checked_line(1).contains("1 recording again") && checked_line(1).ends_with("for it yet."));
+        assert!(checked_line(6).contains("6 recordings again") && checked_line(6).ends_with("for them yet."));
+    }
 }

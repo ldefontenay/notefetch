@@ -16,6 +16,8 @@
 //! - `--rename ID NAME`, `--move ID FOLDER` (or `-` for none), `--delete ID`,
 //!   `--skip ID`, `--new-folder NAME`, `--rename-folder OLD NEW` and
 //!   `--delete-folder NAME` do what the window's commands will do.
+//! - `--tools` lists the tools Plaud's server offers, and saves the full
+//!   reply as `tools-list.json` beside the database.
 //! - `--write-settings` writes the settings file with every setting in it.
 //!
 //! Set `NOTEFETCH_DATA` to a folder such as `test-data\dev` to keep the
@@ -121,6 +123,17 @@ async fn run(args: Vec<String>) -> Result<()> {
             if report.needs_first_sync_choice {
                 println!("This is the first sync. Run it again with --first=all, --first=now or --first=N for the last N days.");
             }
+        }
+        "--tools" => {
+            let e = engine().await?;
+            let tools = e.client.list_tools().await?;
+            let path = config::local_dir().join("tools-list.json");
+            let text = serde_json::to_string_pretty(&tools).unwrap_or_default();
+            std::fs::write(&path, text).map_err(|err| error::disk("save the tool list to", &path, &err))?;
+            for t in tools["tools"].as_array().into_iter().flatten() {
+                println!("{}", t["name"].as_str().unwrap_or("(no name)"));
+            }
+            println!("Full list saved to {}", path.display());
         }
         "--write-settings" => {
             let config = load_config();

@@ -23,7 +23,7 @@ use windows::Win32::UI::Controls::{
     LVM_SETEXTENDEDLISTVIEWSTYLE, LVM_SETITEMSTATE, LVM_SETITEMTEXTW, LVN_ITEMCHANGED, LVNI_FOCUSED, LVNI_SELECTED,
     LVS_EX_FULLROWSELECT, NMHDR, NMLISTVIEW,
 };
-use windows::Win32::UI::Input::KeyboardAndMouse::{GetFocus, GetKeyState, SetFocus, VK_CONTROL, VK_SHIFT};
+use windows::Win32::UI::Input::KeyboardAndMouse::{GetFocus, GetKeyState, SetFocus, VK_CONTROL, VK_ESCAPE, VK_SHIFT};
 use windows::Win32::UI::Shell::{DefSubclassProc, SetWindowSubclass, ShellExecuteW};
 use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::{PCWSTR, PWSTR, w};
@@ -32,7 +32,7 @@ use crate::announce;
 use crate::cancel::Cancel;
 use crate::config::{Announcements, Config};
 use crate::store::State;
-use crate::worker::{Command, Importance, Row, Snapshot, UiEvent, WM_APP_EVENTS, Worker};
+use crate::worker::{Activity, Command, Importance, Row, Snapshot, UiEvent, WM_APP_EVENTS, Worker};
 
 // Keep in step with notefetch.rc.
 const IDD_MAIN: u16 = 100;
@@ -46,6 +46,8 @@ const IDC_DOWNLOAD: i32 = 1006;
 const IDC_OPEN_OUTPUT: i32 = 1007;
 const IDC_LOG: i32 = 1008;
 const IDM_EXIT: i32 = 2001;
+const IDM_SIGN_IN: i32 = 2002;
+const IDM_SIGN_OUT: i32 = 2003;
 const IDM_DOWNLOAD: i32 = 2010;
 const IDM_SELECT_ALL: i32 = 2011;
 const IDM_OPEN_RECORDING: i32 = 2012;
@@ -63,7 +65,16 @@ const EM_SCROLLCARET: u32 = 0x00B7;
 const EM_REPLACESEL: u32 = 0x00C2;
 const EM_SETLIMITTEXT: u32 = 0x00C5;
 
+/// Posted to the window to offer signing in, outside the event handling,
+/// because the question is a modal box. wparam is 1 if the sign-in expired.
+const WM_APP_ASK_SIGN_IN: u32 = WM_APP + 11;
+
 const FILTER_TIMER: usize = 1;
+const SELECT_TIMER: usize = 2;
+/// "All 71 recordings selected." waits this long after Ctrl+A. JAWS reads
+/// out every newly selected row, and in milestone 3 the announcement raised
+/// at once was not heard. `[untested]` whether waiting lets it through.
+const SELECT_PAUSE_MS: u32 = 300;
 /// Filtering waits this long after the last key, so each letter does not
 /// rebuild the list and make the screen reader chatter.
 const FILTER_PAUSE_MS: u32 = 400;
@@ -90,7 +101,18 @@ struct Ui {
     /// moves the list's own focus about before it can be restored.
     focus_id: Option<String>,
     busy: bool,
+    /// What the worker is doing while busy.
+    activity: Activity,
     cancel: Option<Cancel>,
+    /// The announcement waiting for SELECT_TIMER.
+    pending_select: Option<String>,
+    /// A sign-in question is already showing or on its way.
+    asking: bool,
+    /// Recordings in the list when the running command started, by Plaud ID.
+    /// They stay in the list until it finishes, even if they no longer match
+    /// the Show choice, so "Not yet downloaded" does not shrink under the
+    /// user during a download (Laurent, round 2).
+    kept: Vec<String>,
     config: Config,
     last_progress: Option<Instant>,
 }
@@ -174,6 +196,10 @@ unsafe extern "system" fn dialog_proc(hwnd: HWND, message: u32, wparam: WPARAM, 
             drain();
             1
         }
+        WM_APP_ASK_SIGN_IN => {
+            ask_sign_in(hwnd, wparam.0 == 1);
+            1
+        }
         WM_COMMAND => {
             let id = (wparam.0 & 0xFFFF) as i32;
             let code = ((wparam.0 >> 16) & 0xFFFF) as u32;
@@ -206,7 +232,22 @@ unsafe extern "system" fn dialog_proc(hwnd: HWND, message: u32, wparam: WPARAM, 
             unsafe {
                 let _ = KillTimer(Some(hwnd), FILTER_TIMER);
             }
-            with_ui(apply_filter);
+            with_ui(|ui| {
+                ui.kept.clear();
+                apply_filter(ui);
+            });
+            1
+        }
+        WM_TIMER if wparam.0 == SELECT_TIMER => {
+            // SAFETY: the timer belongs to this window.
+            unsafe {
+                let _ = KillTimer(Some(hwnd), SELECT_TIMER);
+            }
+            with_ui(|ui| {
+                if let Some(text) = ui.pending_select.take() {
+                    say(ui, &text, Importance::Completion);
+                }
+            });
             1
         }
         WM_CLOSE => {
@@ -261,6 +302,10 @@ fn init(dialog: HWND) {
     let log = item(dialog, IDC_LOG);
     // Lift the edit control's default limit of about 30,000 characters.
     send(log, EM_SETLIMITTEXT, 0, 0);
+    // SAFETY: the subclass procedure lives for the whole program.
+    unsafe {
+        let _ = SetWindowSubclass(log, Some(log_proc), 2, 0);
+    }
 
     let queue = QUEUE.with(Arc::clone);
     let startup = Cancel::new();
@@ -276,7 +321,11 @@ fn init(dialog: HWND) {
             focus_id: None,
             // The worker starts by syncing, if that setting is on.
             busy: true,
+            activity: Activity::Connecting,
             cancel: Some(startup),
+            pending_select: None,
+            asking: false,
+            kept: Vec::new(),
             config,
             last_progress: None,
         });
@@ -331,7 +380,11 @@ fn command(hwnd: HWND, id: i32, code: u32) {
             }
         }
         IDC_SHOW | IDC_FOLDER if code == CBN_SELCHANGE => {
-            with_ui(apply_filter);
+            with_ui(|ui| {
+                // A new view is the user's choice; keep nothing from the old one.
+                ui.kept.clear();
+                apply_filter(ui);
+            });
         }
         IDC_LOG if code == EN_SETFOCUS => caret_to_start(item(hwnd, IDC_LOG)),
         IDC_SYNC | IDM_SYNC => {
@@ -368,6 +421,12 @@ fn command(hwnd: HWND, id: i32, code: u32) {
         IDM_CANCEL | 2 => {
             with_ui(cancel);
         }
+        IDM_SIGN_IN => {
+            with_ui(|ui| start(ui, Command::SignIn, "Signing in"));
+        }
+        IDM_SIGN_OUT => {
+            with_ui(|ui| start(ui, Command::SignOut, "Signing out"));
+        }
         IDM_EXIT => close(hwnd),
         IDM_TEST_SPEECH => {
             with_ui(|ui| {
@@ -391,6 +450,7 @@ fn start(ui: &mut Ui, command: Command, what: &str) {
     ui.cancel = Some(cancel.clone());
     ui.busy = true;
     ui.last_progress = None;
+    ui.kept = ui.visible.iter().map(|&r| ui.snapshot.rows[r].id.clone()).collect();
     ui.worker.send(command, cancel);
 }
 
@@ -404,22 +464,53 @@ fn cancel(ui: &mut Ui) {
     }
 }
 
+/// Offer to sign in, after the worker found the sign-in missing or expired.
+fn ask_sign_in(hwnd: HWND, expired: bool) {
+    let question = if expired {
+        "Your Plaud sign-in has expired. Sign in again now?\r\n\r\nNoteFetch will open Plaud's sign-in page in your web browser."
+    } else {
+        "You are not signed in to Plaud. Sign in now?\r\n\r\nNoteFetch will open Plaud's sign-in page in your web browser."
+    };
+    let text = wide(question);
+    // A question the user must answer, which is what a message box is for.
+    // SAFETY: a modal box owned by this window.
+    let answer = unsafe { MessageBoxW(Some(hwnd), PCWSTR(text.as_ptr()), w!("NoteFetch"), MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON1) };
+    with_ui(|ui| {
+        ui.asking = false;
+        if answer == IDYES {
+            start(ui, Command::SignIn, "Signing in");
+        } else {
+            log(ui, "Not signed in. You can sign in at any time from the File menu.");
+        }
+    });
+}
+
 fn close(hwnd: HWND) {
-    let busy = with_ui(|ui| ui.busy && ui.cancel.is_some()).unwrap_or(false);
-    if busy {
-        let text = wide("NoteFetch is still downloading. Stop the download and close NoteFetch?\r\n\r\nAnything already downloaded is kept.");
+    // Only work that writes files is worth a question; anything else just stops.
+    let question = with_ui(|ui| match (ui.busy, ui.activity) {
+        (true, Activity::Downloading) => {
+            Some("NoteFetch is still downloading. Stop the download and close NoteFetch?\r\n\r\nAnything already downloaded is kept.")
+        }
+        (true, Activity::Syncing) => {
+            Some("NoteFetch is still syncing with Plaud. Stop the sync and close NoteFetch?\r\n\r\nAnything already downloaded is kept.")
+        }
+        _ => None,
+    })
+    .flatten();
+    if let Some(question) = question {
+        let text = wide(question);
         // A question the user must answer, which is what a message box is for.
         // SAFETY: a modal box owned by this window.
         let answer = unsafe { MessageBoxW(Some(hwnd), PCWSTR(text.as_ptr()), w!("NoteFetch"), MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) };
         if answer != IDYES {
             return;
         }
-        with_ui(|ui| {
-            if let Some(c) = &ui.cancel {
-                c.cancel();
-            }
-        });
     }
+    with_ui(|ui| {
+        if let Some(c) = &ui.cancel {
+            c.cancel();
+        }
+    });
     // SAFETY: destroying this thread's own window.
     unsafe {
         let _ = DestroyWindow(hwnd);
@@ -438,13 +529,30 @@ fn drain() {
                     let due = ui.last_progress.is_none_or(|t| t.elapsed() >= PROGRESS_EVERY);
                     if due && done > 0 && done < total {
                         ui.last_progress = Some(Instant::now());
-                        say(ui, &format!("Downloaded {done} of {total}."), Importance::Routine);
+                        // A sync also counts recordings only checked again, so
+                        // "Downloaded 1 of 6" was wrong when nothing was (round 3).
+                        let verb = if ui.activity == Activity::Downloading { "Downloaded" } else { "Fetched" };
+                        say(ui, &format!("{verb} {done} of {total}."), Importance::Routine);
                     }
                 }
                 UiEvent::Snapshot(s) => take_snapshot(ui, s),
+                UiEvent::Activity(a) => ui.activity = a,
+                UiEvent::SignInNeeded(expired) => {
+                    if !ui.asking {
+                        ui.asking = true;
+                        // SAFETY: posting to this thread's own window.
+                        unsafe {
+                            let _ = PostMessageW(Some(ui.dialog), WM_APP_ASK_SIGN_IN, WPARAM(expired as usize), LPARAM(0));
+                        }
+                    }
+                }
                 UiEvent::Finished => {
                     ui.busy = false;
                     ui.cancel = None;
+                    if !ui.kept.is_empty() {
+                        ui.kept.clear();
+                        apply_filter(ui);
+                    }
                 }
             }
         }
@@ -553,7 +661,12 @@ fn apply_filter(ui: &mut Ui) {
         .map(|&r| ui.snapshot.rows[r].id.clone())
         .collect();
 
-    ui.visible = (0..ui.snapshot.rows.len()).filter(|&i| matches(&ui.snapshot.rows[i], show, &folder, &filter)).collect();
+    ui.visible = (0..ui.snapshot.rows.len())
+        .filter(|&i| {
+            let row = &ui.snapshot.rows[i];
+            matches(row, show, &folder, &filter) || ui.kept.contains(&row.id)
+        })
+        .collect();
 
     send(ui.list, LVM_DELETEALLITEMS, 0, 0);
     for (n, &r) in ui.visible.iter().enumerate() {
@@ -618,7 +731,11 @@ fn select_all(ui: &mut Ui) {
     if send(ui.list, LVM_GETITEMCOUNT, 0, 0) > 0 {
         set_state(ui.list, -1, LVIS_SELECTED, LVIS_SELECTED);
         let n = ui.visible.len();
-        say(ui, &if n == 1 { "1 recording selected.".to_string() } else { format!("All {n} recordings selected.") }, Importance::Completion);
+        ui.pending_select = Some(if n == 1 { "1 recording selected.".to_string() } else { format!("All {n} recordings selected.") });
+        // SAFETY: a timer on this window; setting it again restarts it.
+        unsafe {
+            SetTimer(Some(ui.dialog), SELECT_TIMER, SELECT_PAUSE_MS, None);
+        }
     }
 }
 
@@ -699,6 +816,24 @@ unsafe extern "system" fn list_proc(hwnd: HWND, message: u32, wparam: WPARAM, lp
     }
     // SAFETY: passes everything else to the list itself.
     unsafe { DefSubclassProc(hwnd, message, wparam, lparam) }
+}
+
+/// The Log's subclass. A multi-line edit box asks the dialog for every key,
+/// and on Escape it sends the dialog WM_CLOSE, so Escape in the Log closed
+/// NoteFetch instead of cancelling (milestone 3, round 2). Here Escape is
+/// left to the dialog, which turns it into Cancel as everywhere else.
+unsafe extern "system" fn log_proc(hwnd: HWND, message: u32, wparam: WPARAM, lparam: LPARAM, _id: usize, _data: usize) -> LRESULT {
+    // SAFETY: passes the message to the edit box itself.
+    let result = unsafe { DefSubclassProc(hwnd, message, wparam, lparam) };
+    if message == WM_GETDLGCODE && lparam.0 != 0 {
+        // SAFETY: for WM_GETDLGCODE, a non-zero lparam points at the MSG
+        // being dispatched.
+        let msg = unsafe { &*(lparam.0 as *const MSG) };
+        if msg.message == WM_KEYDOWN && msg.wParam.0 == VK_ESCAPE.0 as usize {
+            return LRESULT(result.0 & !((DLGC_WANTALLKEYS | DLGC_WANTMESSAGE) as isize));
+        }
+    }
+    result
 }
 
 #[cfg(test)]

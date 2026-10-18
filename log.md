@@ -2,6 +2,109 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-10-18: Milestone 3 finished, committed and pushed
+
+### The short version
+
+- **Round 3 passed.** Escape in the Log cancels and NoteFetch stays open, and the sync Log makes sense. Thank you.
+- **Your two answers are built:**
+  - Downloading new recordings when syncing is now a setting, on by default, as you chose. Until the Settings window arrives in milestone 5, it is the line `sync_downloads_new` in the settings file.
+  - Recordings stay in the list until the whole download finishes, then the view catches up. So "Not yet downloaded" no longer shrinks under you while it runs. If you change the Show or Folder box or the filter during a download, the list follows your choice at once.
+- **Your round 3 notes are fixed too:**
+  - The list now shows "Untitled (2)" for the second of two recordings started in the same minute.
+  - A sync's progress says "Fetched 1 of 6." rather than "Downloaded", since a sync also counts recordings it only checked. Download selected still says "Downloaded".
+- **Milestone 3 is committed and pushed.** All automatic checks pass: 67 tests, and clippy is clean.
+- **Next is milestone 4:** Enter to play, the context menu, renaming, deleting and folders. Its test round will also check the two list changes above with JAWS, since you have not heard them yet.
+- **One small edit to your round 1 answers:** the JAWS speech you pasted into test-milestone-3.txt included the name of one of your real recordings. The repository will become public, so I replaced that name with "[name of a real recording, removed before committing]". Nothing else in your answers was changed.
+- No questions this time.
+
+## 2026-10-18: Round 2 results, Escape fixed, a clearer Log, and Plaud checked again
+
+### The short version
+
+- **Thank you for round 2.** Signing in, signing out, downloading, progress and closing all worked as designed. Your words are recorded in PLAN.md.
+- **Escape in the Log closed NoteFetch.** Fixed: it now cancels, as everywhere else.
+- **The Log after a sync is clearer.** It now says what it is about to fetch and why, and the "Checked ... again" lines are folded into one.
+- **Plaud still cannot rename recordings.** I asked Plaud's server today: same five read-only tools as a month ago.
+- **Please run round 3:** test-milestone-3-round-3.txt, 5 steps, perhaps 10 minutes. No password needed.
+- **Two questions below**, about what a sync should download, and the close question.
+- All automatic checks pass: 67 tests, and clippy is clean.
+
+### Escape in the Log
+
+The Log is a multi-line edit box, and Windows lets that kind of box take Escape for itself and close the window it sits in. Closing does not ask while NoteFetch is only waiting for a sign-in, so it just quit. The Log now leaves Escape to the window, which treats it as Cancel.
+
+I checked it by sending Escape to the Log myself: without the fix NoteFetch closed, with it the Log said "Nothing is running, so there is nothing to cancel." Steps 2 to 4 check it with JAWS. I have added this to the accessibility skill, since any window with a multi-line box would have the same trap.
+
+### Why the Log you pasted was confusing
+
+- **"None are new", then 2 downloaded.** Those two, 2 June and 23 July, were downloads your Escape had stopped half way in step 10 or 11. The sync finished them, which is right, but the Log never said so. Now a line just after "Plaud has 79 recordings" says, for example: "Fetching 8 recordings: 2 not finished last time, and 6 to check again for a transcript or summary."
+- **The six "Checked ... again" lines.** These are recordings from the last 14 days that Plaud has not transcribed yet. NoteFetch looks again at each sync. They are now one line: "Checked 6 recordings again for a transcript or summary: Plaud has nothing new for them yet." Download selected still gives each recording its own line, since you chose them.
+- **"Untitled, 15 Oct 2026, 1229" twice.** Not a mistake, as it turns out: you have two recordings that both started at 12:29 on 15 October, one an hour long and one 20 seconds. Their folders differ by "(2)", but the Log left that off. Messages now use the folder's own name, "(2)" included. Step 5 checks it.
+
+### Ctrl+A
+
+I tried two ways of getting "All 79 recordings selected." heard first, and measured what Windows tells JAWS each time. Both still send JAWS one "selected" message per recording, 78 of them, so neither would help, and I took them out. It stays as you heard it in round 2, which you said is fine. What I learned is in PLAN.md and the skill. There is one more idea, a different kind of list, which I would only try if the list needs rebuilding for another reason.
+
+### Plaud's tools, checked again
+
+- I added a hidden developer command that asks Plaud's server for its tool list. It still has the same five: list recordings, get a recording, get a note, get a transcript, and get the current user. All read-only, so renaming in Plaud, or moving recordings into Plaud's folders, is still not possible.
+- One small improvement: listing recordings by date now works on Plaud's server, exactly and with no limit. NoteFetch does not need it yet.
+- Searching the web, I found Plaud's own documentation (https://docs.plaud.ai/documentation/personal_access/mcp) still describes the same server. I also found an unofficial project (https://github.com/rggnkmp/plaud-connector) that can rename, by using Plaud's private app interface without Plaud's say-so. I would not build on that: it could break or be blocked at any time, and it may not be within Plaud's terms. NoteFetch keeps to the published server. Renaming in NoteFetch stays local, as planned.
+
+### Questions
+
+#### Question 1: should a sync download new recordings?
+
+You wrote that all new recordings were actually downloaded, not just synchronised, and you were still thinking about it. At the moment Sync new lists what Plaud has and then downloads every new recording: audio, transcript and summary. The choices I can see:
+
+- A: keep it as it is. Sync new means "get everything new".
+- B: Sync new only lists. New recordings appear in the list as "Not yet downloaded", and you choose what to download with Ctrl+D.
+- C: a setting, "Download new recordings when syncing", on or off, with one of those as the default. Settings arrive in milestone 5.
+
+My suggestion is C with downloading on, so it works without thought for most people, but B suits anyone whose Plaud records a lot they never want on disk. Which do you prefer?
+
+ANSWER:
+Yes, go with C with downloading on by default.
+#### Question 2: what changed after you said No to closing?
+
+In step 11 you wrote that the total of recordings to be downloaded seemed to refresh after you said No. NoteFetch's own progress keeps the same total all through a download, so I think what you heard may be JAWS's count of rows in the list, "3 of 60" and so on. In the "Not yet downloaded" view, each recording leaves the list as soon as it is downloaded, so that number shrinks while a download runs. Does that sound like what you heard? And if so, would you rather downloaded recordings stayed in that view until the download finishes?
+
+ANSWER:
+Yes, that's probably what I heard. And it would make sense for the downloading recording to remain in the view until its download is complete.
+### What I did on your desktop
+
+To check the Escape fix and the Ctrl+A events, I opened NoteFetch briefly a few times, on a separate copy of the test data with announcements off. If a NoteFetch window flashed up or took the focus while you were working, that was me. I closed each one straight away.
+
+## 2026-10-18: Sign in from the window, and round 2 of the milestone 3 test
+
+### The short version
+
+- **You can now sign in from NoteFetch.** The File menu has "Sign in to Plaud..." and "Sign out of Plaud". And when NoteFetch finds your sign-in has expired, it now asks "Sign in again now?", with Yes already chosen, so you no longer have to go looking for the command.
+- **Please run round 2:** test-milestone-3-round-2.txt, 12 steps, perhaps 20 minutes. It covers signing in and out, cancelling a sign-in, Ctrl+A again, and the three download steps you could not do last time. Have your Plaud password to hand.
+- **Thank you for round 1.** The rest of the window worked as designed, and your words are recorded in PLAN.md.
+- All automatic checks pass: 65 tests, and clippy is clean.
+
+### What your round 1 results settled
+
+- **Announcements work with JAWS.** You heard the "sign-in has expired" message at start-up and the test announcement. This was the biggest open question in the design, so progress and completion can be spoken as planned, with no extra software.
+- **The test announcement coming after the focused row** is JAWS finishing its own speech first, then ours. I have left it, as you suggested it is fine.
+- **Ctrl+A:** JAWS read every name and "All 71 recordings selected." was lost. NoteFetch now waits a third of a second before saying it, in the hope that it gets through. Step 8 checks whether it does. If not, the Log still has it.
+- **Your sign-in expired** because it was not used for three weeks: Plaud refused the one from 27 September. Plaud does not say how long a sign-in lasts, so I have noted it in PLAN.md. Anyone who uses NoteFetch only now and then will see the same, which is why NoteFetch now asks rather than just saying what to do.
+
+### How signing in behaves
+
+- NoteFetch opens Plaud's sign-in page in your browser and says so in the Log. Once you have signed in, close the tab and come back. NoteFetch says "Signed in to Plaud." and then syncs.
+- While it waits, Escape cancels. It gives up by itself after five minutes.
+- Sign out does not ask first, because it deletes nothing but the sign-in, and signing in again undoes it.
+- Closing NoteFetch now asks only during a download or a sync. While it is only waiting for you to sign in, Alt+F4 just closes it.
+
+### What I could not check myself
+
+I have not opened the window this time, so I could not have taken the focus while you were working. Signing in also needs your Plaud account in the browser, so it has only been checked by the automatic tests. Round 2 is its first real run.
+
+And please do not apologise for exploring the window while I was testing. It was my test window that took the focus. Nothing was harmed.
+
 ## 2026-09-27: Milestone 3 built: NoteFetch has a window
 
 ### The short version
@@ -37,6 +140,7 @@ I ran the accessibility probe from the skill against the live window before writ
 
 When NoteFetch opens, focus should be on the newest recording. Once it landed on the second one. I changed how NoteFetch remembers the focused recording, but could not confirm the fix: while I was checking, you were using the computer, and my test window would have taken the focus from you. So I stopped opening windows on your desktop. Step 20 checks it.
 
+Sorry about that. Normally I take my hands off the keyboard when I notice you're running tests, didn't notice in time this time around, and explored the app a bit with the tab key and arrowed through the list, which lead to confusion.
 ### Not in this version
 
 Signing in from the window, the first-sync question, Settings, Help, Enter on a recording, the context menu, renaming and deleting. The test file says so at the top.

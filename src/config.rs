@@ -23,6 +23,9 @@ pub enum Announcements {
 pub struct Config {
     pub output_folder: PathBuf,
     pub sync_on_start: bool,
+    /// Download new recordings when syncing. Off, a sync only lists them, and
+    /// they wait in "Not yet downloaded" (Laurent, milestone 3 round 3).
+    pub sync_downloads_new: bool,
     pub confirm_delete: bool,
     pub download_audio: bool,
     pub download_transcript: bool,
@@ -43,6 +46,7 @@ impl Default for Config {
         Config {
             output_folder: documents_folder().join("NoteFetch"),
             sync_on_start: true,
+            sync_downloads_new: true,
             confirm_delete: true,
             download_audio: true,
             download_transcript: true,
@@ -80,6 +84,7 @@ impl Config {
                     true
                 }
                 "sync_on_start" => set_bool(&mut c.sync_on_start, value),
+                "sync_downloads_new" => set_bool(&mut c.sync_downloads_new, value),
                 "confirm_delete" => set_bool(&mut c.confirm_delete, value),
                 "download_audio" => set_bool(&mut c.download_audio, value),
                 "download_transcript" => set_bool(&mut c.download_transcript, value),
@@ -129,6 +134,10 @@ impl Config {
              # Look for new recordings when NoteFetch starts.\n\
              sync_on_start = {}\n\
              \n\
+             # Download new recordings when syncing. With no, a sync only\n\
+             # lists them, and you choose what to download.\n\
+             sync_downloads_new = {}\n\
+             \n\
              # Ask before moving a recording to the Recycle Bin.\n\
              confirm_delete = {}\n\
              \n\
@@ -157,6 +166,7 @@ impl Config {
              log_to_file = {}\n",
             self.output_folder.display(),
             yn(self.sync_on_start),
+            yn(self.sync_downloads_new),
             yn(self.confirm_delete),
             yn(self.download_audio),
             yn(self.download_transcript),
@@ -274,6 +284,7 @@ mod tests {
         let c = Config {
             output_folder: PathBuf::from(r"D:\Lectures"),
             download_other: false,
+            sync_downloads_new: false,
             notes_as_txt: true,
             retry_days: 30,
             announcements: Announcements::ErrorsAndCompletion,

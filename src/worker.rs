@@ -29,6 +29,19 @@ pub enum Command {
     Refresh,
     Sync,
     Download(Vec<String>),
+    /// Sign in through the browser, then sync if sync on start is set.
+    SignIn,
+    SignOut,
+}
+
+/// What the worker is doing, so closing the window knows whether to ask.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Activity {
+    Connecting,
+    SigningIn,
+    Refreshing,
+    Syncing,
+    Downloading,
 }
 
 /// How much an announcement matters, for the announcement level setting.
@@ -45,7 +58,7 @@ pub enum Importance {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Row {
     pub id: String,
-    /// The name part, without the date.
+    /// The name part, without the date, with any clash number: "Untitled (2)".
     pub name: String,
     pub folder: Option<String>,
     pub date: String,
@@ -72,6 +85,11 @@ pub enum UiEvent {
     Speak(String, Importance),
     Progress { done: usize, total: usize },
     Snapshot(Snapshot),
+    /// What the worker has started doing.
+    Activity(Activity),
+    /// The sign-in is missing or no longer works, so the window offers to
+    /// sign in. True if there was one and it has expired.
+    SignInNeeded(bool),
     /// The command that was running has finished, one way or another.
     Finished,
 }
@@ -102,6 +120,19 @@ impl Sink {
 
     fn announce(&self, line: impl Into<String>, importance: Importance) {
         self.send(UiEvent::Announce(line.into(), importance));
+    }
+
+    /// Announce an error, and offer to sign in if that is what it needs.
+    fn error(&self, e: Error) {
+        let needed = match e {
+            Error::NotSignedIn => Some(false),
+            Error::SignInExpired => Some(true),
+            _ => None,
+        };
+        self.announce(e.to_string(), Importance::Error);
+        if let Some(expired) = needed {
+            self.send(UiEvent::SignInNeeded(expired));
+        }
     }
 }
 
@@ -176,24 +207,79 @@ async fn run(mut rx: mpsc::UnboundedReceiver<(Command, Cancel)>, sink: Sink, sta
             }
         }
         Err(e) => {
-            sink.announce(e.to_string(), Importance::Error);
             sink.send(UiEvent::Finished);
+            sink.error(e);
         }
     }
 
     while let Some((command, cancel)) = rx.recv().await {
+        match command {
+            Command::SignIn => {
+                sign_in(&mut cx, cancel, &sink).await;
+                continue;
+            }
+            Command::SignOut => {
+                sign_out(&mut cx, &sink);
+                continue;
+            }
+            _ => {}
+        }
         if cx.engine.is_none() {
+            sink.send(UiEvent::Activity(Activity::Connecting));
             match connect(&cx).await {
                 Ok(engine) => cx.engine = Some(engine),
                 Err(e) => {
-                    sink.announce(e.to_string(), Importance::Error);
                     sink.send(UiEvent::Finished);
+                    sink.error(e);
                     continue;
                 }
             }
         }
         run_command(&cx, command, cancel, &sink).await;
     }
+}
+
+/// Sign in through the browser. Escape cancels; it gives up by itself after
+/// five minutes.
+async fn sign_in(cx: &mut Context, cancel: Cancel, sink: &Sink) {
+    sink.send(UiEvent::Activity(Activity::SigningIn));
+    sink.announce("Signing in to Plaud.", Importance::Routine);
+    let result = async {
+        let http = crate::http_client()?;
+        let status = |line: String| sink.announce(line, Importance::Completion);
+        crate::auth::sign_in(&http, &cancel, &status).await?;
+        connect(cx).await
+    }
+    .await;
+    match result {
+        Ok(engine) => {
+            cx.engine = Some(engine);
+            sink.announce("Signed in to Plaud.", Importance::Completion);
+            if cx.config.sync_on_start && !cancel.is_cancelled() {
+                run_command(cx, Command::Sync, cancel, sink).await;
+                return;
+            }
+        }
+        Err(Error::Cancelled) => {
+            sink.announce("Sign-in cancelled. You can sign in later from the File menu.", Importance::Completion)
+        }
+        // Not sink.error: offering to sign in again straight after a failed
+        // sign-in would only go round in a circle.
+        Err(e) => sink.announce(e.to_string(), Importance::Error),
+    }
+    sink.send(UiEvent::Finished);
+}
+
+fn sign_out(cx: &mut Context, sink: &Sink) {
+    cx.engine = None;
+    match crate::auth::forget() {
+        Ok(()) => sink.announce(
+            "Signed out of Plaud. Your downloaded recordings are still in the output folder. To sign in again, choose Sign in from the File menu.",
+            Importance::Completion,
+        ),
+        Err(e) => sink.announce(e.to_string(), Importance::Error),
+    }
+    sink.send(UiEvent::Finished);
 }
 
 async fn connect(cx: &Context) -> Result<Arc<Engine>, Error> {
@@ -238,11 +324,14 @@ async fn run_command(cx: &Context, command: Command, cancel: Cancel, sink: &Sink
 
     // The final line to speak, and whether the engine has already logged it.
     let outcome: Result<Option<(String, bool)>, Error> = match command {
+        Command::SignIn | Command::SignOut => Ok(None),
         Command::Refresh => {
+            sink.send(UiEvent::Activity(Activity::Refreshing));
             sink.announce("Refreshing the list from Plaud.", Importance::Routine);
             engine.refresh(&emit).await.map(|_| Some((last(), true)))
         }
         Command::Sync => {
+            sink.send(UiEvent::Activity(Activity::Syncing));
             sink.announce("Syncing with Plaud.", Importance::Routine);
             match engine.sync(&cancel, emit.clone()).await {
                 Ok(report) if report.needs_first_sync_choice => Ok(Some((
@@ -255,13 +344,14 @@ async fn run_command(cx: &Context, command: Command, cancel: Cancel, sink: &Sink
         }
         Command::Download(ids) => {
             let n = ids.len();
+            sink.send(UiEvent::Activity(Activity::Downloading));
             sink.announce(
                 if n == 1 { "Downloading 1 recording.".to_string() } else { format!("Downloading {n} recordings.") },
                 Importance::Routine,
             );
-            match engine.fetch_many(ids, &cancel, emit.clone()).await {
-                Ok((fetched, 0)) => Ok(Some((format!("Download finished. {} downloaded.", plural(fetched, "recording")), false))),
-                Ok((fetched, failed)) => Ok(Some((
+            match engine.fetch_many(ids, false, &cancel, emit.clone()).await {
+                Ok((fetched, _, 0)) => Ok(Some((format!("Download finished. {} downloaded.", plural(fetched, "recording")), false))),
+                Ok((fetched, _, failed)) => Ok(Some((
                     format!("Download finished. {} downloaded, {failed} failed. The Log says why for each.", plural(fetched, "recording")),
                     false,
                 ))),
@@ -274,7 +364,12 @@ async fn run_command(cx: &Context, command: Command, cancel: Cancel, sink: &Sink
         Ok(Some((line, false))) => sink.announce(line, Importance::Completion),
         Ok(None) => {}
         Err(Error::Cancelled) => sink.announce("Cancelled. Anything already downloaded has been kept.", Importance::Completion),
-        Err(e) => sink.announce(e.to_string(), Importance::Error),
+        Err(e) => {
+            send_snapshot(cx, sink);
+            sink.send(UiEvent::Finished);
+            sink.error(e);
+            return;
+        }
     }
     send_snapshot(cx, sink);
     sink.send(UiEvent::Finished);
@@ -306,8 +401,12 @@ fn snapshot(store: &Store, library: &Library) -> Option<Snapshot> {
         .into_iter()
         .map(|r| {
             let local = clock::to_local(&Stamp::from_unix_millis(r.start_ms));
+            let name = r.local_name.clone().unwrap_or_else(|| crate::naming::name_from_plaud(&r.plaud_name));
+            // "Untitled (2)" for the second of two recordings started in the
+            // same minute, as its folder is named. Laurent, round 3.
+            let clash = r.location.as_deref().map(library::base_of).and_then(crate::naming::clash_of).unwrap_or("");
             Row {
-                name: r.local_name.clone().unwrap_or_else(|| crate::naming::name_from_plaud(&r.plaud_name)),
+                name: format!("{name}{clash}"),
                 folder: r.location.as_deref().and_then(library::folder_of).map(str::to_string),
                 date: local.list_date(),
                 duration: clock::duration_words(r.duration_ms),

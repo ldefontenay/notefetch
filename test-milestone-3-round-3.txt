@@ -1,0 +1,101 @@
+NoteFetch milestone 3 test, round 3: Escape in the Log, and a clearer Log
+
+A short round, perhaps 10 minutes. It checks the two things changed after
+round 2: Escape in the Log now cancels instead of closing NoteFetch, and the
+Log now says what a sync is about to fetch and why.
+
+It runs on the same test copy of your data as before, so nothing touches
+your Documents folder. You are signed in from round 2, so no password is
+needed, but have a browser that is still signed in to Plaud for step 3.
+
+Please write your answers after each ANSWER line. Leave any you cannot do
+blank, and say so. Save the file when you are done.
+
+
+SECTION 1: THE LOG AFTER A SYNC
+
+1. In File Explorer, go to C:\Users\ldefo\dev\NoteFetch\test-data and press
+   Enter on "Start NoteFetch test.cmd". NoteFetch syncs as it opens. Wait
+   until you hear "Sync finished." Then press Alt+G and read the Log from
+   the top with Down Arrow. The newest line is first.
+   Expected, reading down (some lines may not appear, depending on what
+   Plaud has):
+   "Sync finished. ..."
+   "Checked 6 recordings again for a transcript or summary: Plaud has
+   nothing new for them yet." (the number may differ)
+   any "Downloaded ..." lines
+   "Fetching 6 recordings: ...", saying how many are not yet downloaded,
+   not finished last time, or to be checked again for a transcript or
+   summary
+   "Plaud has 79 recordings. None are new." (or how many are new)
+   "Syncing with Plaud."
+   Does the Log now make sense? Is there anything you would still word
+   differently?
+
+ANSWER:
+It makes more sense now. Here's the log text:
+Sync finished. Everything is up to date.
+Checked 6 recordings again for a transcript or summary: Plaud has nothing new for them yet.
+Downloaded 1 of 6.
+Fetching 6 recordings: 6 to check again for a transcript or summary.
+Plaud has 79 recordings. None are new.
+Syncing with Plaud.
+
+ANYTHING ODD:
+
+
+SECTION 2: ESCAPE IN THE LOG
+
+2. With focus still in the Log and nothing running, press Escape.
+   Expected: "Nothing is running, so there is nothing to cancel." NoteFetch
+   stays open, and focus stays in the Log.
+   What happened?
+
+ANSWER:
+As expected. Focus remained in the log after the message.
+3. Press Alt+F, then I, for "Sign in to Plaud...". When the browser opens,
+   do not sign in. Alt+Tab back to NoteFetch, press Alt+G for the Log, and
+   press Escape.
+   Expected: "Cancelling.", then "Sign-in cancelled. You can sign in later
+   from the File menu." NoteFetch stays open. Your existing sign-in is kept.
+   Close the browser tab afterwards with Ctrl+W.
+   What happened? Did NoteFetch stay open this time?
+
+ANSWER:
+Yes, it stayed open.
+4. Press Alt+S and choose "Not yet downloaded". Alt+C to the list, pick one
+   recording, and press Ctrl+D. Straight away press Alt+G for the Log, and
+   press Escape.
+   Expected: "Cancelling.", then "Cancelled. Anything already downloaded
+   has been kept." NoteFetch stays open.
+   What happened?
+
+ANSWER:
+Good, exactly as expected.
+ANYTHING ODD:
+No.
+
+SECTION 3: TWO RECORDINGS STARTED IN THE SAME MINUTE
+
+Your Plaud account has two recordings that both started at 12:29 on
+15 October: one an hour long, one 20 seconds. Their folders are told apart
+by "(2)" at the end of one of them. Last time the Log gave them the same
+name, so it looked as if one recording had been checked twice.
+
+5. Press Alt+S and choose "All recordings". Alt+C to the list, and arrow to
+   the recording dated Thu 15 Oct 2026, 12:29 with a duration of 1 hour 1
+   minute. Press Ctrl+D. Then arrow to the one dated the same, lasting 20
+   seconds, and press Ctrl+D again.
+   Expected: each gives a line in the Log, "Checked ... again: Plaud has no
+   transcript or summary for it yet." One name ends "1229" and the other
+   "1229 (2)".
+   What did the two Log lines say?
+
+ANSWER:
+As expected, very helpful.
+ANYTHING ODD:
+It would be helpful to have the (2) in the title as well.
+
+ANYTHING ELSE YOU WANT TO SAY:
+
+No, very good.

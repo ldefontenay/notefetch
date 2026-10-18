@@ -112,6 +112,8 @@ The app also has a menu bar (File, Recording, Folder, Actions, Help) that lists 
 
 - It pages through `list_files` and compares against the local database, then calls `get_file` for each recording it needs.
 - It downloads anything not yet complete: new recordings, earlier failures, and recordings still waiting for a transcript or summary.
+- Downloading new recordings when syncing is a setting, on by default. Off, a sync only lists new recordings, and they wait in the "Not yet downloaded" view for the user to choose. Unfinished downloads and missing transcripts and summaries are still fetched.
+- The Log says what a sync will fetch and why, before it starts.
 - It never downloads recordings marked Deleted or Skipped. Only the user can bring those back, with Download again.
 - Recordings with no transcript or summary yet are checked again on later syncs for a set number of days (a setting, 14 by default), because Plaud may generate them later. After that the missing parts count as "not available" and are no longer retried.
 - **First sync.** On the first sync the app asks whether to download the whole history, only recordings from the last N days, or nothing (start from now). This prevents an unexpected download of hundreds of hours of audio.
@@ -239,6 +241,7 @@ A dialog built from a resource template, with:
 
 - output folder, set with the Windows folder picker (`IFileOpenDialog` with `FOS_PICKFOLDERS`), by default a NoteFetch folder in Documents;
 - sync on start (on or off);
+- download new recordings when syncing (on by default);
 - confirm before deleting (on or off);
 - what to download (audio, transcript, summary, other parts);
 - save notes as .txt instead of .md (off by default);

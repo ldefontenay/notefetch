@@ -342,6 +342,11 @@ impl Library {
 
 /// The name shown for a recording in messages.
 pub fn display_name(r: &Record) -> String {
+    // The folder's own name when there is one, so two recordings started in
+    // the same minute are told apart by its clash number, as on disk.
+    if let Some(loc) = &r.location {
+        return base_of(loc).to_string();
+    }
     let name = r.local_name.clone().unwrap_or_else(|| naming::name_from_plaud(&r.plaud_name));
     let local = clock::to_local(&Stamp::from_unix_millis(r.start_ms));
     format!("{name}, {}", local.name_suffix())

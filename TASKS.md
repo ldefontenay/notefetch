@@ -79,7 +79,12 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 - [x] Worker thread running the tokio runtime. Commands go in through a channel. Events come out through a queue, with `PostMessageW` sent to the dialog as a signal that events are waiting. The interface thread is the only one that touches windows.
 - [x] Escape cancels the running operation and does not close the window.
 - [x] Accessibility probe run on the live window: names, labels, Alt keys and roles correct (see PLAN.md).
-- [ ] Laurent's results in `test-milestone-3.txt`. Test script written. Check in particular how JAWS reads list rows and columns, what Tab to the Log says, and whether the test announcement is spoken.
+- [x] Laurent's results in `test-milestone-3.txt`. Rows, the Log and the test announcement all read well; steps 13 to 15 were blocked by an expired sign-in.
+- [x] After the test: Sign in and Sign out in the File menu (brought forward from milestone 5 at Laurent's request), the offer to sign in when the sign-in has expired, and the Ctrl+A announcement delayed so JAWS's own speech does not swallow it.
+- [x] Laurent's results in `test-milestone-3-round-2.txt`: signing in from the window, and the download steps from round 1. All worked, except Escape in the Log, which closed NoteFetch.
+- [x] After round 2: Escape in the Log cancels instead of closing; a sync's Log says what it will fetch and why, and folds the "checked again" lines into one; messages use the folder's own name, clash number included; `--tools` developer flag. Plaud's tools checked again: still read-only.
+- [x] Laurent's results in `test-milestone-3-round-3.txt`: Escape in the Log, and the clearer sync Log. All as expected.
+- [x] After round 3, from his answers: the `sync_downloads_new` setting (on by default; in the Settings dialog in milestone 5), rows kept in the list until the running command finishes, "(2)" in the Name column, and "Fetched 1 of 6" for a sync's progress.
 
 ## Milestone 4: local recordings
 
@@ -101,9 +106,9 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 
 ## Milestone 5: sign-in, first sync and settings
 
-- [ ] Sign in and sign out from the menu and the settings dialog, with Cancel and timeout while waiting.
+- [ ] Sign in and sign out from the settings dialog. (From the File menu, with Escape and the five-minute timeout, done in milestone 3.)
 - [ ] The first-sync question (whole history, last N days, or start from now).
-- [ ] Settings dialog as described in SPEC.md, with the Windows folder picker.
+- [ ] Settings dialog as described in SPEC.md, with the Windows folder picker. Include "Download new recordings when syncing" (`sync_downloads_new`).
 - [ ] Sync on start.
 - [ ] Test script and `test-milestone-5.txt`.
 

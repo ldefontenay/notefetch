@@ -27,6 +27,7 @@ This file records what was decided, why, and on what evidence. Read it before ch
 ### Plaud MCP is read-only
 
 - It returns content already generated in Plaud and cannot trigger transcription or summaries. This suits the app's purpose, which is to fetch audio for transcription elsewhere.
+- **Checked again on 18 October 2026,** at Laurent's request ("our knowledge of the capabilities dates from about a month ago"), with the new `--tools` developer flag. Still the same five tools: `list_files`, `get_file`, `get_note`, `get_transcript` and `get_current_user`, so renaming in Plaud is still not possible. Only `list_files` changed: `date_from` and `date_to` now filter on Plaud's server, exactly and with no 500-recording limit, while `query` still scans only the newest 500. An unofficial "plaud-connector" project on GitHub can rename by using Plaud's private app interface; NoteFetch keeps to the published MCP server.
 
 ### Sync on start plus a shortcut, no tray or timer
 
@@ -201,6 +202,53 @@ Full answers in `test-milestone-2.txt`. This replaces the naming in "Every file 
 - **Known limits in this version:** no sign-in from the window, no first-sync question, no Settings, no Help file, and Enter in the list does nothing. The worker's "not signed in" message tells the user to use a Sign in command that does not exist until milestone 5.
 - **Testing on the development data:** `test-data\Start NoteFetch test.cmd` sets `NOTEFETCH_DATA` and starts the release build, so Laurent can test without a sign-in dialog.
 
+### What Laurent's milestone 3 test settled (18 October 2026)
+
+Full answers in `test-milestone-3.txt`. Steps 13 to 15 (downloading, progress, Escape, and closing during a download) could not be run, because the sign-in had expired and the window had no Sign in command.
+
+- **JAWS speaks `UiaRaiseNotificationEvent` from the plain Win32 dialog.** `[proven]` He heard the start-up error "Your Plaud sign-in has expired..." and the Help menu's test announcement. The design in "UI Automation notifications for announcements" stands, and Tolk is not needed for JAWS. JAWS speaks the announcement after its own speech: "The line of the currently focussed recording was spoken, followed by the announcement. Presumably this is fine." Left as it is.
+- **List rows read well.** `[proven]` JAWS reads the name, then Folder, Date, Duration and Status, without the column titles. Laurent: "The information is very good as presented."
+- **The Name column stays as it is**, without the date. Laurent: "Fine as is for now."
+- **Ctrl+A's announcement was not heard.** `[proven]` JAWS read the name of every recording as it was selected, and "All 71 recordings selected." only reached the Log. Laurent: "The expected message wasn't spoken, which would have been better, although its still clear what happened." Changed: the announcement now waits 300 ms after the selection. `[untested]`
+- **Tab order, Alt keys, menus, Show, Folder, filter and the Log** all worked as designed. `[proven]` On the menus: "It behaves like a model accessible app. really good." Ctrl+A and Delete in the filter box acted on the text, not the recordings, so handling the list's keys in its subclass works. `[proven]` The Log reads newest first, line by line. `[proven]`
+- **Focus on reopening** landed on the first recording. `[proven]` The fix recorded under milestone 3 holds.
+- **A refresh token lasts less than three weeks unused.** `[proven]` The development sign-in, last used on 27 September, was refused on 18 October. Plaud does not say how long it lasts. Anyone who opens NoteFetch only now and then will meet this, so signing in again has to be easy.
+
+### Sign in and Sign out brought forward from milestone 5 (18 October 2026)
+
+- Laurent, at the end of the milestone 3 test: "I'll complete this test round once I can sign the app back into Plaud again, please build this functionality." So the File menu now has "Sign in to Plaud..." and "Sign out of Plaud", ahead of the rest of milestone 5 (the first-sync question and Settings).
+- **When a command finds the sign-in missing or expired, NoteFetch asks** "Your Plaud sign-in has expired. Sign in again now?", with Yes already chosen. SPEC.md says the app "offers to do it", and this is a question the user must answer, so a message box is the right place for it. The error is still announced and logged first. After a failed sign-in it does not ask again, which would only go round in a circle.
+- **While waiting for the browser,** Escape cancels, and it gives up by itself after five minutes, as SPEC.md asks. The Log and an announcement say the page is open in the browser.
+- **After signing in, NoteFetch syncs** when sync on start is set, since that sync could not run at start-up.
+- **Sign out does not ask first.** `[reasoned]`: it deletes nothing but the stored sign-in, and signing in again undoes it.
+- **Closing asks only during a download or a sync,** the work that writes files. Closing while waiting for sign-in, connecting or refreshing just stops it. The sync question says "syncing" rather than "downloading".
+- Not tried live: completing a sign-in needs Laurent's Plaud account in the browser, and opening the window would take the focus while he may be using the computer. Built and checked by tests and clippy only.
+
+### What Laurent's milestone 3 round 2 test settled (18 October 2026)
+
+Full answers in `test-milestone-3-round-2.txt`.
+
+- **Signing in from the window works.** `[proven]` The expired sign-in question at start-up: "All as expected and the question was clear." The browser page and "Signed in to Plaud" page were clear. The announcements after sign-in were spoken while the browser still had the focus: "which is very good". Sign out, saying No to the sign-in question, and cancelling a sign-in with Escape all worked as designed.
+- **Escape in the Log closed NoteFetch.** `[proven]` During a sign-in, Escape with focus in the Log "completely quits with no message instead of cancelling". Cause: a multi-line edit box asks the dialog for every key (`DLGC_WANTALLKEYS`), and on Escape it sends its parent `WM_CLOSE`. Closing does not ask while only signing in, so NoteFetch closed. Fixed by subclassing the Log so its `WM_GETDLGCODE` answer leaves Escape to the dialog, which turns it into Cancel as everywhere else. `[proven]` by a posted Escape to the Log: without the fix the window closed; with it, the Log said "Nothing is running, so there is nothing to cancel." Not yet heard by Laurent.
+- **Ctrl+A.** `[proven]` With the 300 ms wait, "All 79 recordings selected." is now spoken, but only after JAWS has read every name. Laurent: "fine as a second-class non-dealbreaking behaviour as is and screenreader users would be used to this. First class would be to have the message ... immediately ... a bonus, not essential." Measured with a WinEvent hook: `LVM_SETITEMSTATE` with index -1 fires one `EVENT_OBJECT_SELECTIONADD` per row (78 for 79 rows), and `WM_SETREDRAW` off does not stop them. Rebuilding the list with every row inserted already selected fires the same 78 and more besides. Both tried and dropped. Left as it is; a virtual (owner-data) list might fire a single event instead, `[untested]`, worth trying only if the list is rebuilt for another reason.
+- **Downloads, progress, Escape and closing during a download** work as designed. `[proven]` On progress every 5 seconds: "Very good. Messages just as expected and progress announcements timed well." Focus after a download in "Not yet downloaded" moved to the next recording as the downloaded one left the view.
+- **A sync downloads new recordings,** as SPEC.md says. Laurent: "All new recordings were actually downloaded, as opposed to just syncronised. Not terrible, but still thinking through whether this is desireable behaviour or not." Asked in log.md; unchanged until he answers.
+- **The Log during a sync was confusing.** Laurent: "I find the log a bit confusing." It said "None are new" and then downloaded two recordings, which were downloads his Escape had interrupted earlier, now being finished. It also named "Untitled, 15 Oct 2026, 1229" twice: two different recordings started in the same minute, whose folders are told apart only by "(2)". Changed:
+  - after "Plaud has 79 recordings", a line saying what the sync will fetch and why, for example "Fetching 8 recordings: 2 not finished last time, and 6 to check again for a transcript or summary.";
+  - in a sync, the "Checked ... again" lines become one: "Checked 6 recordings again for a transcript or summary: Plaud has nothing new for them yet." Download selected still gives each its own line, since the user picked them;
+  - messages name a downloaded recording by its folder's own name, so the clash number "(2)" is included.
+- **Pressing No to the close question.** Laurent: "I think that the total of recordings to be downloaded refreshed after pressing no, which may be a bit confusing." Not yet understood: the progress total does not change during a download, so this may be the list's own count shrinking in the "Not yet downloaded" view. Asked in log.md.
+
+### What Laurent's milestone 3 round 3 test settled (18 October 2026)
+
+Full answers in `test-milestone-3-round-3.txt`, and his answers to the two questions in log.md.
+
+- **Escape in the Log now cancels.** `[proven]` Idle, it said "Nothing is running..." and focus stayed in the Log; during a sign-in and during a download it cancelled and NoteFetch stayed open.
+- **The sync Log makes sense.** Laurent: "It makes more sense now." One wording fix: a sync that only checked recordings again said "Downloaded 1 of 6." Progress now says "Fetched" during a sync and "Downloaded" only for Download selected.
+- **Recordings started in the same minute.** The Log lines with "(2)" were "very helpful". He asked: "It would be helpful to have the (2) in the title as well." The Name column now adds the folder's clash number: "Untitled (2)". When F2 rename arrives in milestone 4, it must edit the name without the clash number.
+- **Downloading new recordings when syncing becomes a setting, on by default.** Laurent, choosing option C: "Yes, go with C with downloading on by default." `sync_downloads_new` in `notefetch.conf` now; in the Settings dialog in milestone 5. Off, a sync still finishes interrupted downloads and checks for transcripts, retries earlier failures, and says the new ones are in "Not yet downloaded".
+- **Rows stay in the list until the command finishes.** On the shrinking list count during a download, Laurent: "Yes, that's probably what I heard. And it would make sense for the downloading recording to remain in the view until its download is complete." Read as: rows in the list when a command starts stay there, with their status updated, until it finishes, and then the view is applied again. Changing the Show or Folder choice or the filter meanwhile drops them. `[untested]` with JAWS; check in the milestone 4 round, including that focus still moves to the next recording afterwards.
+
 ### Name: NoteFetch
 
 - Rejected names:
@@ -239,6 +287,6 @@ GitHub projects read on 26 September 2026:
 ## Not yet verified
 
 - Whether plain paging of `list_files` stops at 500 recordings (the test account has 71).
-- How long a refresh token lasts if unused. The server does not say.
+- How long a refresh token lasts if unused. The server does not say. Less than three weeks: one unused from 27 September was refused on 18 October.
 - Plaud's terms of service on third-party clients, and use of the Plaud name.
 - Whether SignPath's free code signing for open-source projects is available for this project.
