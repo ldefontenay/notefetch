@@ -11,26 +11,36 @@
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::io::Write as _;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
+use windows::Win32::Foundation::{GlobalFree, HANDLE, HWND, LPARAM, LRESULT, POINT, RECT, WPARAM};
+use windows::Win32::Graphics::Gdi::ClientToScreen;
+use windows::Win32::System::DataExchange::{CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData};
+use windows::Win32::System::Memory::{GMEM_MOVEABLE, GlobalAlloc, GlobalLock, GlobalUnlock};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::Controls::{
     ICC_LISTVIEW_CLASSES, INITCOMMONCONTROLSEX, InitCommonControlsEx, LIST_VIEW_ITEM_STATE_FLAGS, LVCF_SUBITEM,
     LVCF_TEXT, LVCF_WIDTH, LVCOLUMNW, LVIF_PARAM, LVIF_TEXT, LVIS_FOCUSED, LVIS_SELECTED, LVITEMW, LVM_DELETEALLITEMS,
     LVM_ENSUREVISIBLE, LVM_GETITEMCOUNT, LVM_GETNEXTITEM, LVM_INSERTCOLUMNW, LVM_INSERTITEMW,
-    LVM_SETEXTENDEDLISTVIEWSTYLE, LVM_SETITEMSTATE, LVM_SETITEMTEXTW, LVN_ITEMCHANGED, LVNI_FOCUSED, LVNI_SELECTED,
-    LVS_EX_FULLROWSELECT, NMHDR, NMLISTVIEW,
+    LVM_EDITLABELW, LVM_GETEDITCONTROL, LVM_GETITEMRECT, LVM_SETEXTENDEDLISTVIEWSTYLE, LVM_SETITEMSTATE, LVM_SETITEMTEXTW,
+    LVN_BEGINLABELEDITW, LVN_ENDLABELEDITW, LVN_ITEMCHANGED, LVNI_FOCUSED, LVNI_SELECTED, LVIR_LABEL, LVS_EX_FULLROWSELECT,
+    NMHDR, NMLISTVIEW, NMLVDISPINFOW,
 };
-use windows::Win32::UI::Input::KeyboardAndMouse::{GetFocus, GetKeyState, SetFocus, VK_CONTROL, VK_ESCAPE, VK_SHIFT};
-use windows::Win32::UI::Shell::{DefSubclassProc, SetWindowSubclass, ShellExecuteW};
+use windows::Win32::UI::Input::KeyboardAndMouse::{
+    GetFocus, GetKeyState, SetFocus, VK_CONTROL, VK_DELETE, VK_ESCAPE, VK_F2, VK_RETURN, VK_SHIFT,
+};
+use windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, COINIT_DISABLE_OLE1DDE, CoInitializeEx};
+use windows::Win32::UI::Shell::{DefSubclassProc, RemoveWindowSubclass, SetWindowSubclass, ShellExecuteW};
 use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::{PCWSTR, PWSTR, w};
 
 use crate::announce;
 use crate::cancel::Cancel;
 use crate::config::{Announcements, Config};
+use crate::library;
+use crate::naming;
 use crate::store::State;
 use crate::worker::{Activity, Command, Importance, Row, Snapshot, UiEvent, WM_APP_EVENTS, Worker};
 
@@ -57,6 +67,31 @@ const IDM_CANCEL: i32 = 2022;
 const IDM_FIND: i32 = 2023;
 const IDM_OPEN_OUTPUT: i32 = 2024;
 const IDM_TEST_SPEECH: i32 = 2030;
+/// Enter in the list: the focused recording's default action.
+const IDM_DEFAULT: i32 = 2040;
+const IDM_PLAY: i32 = 2041;
+const IDM_TRANSCRIPT: i32 = 2042;
+const IDM_SUMMARY: i32 = 2043;
+const IDM_COPY_PATH: i32 = 2044;
+const IDM_RENAME: i32 = 2045;
+const IDM_MOVE: i32 = 2046;
+const IDM_DELETE: i32 = 2047;
+const IDM_SKIP: i32 = 2048;
+const IDM_NEW_FOLDER: i32 = 2060;
+const IDM_RENAME_FOLDER: i32 = 2061;
+const IDM_DELETE_FOLDER: i32 = 2062;
+const IDD_MOVE: u16 = 110;
+const IDC_MOVE_LIST: i32 = 1101;
+const IDC_MOVE_NEW: i32 = 1102;
+const IDD_NAME: u16 = 120;
+const IDC_NAME_EDIT: i32 = 1202;
+
+/// Menu bar positions, for setting up a menu as it opens.
+const MENU_RECORDING: i32 = 1;
+const MENU_FOLDER: i32 = 2;
+/// Every command in the Recording menu that depends on the focused recording.
+const RECORDING_COMMANDS: [i32; 10] =
+    [IDM_PLAY, IDM_TRANSCRIPT, IDM_SUMMARY, IDM_OPEN_RECORDING, IDM_COPY_PATH, IDM_DOWNLOAD, IDM_SKIP, IDM_RENAME, IDM_MOVE, IDM_DELETE];
 
 // Edit control messages, from winuser.h.
 const EM_GETSEL: u32 = 0x00B0;
@@ -68,6 +103,9 @@ const EM_SETLIMITTEXT: u32 = 0x00C5;
 /// Posted to the window to offer signing in, outside the event handling,
 /// because the question is a modal box. wparam is 1 if the sign-in expired.
 const WM_APP_ASK_SIGN_IN: u32 = WM_APP + 11;
+/// Posted by the list when its context menu is asked for, with the
+/// WM_CONTEXTMENU coordinates as lparam: -1 for the keyboard.
+const WM_APP_CONTEXT: u32 = WM_APP + 12;
 
 const FILTER_TIMER: usize = 1;
 const SELECT_TIMER: usize = 2;
@@ -115,6 +153,9 @@ struct Ui {
     kept: Vec<String>,
     config: Config,
     last_progress: Option<Instant>,
+    /// The Folder box's choice to make once the next list arrives, after a
+    /// folder is renamed.
+    want_folder: Option<String>,
 }
 
 thread_local! {
@@ -153,6 +194,8 @@ fn send(hwnd: HWND, message: u32, wparam: usize, lparam: isize) -> isize {
 pub fn run() -> i32 {
     // SAFETY: standard Win32 start-up, all on this thread.
     unsafe {
+        // The shell's Open With and file operations expect COM on this thread.
+        let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         let icc = INITCOMMONCONTROLSEX { dwSize: size_of::<INITCOMMONCONTROLSEX>() as u32, dwICC: ICC_LISTVIEW_CLASSES };
         let _ = InitCommonControlsEx(&icc);
         let Ok(instance) = GetModuleHandleW(None) else { return 2 };
@@ -160,6 +203,7 @@ pub fn run() -> i32 {
             return 2;
         };
         let accel = LoadAcceleratorsW(Some(instance.into()), resource(IDR_ACCEL)).ok();
+        let list = item(dialog, IDC_LIST);
         let _ = ShowWindow(dialog, SW_SHOW);
         let _ = SetForegroundWindow(dialog);
 
@@ -170,7 +214,11 @@ pub fn run() -> i32 {
                 break;
             }
             // Accelerators first, then the dialog's own keyboard handling.
+            // None while a name is being edited in the list, so Ctrl+S or F5
+            // cannot set something running in the middle of typing.
+            let editing = send(list, LVM_GETEDITCONTROL, 0, 0) != 0;
             if let Some(a) = accel
+                && !editing
                 && TranslateAcceleratorW(dialog, a, &message) != 0
             {
                 continue;
@@ -200,6 +248,14 @@ unsafe extern "system" fn dialog_proc(hwnd: HWND, message: u32, wparam: WPARAM, 
             ask_sign_in(hwnd, wparam.0 == 1);
             1
         }
+        WM_APP_CONTEXT => {
+            context_menu(hwnd, lparam.0);
+            1
+        }
+        WM_INITMENUPOPUP => {
+            init_menu(hwnd, HMENU(wparam.0 as *mut _));
+            0
+        }
         WM_COMMAND => {
             let id = (wparam.0 & 0xFFFF) as i32;
             let code = ((wparam.0 >> 16) & 0xFFFF) as u32;
@@ -211,6 +267,27 @@ unsafe extern "system" fn dialog_proc(hwnd: HWND, message: u32, wparam: WPARAM, 
             // view LVN_ITEMCHANGED at an NMLISTVIEW that begins with one.
             unsafe {
                 let header = &*(lparam.0 as *const NMHDR);
+                if header.idFrom == IDC_LIST as usize && header.code == LVN_BEGINLABELEDITW {
+                    let info = &*(lparam.0 as *const NMLVDISPINFOW);
+                    if !begin_rename(header.hwndFrom, info.item.iItem) {
+                        // Refuse the edit: a dialog's answer to a notification
+                        // goes in DWLP_MSGRESULT.
+                        SetWindowLongPtrW(hwnd, WINDOW_LONG_PTR_INDEX(0), 1);
+                        return 1;
+                    }
+                    return 0;
+                }
+                if header.idFrom == IDC_LIST as usize && header.code == LVN_ENDLABELEDITW {
+                    let info = &*(lparam.0 as *const NMLVDISPINFOW);
+                    if !info.item.pszText.is_null() {
+                        let text = info.item.pszText.to_string().unwrap_or_default();
+                        let index = info.item.iItem;
+                        with_ui(|ui| end_rename(ui, index, &text));
+                    }
+                    // Leave the list's text alone: the new name arrives with
+                    // the next list from the worker, once the disk agrees.
+                    return 0;
+                }
                 if header.idFrom == IDC_LIST as usize && header.code == LVN_ITEMCHANGED {
                     let change = &*(lparam.0 as *const NMLISTVIEW);
                     let gained = change.uNewState & LVIS_FOCUSED.0 != 0 && change.uOldState & LVIS_FOCUSED.0 == 0;
@@ -269,7 +346,7 @@ unsafe extern "system" fn dialog_proc(hwnd: HWND, message: u32, wparam: WPARAM, 
 fn init(dialog: HWND) {
     let list = item(dialog, IDC_LIST);
     send(list, LVM_SETEXTENDEDLISTVIEWSTYLE, LVS_EX_FULLROWSELECT as usize, LVS_EX_FULLROWSELECT as isize);
-    let mut rect = windows::Win32::Foundation::RECT::default();
+    let mut rect = RECT::default();
     // SAFETY: rect is a live structure.
     unsafe {
         let _ = GetClientRect(list, &mut rect);
@@ -328,6 +405,7 @@ fn init(dialog: HWND) {
             kept: Vec::new(),
             config,
             last_progress: None,
+            want_folder: None,
         });
     });
     // SAFETY: focus on a control of this window.
@@ -402,6 +480,35 @@ fn command(hwnd: HWND, id: i32, code: u32) {
         IDM_OPEN_RECORDING => {
             with_ui(open_recording);
         }
+        IDM_DEFAULT => {
+            // Play a downloaded recording; download anything else. SPEC.md
+            // "Keyboard": Enter carries out the context menu's default item.
+            let action = with_ui(|ui| focused(ui).map(|r| default_command(&r))).flatten();
+            if let Some(id) = action {
+                command(hwnd, id, 0);
+            }
+        }
+        IDM_PLAY => {
+            with_ui(|ui| open_part(ui, FilePart::Audio));
+        }
+        IDM_TRANSCRIPT => {
+            with_ui(|ui| open_part(ui, FilePart::Transcript));
+        }
+        IDM_SUMMARY => {
+            with_ui(|ui| open_part(ui, FilePart::Summary));
+        }
+        IDM_COPY_PATH => {
+            with_ui(copy_audio_path);
+        }
+        IDM_RENAME => rename_focused(hwnd),
+        IDM_DELETE => delete_selected(hwnd),
+        IDM_SKIP => {
+            with_ui(skip_selected);
+        }
+        IDM_MOVE => move_selected(hwnd),
+        IDM_NEW_FOLDER => new_folder(hwnd),
+        IDM_RENAME_FOLDER => rename_folder(hwnd),
+        IDM_DELETE_FOLDER => delete_folder(hwnd),
         IDM_SELECT_ALL => {
             with_ui(|ui| {
                 select_all(ui);
@@ -622,8 +729,9 @@ fn append_log_file(text: &str) {
 }
 
 fn take_snapshot(ui: &mut Ui, s: Snapshot) {
-    let keep_folder = Some(combo_text(ui.dialog, IDC_FOLDER));
-    if s.folders != ui.snapshot.folders {
+    let wanted = ui.want_folder.take();
+    let keep_folder = wanted.clone().or_else(|| Some(combo_text(ui.dialog, IDC_FOLDER)));
+    if s.folders != ui.snapshot.folders || wanted.is_some() {
         fill_folders(ui.dialog, &s.folders, keep_folder);
     }
     ui.snapshot = s;
@@ -691,9 +799,11 @@ fn apply_filter(ui: &mut Ui) {
     if ui.visible.is_empty() {
         return;
     }
+    let mut any_selected = false;
     for (n, &r) in ui.visible.iter().enumerate() {
         if selected.contains(&ui.snapshot.rows[r].id) {
             set_state(ui.list, n as isize, LVIS_SELECTED, LVIS_SELECTED);
+            any_selected = true;
         }
     }
     // Focus the same recording, or failing that the row where it was.
@@ -701,7 +811,9 @@ fn apply_filter(ui: &mut Ui) {
         .and_then(|id| ui.visible.iter().position(|&r| ui.snapshot.rows[r].id == id))
         .or(focused_index.map(|i| i.min(ui.visible.len() - 1)))
         .unwrap_or(0);
-    let state = if selected.is_empty() { LIST_VIEW_ITEM_STATE_FLAGS(LVIS_FOCUSED.0 | LVIS_SELECTED.0) } else { LVIS_FOCUSED };
+    // Select the focused row too when nothing selected is left, for example
+    // after a delete: otherwise the next Delete or Ctrl+D finds nothing.
+    let state = if any_selected { LVIS_FOCUSED } else { LIST_VIEW_ITEM_STATE_FLAGS(LVIS_FOCUSED.0 | LVIS_SELECTED.0) };
     set_state(ui.list, target as isize, state, state);
     send(ui.list, LVM_ENSUREVISIBLE, target, 0);
     ui.focus_id = Some(ui.snapshot.rows[ui.visible[target]].id.clone());
@@ -786,36 +898,793 @@ fn open_in_explorer(ui: &mut Ui, path: &std::path::Path) {
     }
 }
 
+/// The focused recording, if the list has one.
+fn focused(ui: &Ui) -> Option<Row> {
+    next_item(ui.list, -1, LVNI_FOCUSED).and_then(|i| ui.visible.get(i)).map(|&r| ui.snapshot.rows[r].clone())
+}
+
+fn selected_rows(ui: &Ui) -> Vec<Row> {
+    selected_indices(ui.list).into_iter().filter_map(|i| ui.visible.get(i)).map(|&r| ui.snapshot.rows[r].clone()).collect()
+}
+
+/// A recording's name in messages: its folder's own name when it has one, as
+/// the worker's messages use, so "(2)" tells two alike apart.
+fn label(row: &Row) -> String {
+    row.location.as_deref().map(library::base_of).map(str::to_string).unwrap_or_else(|| row.name.clone())
+}
+
+/// What Enter does for a recording: the context menu's default item.
+fn default_command(row: &Row) -> i32 {
+    if row.state == State::Downloaded { IDM_PLAY } else { IDM_DOWNLOAD }
+}
+
+struct MenuItem {
+    id: i32,
+    text: &'static str,
+    enabled: bool,
+}
+
+/// The context menu for the focused recording. SPEC.md "Context menu": items
+/// depend on its status, and with several recordings selected only the items
+/// that make sense for a group are available; the rest are shown but
+/// disabled, so the menu keeps its shape. The default item, what Enter does,
+/// is always available.
+fn recording_menu(row: &Row, several: bool) -> Vec<MenuItem> {
+    let one = !several;
+    let item = |id, text, enabled| MenuItem { id, text, enabled };
+    match row.state {
+        State::Downloaded => {
+            let mut items = vec![
+                item(IDM_PLAY, "&Play\tEnter", true),
+                item(IDM_TRANSCRIPT, "Open &transcript\tCtrl+T", one),
+                item(IDM_SUMMARY, "Open su&mmary\tCtrl+M", one),
+                item(IDM_OPEN_RECORDING, "Open &folder\tCtrl+Shift+O", one),
+                item(IDM_COPY_PATH, "&Copy audio file path\tCtrl+Shift+C", one),
+                item(IDM_RENAME, "&Rename\tF2", one),
+                item(IDM_MOVE, "Mo&ve to folder...\tCtrl+Shift+M", true),
+            ];
+            if row.incomplete {
+                items.push(item(IDM_DOWNLOAD, "&Download missing parts\tCtrl+D", true));
+            }
+            items.push(item(IDM_DELETE, "D&elete\tDelete", true));
+            items
+        }
+        State::New | State::Failed => {
+            vec![item(IDM_DOWNLOAD, "&Download\tEnter", true), item(IDM_SKIP, "Do&n't download", true)]
+        }
+        State::Deleted | State::Skipped => vec![item(IDM_DOWNLOAD, "&Download again\tEnter", true)],
+    }
+}
+
+/// Show the context menu at the focused row when the keyboard asked for it,
+/// or at the mouse pointer.
+fn context_menu(dialog: HWND, coords: isize) {
+    let info = with_ui(|ui| {
+        let row = focused(ui)?;
+        let several = selected_indices(ui.list).len() > 1;
+        let index = next_item(ui.list, -1, LVNI_FOCUSED)?;
+        let mut point = POINT { x: (coords & 0xFFFF) as i16 as i32, y: ((coords >> 16) & 0xFFFF) as i16 as i32 };
+        if coords as u32 == 0xFFFF_FFFF {
+            // The keyboard: at the focused row, not wherever the mouse is.
+            let mut rect = RECT { left: LVIR_LABEL as i32, ..Default::default() };
+            send(ui.list, LVM_ENSUREVISIBLE, index, 0);
+            send(ui.list, LVM_GETITEMRECT, index, &mut rect as *mut _ as isize);
+            point = POINT { x: rect.left, y: rect.bottom };
+            // SAFETY: point is a live structure; the list is this thread's.
+            unsafe {
+                let _ = ClientToScreen(ui.list, &mut point);
+            }
+        }
+        Some((recording_menu(&row, several), default_command(&row), point))
+    })
+    .flatten();
+    let Some((items, default, point)) = info else { return };
+    // Shown outside the window's state, because the menu runs its own message
+    // loop, and the worker's events must still get through meanwhile.
+    // SAFETY: a menu created, shown and destroyed here, owned by this window.
+    let chosen = unsafe {
+        let Ok(menu) = CreatePopupMenu() else { return };
+        for i in &items {
+            let text = wide(i.text);
+            let flags = if i.enabled { MF_STRING } else { MF_STRING | MF_GRAYED };
+            let _ = AppendMenuW(menu, flags, i.id as usize, PCWSTR(text.as_ptr()));
+        }
+        let _ = SetMenuDefaultItem(menu, default as u32, 0);
+        let flags = TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_LEFTALIGN | TPM_TOPALIGN;
+        let chosen = TrackPopupMenu(menu, flags, point.x, point.y, None, dialog, None);
+        let _ = DestroyMenu(menu);
+        chosen.0
+    };
+    if chosen != 0 {
+        command(dialog, chosen, 0);
+    }
+}
+
+/// Set up a menu bar menu as it opens: the Recording menu from the focused
+/// recording, as its context menu would be, and the Folder menu from the
+/// Folder box.
+fn init_menu(dialog: HWND, menu: HMENU) {
+    // SAFETY: menu queries and changes on this window's own menu bar.
+    unsafe {
+        let bar = GetMenu(dialog);
+        if menu == GetSubMenu(bar, MENU_RECORDING) {
+            let state = with_ui(|ui| {
+                let several = selected_indices(ui.list).len() > 1;
+                let row = focused(ui);
+                (row.as_ref().map(|r| recording_menu(r, several)), row.as_ref().map(default_command), !ui.visible.is_empty())
+            });
+            let Some((items, default, any)) = state else { return };
+            let items = items.unwrap_or_default();
+            for id in RECORDING_COMMANDS {
+                // Download selected works on whatever is selected.
+                let on = match id {
+                    IDM_DOWNLOAD => any,
+                    _ => items.iter().any(|i| i.id == id && i.enabled),
+                };
+                let _ = EnableMenuItem(menu, id as u32, if on { MF_ENABLED } else { MF_GRAYED });
+            }
+            let _ = EnableMenuItem(menu, IDM_SELECT_ALL as u32, if any { MF_ENABLED } else { MF_GRAYED });
+            let _ = SetMenuDefaultItem(menu, default.map_or(u32::MAX, |d| d as u32), 0);
+        } else if menu == GetSubMenu(bar, MENU_FOLDER) {
+            // Rename and Delete act on the folder chosen in the Folder box,
+            // and say which, so the menu explains itself.
+            let chosen = chosen_folder(dialog);
+            for (id, verb) in [(IDM_RENAME_FOLDER, "&Rename"), (IDM_DELETE_FOLDER, "&Delete")] {
+                let (text, flags) = match &chosen {
+                    Some(f) => (format!("{verb} the folder \"{f}\"..."), MF_STRING),
+                    None => (format!("{verb} folder (choose one in the Folder box first)"), MF_STRING | MF_GRAYED),
+                };
+                let text = wide(&text);
+                let _ = ModifyMenuW(menu, id as u32, MF_BYCOMMAND | flags, id as usize, PCWSTR(text.as_ptr()));
+            }
+        }
+    }
+}
+
+/// The folder chosen in the Folder box, if it is one of the user's folders.
+fn chosen_folder(dialog: HWND) -> Option<String> {
+    let f = combo_text(dialog, IDC_FOLDER);
+    (!f.is_empty() && f != "All folders" && f != "Not in a folder").then_some(f)
+}
+
+#[derive(Clone, Copy)]
+enum FilePart {
+    Audio,
+    Transcript,
+    Summary,
+}
+
+/// The file for a part of a recording, or what to say instead.
+fn part_path(ui: &Ui, row: &Row, part: FilePart) -> Result<PathBuf, String> {
+    let name = label(row);
+    let Some(location) = row.location.as_deref().filter(|_| row.state == State::Downloaded) else {
+        return Err(format!("\"{name}\" is not downloaded yet. Press Enter on it to download it."));
+    };
+    let dir = ui.config.output_folder.join(location);
+    let base = library::base_of(location);
+    let names: Vec<String> = match part {
+        FilePart::Audio => vec![naming::AUDIO.file_name(base)],
+        FilePart::Transcript => vec![naming::TRANSCRIPT.file_name(base)],
+        // Notes are .md, or .txt if that setting was on when it was saved.
+        FilePart::Summary => [".md", ".txt"].iter().map(|ext| naming::Part { label: "Summary", ext }.file_name(base)).collect(),
+    };
+    if let Some(path) = names.iter().map(|n| dir.join(n)).find(|p| p.is_file()) {
+        return Ok(path);
+    }
+    let days = ui.config.retry_days;
+    Err(match part {
+        FilePart::Audio => {
+            format!("\"{name}\" has no audio file in its folder. To fetch it, press Ctrl+D with the recording selected.")
+        }
+        FilePart::Transcript => format!(
+            "\"{name}\" has no transcript. Plaud may not have made one yet; each sync checks again for {days} days after the recording."
+        ),
+        FilePart::Summary => format!(
+            "\"{name}\" has no summary. Plaud may not have made one yet; each sync checks again for {days} days after the recording."
+        ),
+    })
+}
+
+/// Play, Open transcript and Open summary, in the user's own programs.
+fn open_part(ui: &mut Ui, part: FilePart) {
+    let Some(row) = focused(ui) else { return };
+    match part_path(ui, &row, part) {
+        Ok(path) => {
+            if open_file(ui, &path) {
+                let what = match part {
+                    FilePart::Audio => "Playing",
+                    FilePart::Transcript => "Opened the transcript of",
+                    FilePart::Summary => "Opened the summary of",
+                };
+                log(ui, &format!("{what} \"{}\".", label(&row)));
+            }
+        }
+        Err(why) => say(ui, &why, Importance::Error),
+    }
+}
+
+/// Open a file in its default program. With none set, Windows asks which to
+/// use. Says so if it fails.
+fn open_file(ui: &mut Ui, path: &Path) -> bool {
+    // SE_ERR_NOASSOC: no program is set for this kind of file.
+    const NO_PROGRAM: isize = 31;
+    let target = wide(&path.to_string_lossy());
+    // SAFETY: plain calls with live strings.
+    let mut result = unsafe { ShellExecuteW(Some(ui.dialog), None, PCWSTR(target.as_ptr()), None, None, SW_SHOWNORMAL) }.0 as isize;
+    if result == NO_PROGRAM {
+        // SAFETY: as above.
+        result =
+            unsafe { ShellExecuteW(Some(ui.dialog), w!("openas"), PCWSTR(target.as_ptr()), None, None, SW_SHOWNORMAL) }.0 as isize;
+    }
+    if result <= 32 {
+        let file = path.file_name().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
+        say(
+            ui,
+            &format!(
+                "Windows could not open \"{file}\". Check that a program for this kind of file is installed, or open it from File Explorer with Ctrl+Shift+O."
+            ),
+            Importance::Error,
+        );
+        return false;
+    }
+    true
+}
+
+fn copy_audio_path(ui: &mut Ui) {
+    let Some(row) = focused(ui) else { return };
+    match part_path(ui, &row, FilePart::Audio) {
+        Ok(path) => {
+            if copy_text(ui.dialog, &path.to_string_lossy()) {
+                say(ui, &format!("Copied the path of the audio file of \"{}\".", label(&row)), Importance::Completion);
+            } else {
+                say(ui, "Windows did not let NoteFetch use the clipboard. Try again in a moment.", Importance::Error);
+            }
+        }
+        Err(why) => say(ui, &why, Importance::Error),
+    }
+}
+
+/// Put text on the clipboard.
+fn copy_text(owner: HWND, text: &str) -> bool {
+    const CF_UNICODETEXT: u32 = 13;
+    let data = wide(text);
+    // SAFETY: the clipboard is opened and closed here; the memory handed to it
+    // is filled while locked, and freed here only if the clipboard refused it.
+    unsafe {
+        if OpenClipboard(Some(owner)).is_err() {
+            return false;
+        }
+        let done = (|| -> windows::core::Result<()> {
+            EmptyClipboard()?;
+            let memory = GlobalAlloc(GMEM_MOVEABLE, data.len() * 2)?;
+            let p = GlobalLock(memory) as *mut u16;
+            if p.is_null() {
+                let _ = GlobalFree(Some(memory));
+                return Err(windows::core::Error::from_thread());
+            }
+            std::ptr::copy_nonoverlapping(data.as_ptr(), p, data.len());
+            let _ = GlobalUnlock(memory);
+            if let Err(e) = SetClipboardData(CF_UNICODETEXT, Some(HANDLE(memory.0))) {
+                let _ = GlobalFree(Some(memory));
+                return Err(e);
+            }
+            Ok(())
+        })()
+        .is_ok();
+        let _ = CloseClipboard();
+        done
+    }
+}
+
+/// Refuse to start a change while something else is running, saying why.
+fn busy(ui: &mut Ui, what: &str) -> bool {
+    if ui.busy {
+        say(
+            ui,
+            &format!("{what} cannot start while something else is running. Wait for it to finish, or press Escape to cancel it."),
+            Importance::Error,
+        );
+    }
+    ui.busy
+}
+
+/// F2: edit the focused recording's name in the list, as in File Explorer.
+fn rename_focused(dialog: HWND) {
+    let index = with_ui(|ui| {
+        let row = focused(ui)?;
+        if row.state != State::Downloaded {
+            say(
+                ui,
+                &format!("\"{}\" is not downloaded, so there is nothing to rename yet. Press Enter on it to download it.", label(&row)),
+                Importance::Error,
+            );
+            return None;
+        }
+        if busy(ui, "Renaming") {
+            return None;
+        }
+        next_item(ui.list, -1, LVNI_FOCUSED)
+    })
+    .flatten();
+    if let Some(i) = index {
+        focus_list(dialog);
+        // Sent outside the window's state: the list asks the dialog about it
+        // (LVN_BEGINLABELEDIT) before it returns.
+        send(item(dialog, IDC_LIST), LVM_EDITLABELW, i, 0);
+    }
+}
+
+/// The list is about to show its edit box. Put the name part alone in it,
+/// without the date or a clash number "(2)", which are kept automatically.
+/// False refuses the edit, for example a slow second click on a recording
+/// that is not downloaded.
+fn begin_rename(list: HWND, index: i32) -> bool {
+    let name = with_ui(|ui| {
+        let row = ui.visible.get(usize::try_from(index).ok()?).map(|&r| &ui.snapshot.rows[r])?;
+        (row.state == State::Downloaded && !ui.busy).then(|| row.plain_name.clone())
+    })
+    .flatten();
+    let Some(name) = name else { return false };
+    let edit = HWND(send(list, LVM_GETEDITCONTROL, 0, 0) as *mut _);
+    if !edit.is_invalid() {
+        let text = wide(&name);
+        // SAFETY: the list's own edit box, on this thread; the subclass
+        // procedure lives for the whole program.
+        unsafe {
+            let _ = SetWindowTextW(edit, PCWSTR(text.as_ptr()));
+            let _ = SetWindowSubclass(edit, Some(edit_proc), 3, 0);
+        }
+        send(edit, EM_SETSEL, 0, -1);
+    }
+    true
+}
+
+/// The edit was confirmed with Enter or by moving away.
+fn end_rename(ui: &mut Ui, index: i32, text: &str) {
+    let row = usize::try_from(index).ok().and_then(|i| ui.visible.get(i)).map(|&r| ui.snapshot.rows[r].clone());
+    let Some(row) = row else { return };
+    let text = text.trim();
+    if text.is_empty() {
+        say(ui, &format!("A name cannot be empty, so \"{}\" was not renamed.", label(&row)), Importance::Error);
+    } else if text != row.plain_name {
+        start(ui, Command::Rename(row.id.clone(), text.to_string()), "Renaming");
+    }
+}
+
+/// Delete: downloaded recordings go to the Recycle Bin, after a question if
+/// that setting is on. Recordings never downloaded are marked Don't download,
+/// which is what deleting them means. SPEC.md "Deleting".
+fn delete_selected(dialog: HWND) {
+    let plan = with_ui(|ui| {
+        let rows = selected_rows(ui);
+        if rows.is_empty() {
+            say(ui, "No recordings are selected. Select one or more in the list, then press Delete.", Importance::Error);
+            return None;
+        }
+        let on_disk: Vec<&Row> = rows.iter().filter(|r| r.state == State::Downloaded).collect();
+        let never: Vec<&Row> = rows.iter().filter(|r| matches!(r.state, State::New | State::Failed)).collect();
+        if on_disk.is_empty() && never.is_empty() {
+            say(
+                ui,
+                "The selected recordings are already deleted. To bring one back, press Enter on it to download it again.",
+                Importance::Error,
+            );
+            return None;
+        }
+        if busy(ui, "Deleting") {
+            return None;
+        }
+        let ids: Vec<String> = on_disk.iter().chain(&never).map(|r| r.id.clone()).collect();
+        let question = (ui.config.confirm_delete && !on_disk.is_empty()).then(|| delete_question(&on_disk, never.len()));
+        Some((ids, question))
+    })
+    .flatten();
+    let Some((ids, question)) = plan else { return };
+    if let Some(q) = question {
+        let text = wide(&q);
+        // A question the user must answer. Yes is the default, as in File
+        // Explorer: the Recycle Bin can undo it.
+        // SAFETY: a modal box owned by this window.
+        let answer = unsafe { MessageBoxW(Some(dialog), PCWSTR(text.as_ptr()), w!("Delete"), MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON1) };
+        if answer != IDYES {
+            with_ui(|ui| log(ui, "Nothing was deleted."));
+            focus_list(dialog);
+            return;
+        }
+    }
+    with_ui(|ui| start(ui, Command::Delete(ids), "Deleting"));
+    focus_list(dialog);
+}
+
+/// SPEC.md "Deleting": name the recording, and say it will not come back by
+/// itself.
+fn delete_question(on_disk: &[&Row], never: usize) -> String {
+    let mut q = match on_disk {
+        [one] => format!(
+            "Move \"{}\" to the Recycle Bin?\r\n\r\nNoteFetch will not download it again unless you choose Download again in the Deleted view.",
+            label(one)
+        ),
+        many => format!(
+            "Move these {} recordings to the Recycle Bin?\r\n\r\nNoteFetch will not download them again unless you choose Download again in the Deleted view.",
+            many.len()
+        ),
+    };
+    match never {
+        0 => {}
+        1 => q.push_str(" 1 of the selected recordings is not downloaded; it will be marked Don't download."),
+        n => q.push_str(&format!(" {n} of the selected recordings are not downloaded; they will be marked Don't download.")),
+    }
+    q.push_str(" Nothing is deleted from your Plaud account.");
+    q
+}
+
+fn skip_selected(ui: &mut Ui) {
+    let ids: Vec<String> =
+        selected_rows(ui).into_iter().filter(|r| matches!(r.state, State::New | State::Failed)).map(|r| r.id).collect();
+    if ids.is_empty() {
+        say(
+            ui,
+            "Don't download is only for recordings not yet downloaded. To remove a downloaded recording, press Delete.",
+            Importance::Error,
+        );
+        return;
+    }
+    if !busy(ui, "Don't download") {
+        start(ui, Command::Skip(ids), "Don't download");
+    }
+}
+
+fn focus_list(dialog: HWND) {
+    // SAFETY: focus on a control of this window.
+    unsafe {
+        let _ = SetFocus(Some(item(dialog, IDC_LIST)));
+    }
+}
+
+/// What the Move to folder window needs, and what it chose.
+struct MoveChoice {
+    folders: Vec<String>,
+    /// Where the recordings are now, if all in one place: None for not in a
+    /// folder.
+    current: Option<Option<String>>,
+    /// The folder chosen (None for out of any folder), and whether it is new.
+    result: Option<(Option<String>, bool)>,
+}
+
+/// Ctrl+Shift+M: move the selected recordings into a folder. SPEC.md
+/// "Folders".
+fn move_selected(dialog: HWND) {
+    let plan = with_ui(|ui| {
+        let rows = selected_rows(ui);
+        let on_disk: Vec<Row> = rows.iter().filter(|r| r.state == State::Downloaded).cloned().collect();
+        if on_disk.is_empty() {
+            let why = if rows.is_empty() {
+                "No recordings are selected. Select one or more in the list, then press Ctrl+Shift+M."
+            } else {
+                "Only downloaded recordings can be moved to a folder. Download them first."
+            };
+            say(ui, why, Importance::Error);
+            return None;
+        }
+        if busy(ui, "Moving") {
+            return None;
+        }
+        if on_disk.len() < rows.len() {
+            let n = rows.len() - on_disk.len();
+            log(ui, &format!("{n} of the selected recordings are not downloaded, so they will not be moved."));
+        }
+        let first = on_disk[0].folder.clone();
+        let current = on_disk.iter().all(|r| r.folder == first).then_some(first);
+        let ids: Vec<String> = on_disk.into_iter().map(|r| r.id).collect();
+        Some((ids, MoveChoice { folders: ui.snapshot.folders.clone(), current, result: None }))
+    })
+    .flatten();
+    let Some((ids, mut choice)) = plan else { return };
+    // SAFETY: a modal window owned by this one; `choice` outlives it.
+    unsafe {
+        let instance = GetModuleHandleW(None).ok().map(Into::into);
+        DialogBoxParamW(instance, resource(IDD_MOVE), Some(dialog), Some(move_proc), LPARAM(&mut choice as *mut _ as isize));
+    }
+    match choice.result {
+        Some((folder, create)) => {
+            with_ui(|ui| start(ui, Command::Move { ids, folder, create }, "Moving"));
+        }
+        None => {
+            with_ui(|ui| log(ui, "Nothing was moved."));
+        }
+    }
+    focus_list(dialog);
+}
+
+unsafe extern "system" fn move_proc(hwnd: HWND, message: u32, wparam: WPARAM, lparam: LPARAM) -> isize {
+    // SAFETY: GWLP_USERDATA holds the MoveChoice given at WM_INITDIALOG, which
+    // lives until DialogBoxParamW returns.
+    let choice = || unsafe { (GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut MoveChoice).as_mut() };
+    match message {
+        WM_INITDIALOG => {
+            // SAFETY: storing the pointer passed to DialogBoxParamW.
+            unsafe {
+                SetWindowLongPtrW(hwnd, GWLP_USERDATA, lparam.0);
+            }
+            if let Some(c) = choice() {
+                let list = item(hwnd, IDC_MOVE_LIST);
+                let mut chosen = 0;
+                let entries = std::iter::once(None).chain(c.folders.iter().map(|f| Some(f.as_str())));
+                for (i, f) in entries.enumerate() {
+                    let t = wide(f.unwrap_or("Not in a folder"));
+                    send(list, LB_ADDSTRING, 0, t.as_ptr() as isize);
+                    if c.current.as_ref().is_some_and(|cur| cur.as_deref() == f) {
+                        chosen = i;
+                    }
+                }
+                // Start where the recordings are now, so the first thing heard
+                // says where they are.
+                send(list, LB_SETCURSEL, chosen, 0);
+            }
+            // One: Windows puts the focus on the first control, the list.
+            1
+        }
+        WM_COMMAND => {
+            let id = (wparam.0 & 0xFFFF) as i32;
+            let code = ((wparam.0 >> 16) & 0xFFFF) as u32;
+            if id == IDOK.0 || (id == IDC_MOVE_LIST && code == LBN_DBLCLK) {
+                if let Some(c) = choice() {
+                    let typed = dialog_text(hwnd, IDC_MOVE_NEW);
+                    let typed = typed.trim();
+                    c.result = Some(if !typed.is_empty() {
+                        // A name typed that is already a folder means that folder.
+                        match c.folders.iter().find(|f| f.eq_ignore_ascii_case(typed)) {
+                            Some(f) => (Some(f.clone()), false),
+                            None => (Some(typed.to_string()), true),
+                        }
+                    } else {
+                        let i = send(item(hwnd, IDC_MOVE_LIST), LB_GETCURSEL, 0, 0);
+                        (if i > 0 { c.folders.get(i as usize - 1).cloned() } else { None }, false)
+                    });
+                }
+                // SAFETY: ends this modal window.
+                unsafe {
+                    let _ = EndDialog(hwnd, 1);
+                }
+                return 1;
+            }
+            if id == IDCANCEL.0 {
+                // SAFETY: ends this modal window.
+                unsafe {
+                    let _ = EndDialog(hwnd, 0);
+                }
+                return 1;
+            }
+            0
+        }
+        _ => 0,
+    }
+}
+
+fn dialog_text(dialog: HWND, id: i32) -> String {
+    let mut buf = [0u16; 512];
+    // SAFETY: buf is a live buffer of the length given.
+    let len = unsafe { GetDlgItemTextW(dialog, id, &mut buf) } as usize;
+    String::from_utf16_lossy(&buf[..len])
+}
+
+/// What the name window shows, and what was typed.
+struct NameChoice {
+    title: String,
+    initial: String,
+    result: Option<String>,
+}
+
+/// Ask for a folder name. None if cancelled or left empty.
+fn ask_name(dialog: HWND, title: &str, initial: &str) -> Option<String> {
+    let mut choice = NameChoice { title: title.to_string(), initial: initial.to_string(), result: None };
+    // SAFETY: a modal window owned by this one; `choice` outlives it.
+    unsafe {
+        let instance = GetModuleHandleW(None).ok().map(Into::into);
+        DialogBoxParamW(instance, resource(IDD_NAME), Some(dialog), Some(name_proc), LPARAM(&mut choice as *mut _ as isize));
+    }
+    choice.result.map(|r| r.trim().to_string()).filter(|r| !r.is_empty())
+}
+
+unsafe extern "system" fn name_proc(hwnd: HWND, message: u32, wparam: WPARAM, lparam: LPARAM) -> isize {
+    // SAFETY: GWLP_USERDATA holds the NameChoice given at WM_INITDIALOG, which
+    // lives until DialogBoxParamW returns.
+    let choice = || unsafe { (GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut NameChoice).as_mut() };
+    match message {
+        WM_INITDIALOG => {
+            // SAFETY: storing the pointer passed to DialogBoxParamW, then
+            // setting up this window's own controls.
+            unsafe {
+                SetWindowLongPtrW(hwnd, GWLP_USERDATA, lparam.0);
+                if let Some(c) = choice() {
+                    let title = wide(&c.title);
+                    let _ = SetWindowTextW(hwnd, PCWSTR(title.as_ptr()));
+                    let initial = wide(&c.initial);
+                    let _ = SetDlgItemTextW(hwnd, IDC_NAME_EDIT, PCWSTR(initial.as_ptr()));
+                }
+                let _ = SetFocus(Some(item(hwnd, IDC_NAME_EDIT)));
+            }
+            send(item(hwnd, IDC_NAME_EDIT), EM_SETSEL, 0, -1);
+            // Zero: the focus is set above, with the name selected.
+            0
+        }
+        WM_COMMAND => {
+            let id = (wparam.0 & 0xFFFF) as i32;
+            if id == IDOK.0
+                && let Some(c) = choice()
+            {
+                c.result = Some(dialog_text(hwnd, IDC_NAME_EDIT));
+            }
+            if id == IDOK.0 || id == IDCANCEL.0 {
+                // SAFETY: ends this modal window.
+                unsafe {
+                    let _ = EndDialog(hwnd, 0);
+                }
+                return 1;
+            }
+            0
+        }
+        _ => 0,
+    }
+}
+
+fn new_folder(dialog: HWND) {
+    if with_ui(|ui| busy(ui, "Creating a folder")).unwrap_or(true) {
+        return;
+    }
+    let name = ask_name(dialog, "New folder", "");
+    with_ui(|ui| match name {
+        Some(n) => start(ui, Command::NewFolder(n), "Creating a folder"),
+        None => log(ui, "No folder was created."),
+    });
+    focus_list(dialog);
+}
+
+fn rename_folder(dialog: HWND) {
+    let Some(old) = chosen_folder(dialog) else {
+        with_ui(|ui| say(ui, "Choose a folder in the Folder box first, then choose Rename folder.", Importance::Error));
+        return;
+    };
+    if with_ui(|ui| busy(ui, "Renaming a folder")).unwrap_or(true) {
+        return;
+    }
+    let new = ask_name(dialog, "Rename folder", &old);
+    with_ui(|ui| match new {
+        Some(n) if n != old => {
+            // Keep showing the same folder, under its new name.
+            ui.want_folder = Some(naming::clean(&n));
+            start(ui, Command::RenameFolder(old, n), "Renaming a folder");
+        }
+        _ => log(ui, &format!("The folder \"{old}\" was not renamed.")),
+    });
+    focus_list(dialog);
+}
+
+fn delete_folder(dialog: HWND) {
+    let Some(name) = chosen_folder(dialog) else {
+        with_ui(|ui| say(ui, "Choose a folder in the Folder box first, then choose Delete folder.", Importance::Error));
+        return;
+    };
+    let count = with_ui(|ui| {
+        if busy(ui, "Deleting a folder") {
+            return None;
+        }
+        Some(ui.snapshot.rows.iter().filter(|r| r.folder.as_deref() == Some(name.as_str())).count())
+    })
+    .flatten();
+    let Some(count) = count else { return };
+    let what = match count {
+        0 => "It has no recordings in it.".to_string(),
+        1 => "Its recording will move back to the output folder, shown as Not in a folder.".to_string(),
+        n => format!("Its {n} recordings will move back to the output folder, shown as Not in a folder."),
+    };
+    let text = wide(&format!("Delete the folder \"{name}\"?\r\n\r\n{what} Nothing goes to the Recycle Bin."));
+    // A question the user must answer. Nothing is lost either way.
+    // SAFETY: a modal box owned by this window.
+    let answer =
+        unsafe { MessageBoxW(Some(dialog), PCWSTR(text.as_ptr()), w!("Delete folder"), MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON1) };
+    with_ui(|ui| {
+        if answer == IDYES {
+            start(ui, Command::DeleteFolder(name), "Deleting a folder");
+        } else {
+            log(ui, &format!("The folder \"{name}\" was not deleted."));
+        }
+    });
+    focus_list(dialog);
+}
+
 /// The list's own keys. Handled here rather than in the accelerator table so
 /// that, for example, Ctrl+A in the filter box still selects its text.
 unsafe extern "system" fn list_proc(hwnd: HWND, message: u32, wparam: WPARAM, lparam: LPARAM, _id: usize, _data: usize) -> LRESULT {
     // SAFETY: key state queries on this thread.
     let ctrl = unsafe { GetKeyState(VK_CONTROL.0 as i32) } < 0;
     let shift = unsafe { GetKeyState(VK_SHIFT.0 as i32) } < 0;
-    if message == WM_KEYDOWN && ctrl {
-        let target = match (wparam.0 as u8, shift) {
-            (b'A', false) => Some(IDM_SELECT_ALL),
-            (b'D', false) => Some(IDM_DOWNLOAD),
-            (b'O', true) => Some(IDM_OPEN_RECORDING),
-            _ => None,
-        };
-        if let Some(id) = target {
+    let post = |id: i32| {
+        // SAFETY: the parent is the dialog on this thread.
+        unsafe {
+            if let Ok(parent) = GetParent(hwnd) {
+                let _ = PostMessageW(Some(parent), WM_COMMAND, WPARAM(id as usize), LPARAM(0));
+            }
+        }
+    };
+    match message {
+        // A dialog keeps Enter for its default button. The list asks for it,
+        // so Enter carries out the focused recording's default action.
+        WM_GETDLGCODE if lparam.0 != 0 => {
+            // SAFETY: passes the message to the list itself; for
+            // WM_GETDLGCODE a non-zero lparam points at the MSG being
+            // dispatched.
+            let result = unsafe { DefSubclassProc(hwnd, message, wparam, lparam) };
+            let msg = unsafe { &*(lparam.0 as *const MSG) };
+            if msg.message == WM_KEYDOWN && msg.wParam.0 == VK_RETURN.0 as usize {
+                return LRESULT(result.0 | DLGC_WANTALLKEYS as isize);
+            }
+            return result;
+        }
+        WM_KEYDOWN => {
+            let key = wparam.0 as u16;
+            let target = match (ctrl, shift) {
+                (false, _) if key == VK_RETURN.0 => Some(IDM_DEFAULT),
+                (false, false) if key == VK_DELETE.0 => Some(IDM_DELETE),
+                (false, false) if key == VK_F2.0 => Some(IDM_RENAME),
+                (true, false) => match key as u8 {
+                    b'A' => Some(IDM_SELECT_ALL),
+                    b'D' => Some(IDM_DOWNLOAD),
+                    b'T' => Some(IDM_TRANSCRIPT),
+                    b'M' => Some(IDM_SUMMARY),
+                    _ => None,
+                },
+                (true, true) => match key as u8 {
+                    b'O' => Some(IDM_OPEN_RECORDING),
+                    b'C' => Some(IDM_COPY_PATH),
+                    b'M' => Some(IDM_MOVE),
+                    _ => None,
+                },
+                _ => None,
+            };
+            if let Some(id) = target {
+                post(id);
+                return LRESULT(0);
+            }
+        }
+        // Swallow the control characters those keys produce (Enter and Ctrl+M
+        // both make a carriage return), or the list's type-ahead search beeps
+        // at them.
+        WM_CHAR if wparam.0 < 0x20 => return LRESULT(0),
+        // The Applications key, Shift+F10 or a right click. The dialog builds
+        // the menu, outside anything the list is in the middle of.
+        WM_CONTEXTMENU => {
             // SAFETY: the parent is the dialog on this thread.
             unsafe {
                 if let Ok(parent) = GetParent(hwnd) {
-                    let _ = PostMessageW(Some(parent), WM_COMMAND, WPARAM(id as usize), LPARAM(0));
+                    let _ = PostMessageW(Some(parent), WM_APP_CONTEXT, WPARAM(0), lparam);
                 }
             }
             return LRESULT(0);
         }
-    }
-    // Swallow the control characters those keys produce, or the list's
-    // type-ahead search beeps at them.
-    if message == WM_CHAR && ctrl && matches!(wparam.0, 0x01 | 0x04 | 0x0F) {
-        return LRESULT(0);
+        _ => {}
     }
     // SAFETY: passes everything else to the list itself.
     unsafe { DefSubclassProc(hwnd, message, wparam, lparam) }
+}
+
+/// The box for editing a name in the list. It must have Enter and Escape for
+/// itself, or the dialog takes them, and Escape would cancel whatever is
+/// running instead of the edit.
+unsafe extern "system" fn edit_proc(hwnd: HWND, message: u32, wparam: WPARAM, lparam: LPARAM, _id: usize, _data: usize) -> LRESULT {
+    // SAFETY: passes the message to the edit box itself.
+    let result = unsafe { DefSubclassProc(hwnd, message, wparam, lparam) };
+    match message {
+        WM_GETDLGCODE => LRESULT(result.0 | DLGC_WANTALLKEYS as isize),
+        WM_NCDESTROY => {
+            // SAFETY: removing this procedure from a window being destroyed.
+            unsafe {
+                let _ = RemoveWindowSubclass(hwnd, Some(edit_proc), 3);
+            }
+            result
+        }
+        _ => result,
+    }
 }
 
 /// The Log's subclass. A multi-line edit box asks the dialog for every key,
@@ -844,6 +1713,7 @@ mod tests {
         Row {
             id: name.into(),
             name: name.into(),
+            plain_name: name.into(),
             folder: folder.map(str::to_string),
             date: String::new(),
             duration: String::new(),
@@ -881,18 +1751,90 @@ mod tests {
 
     #[test]
     fn mnemonics_in_the_template_are_unique() {
-        // Controls and menu titles share Alt+letter in one window (notefetch.rc, rule 2).
+        // Controls and menu titles share Alt+letter in the main window
+        // (notefetch.rc, rule 2). Each other window, and each menu, has its
+        // own set of letters.
         let rc = include_str!("../notefetch.rc");
-        let mut letters = Vec::new();
+        let mut groups: std::collections::BTreeMap<String, Vec<char>> = Default::default();
+        let (mut window, mut popup) = (String::new(), String::new());
         for line in rc.lines() {
             let t = line.trim_start();
-            let is_label = t.starts_with("LTEXT") || t.starts_with("PUSHBUTTON") || t.starts_with("POPUP");
-            if let (true, Some(i)) = (is_label, t.find('&')) {
+            if t.contains(" DIALOGEX ") {
+                window = t.split_whitespace().next().unwrap().to_string();
+            }
+            if t.starts_with("IDR_MENU") {
+                window = "IDD_MAIN".into();
+            }
+            let group = if t.starts_with("POPUP") {
+                popup = t.to_string();
+                window.clone()
+            } else if t.starts_with("MENUITEM") {
+                popup.clone()
+            } else if ["LTEXT", "PUSHBUTTON", "DEFPUSHBUTTON"].iter().any(|k| t.starts_with(k)) {
+                window.clone()
+            } else {
+                continue;
+            };
+            if let Some(i) = t.find('&') {
                 let letter = t[i + 1..].chars().next().unwrap().to_ascii_lowercase();
-                assert!(!letters.contains(&letter), "Alt+{letter} is used twice");
+                let letters = groups.entry(group.clone()).or_default();
+                assert!(!letters.contains(&letter), "Alt+{letter} is used twice in {group}");
                 letters.push(letter);
             }
         }
-        assert_eq!(letters.len(), 13);
+        assert_eq!(groups["IDD_MAIN"].len(), 13);
+        assert_eq!(groups["IDD_MOVE"].len(), 2);
+        assert_eq!(groups["POPUP \"&Recording\""].len(), 11);
+    }
+
+    #[test]
+    fn the_context_menu_follows_the_status() {
+        let ids = |r: &Row, several| recording_menu(r, several).iter().map(|i| i.id).collect::<Vec<_>>();
+        let done = row(State::Downloaded, "Lecture", None, false);
+        assert_eq!(default_command(&done), IDM_PLAY);
+        assert!(!ids(&done, false).contains(&IDM_DOWNLOAD), "Download missing parts only when something is missing");
+        let half = row(State::Downloaded, "Half", None, true);
+        assert!(ids(&half, false).contains(&IDM_DOWNLOAD));
+        let new = row(State::New, "Seminar", None, false);
+        assert_eq!(ids(&new, false), [IDM_DOWNLOAD, IDM_SKIP]);
+        assert_eq!(default_command(&new), IDM_DOWNLOAD);
+        let gone = row(State::Deleted, "Old", None, false);
+        assert_eq!(ids(&gone, false), [IDM_DOWNLOAD]);
+    }
+
+    #[test]
+    fn several_selected_keeps_the_shape_and_the_default() {
+        let done = row(State::Downloaded, "Lecture", None, true);
+        let one = recording_menu(&done, false);
+        let many = recording_menu(&done, true);
+        assert_eq!(one.len(), many.len(), "the menu does not change shape");
+        let on: Vec<i32> = many.iter().filter(|i| i.enabled).map(|i| i.id).collect();
+        assert_eq!(on, [IDM_PLAY, IDM_MOVE, IDM_DOWNLOAD, IDM_DELETE], "group items, and the default");
+    }
+
+    #[test]
+    fn context_menu_letters_are_unique() {
+        for state in [State::Downloaded, State::New, State::Deleted] {
+            let items = recording_menu(&row(state, "x", None, true), false);
+            let mut letters = Vec::new();
+            for i in items {
+                let at = i.text.find('&').expect("every item has an Alt letter");
+                let letter = i.text[at + 1..].chars().next().unwrap().to_ascii_lowercase();
+                assert!(!letters.contains(&letter), "{letter} twice in {}", i.text);
+                letters.push(letter);
+            }
+        }
+    }
+
+    #[test]
+    fn the_delete_question_names_the_recording() {
+        let mut a = row(State::Downloaded, "Lecture", None, false);
+        a.location = Some("Lecture, 24 Sep 2026, 1430".into());
+        let q = delete_question(&[&a], 0);
+        assert!(q.starts_with("Move \"Lecture, 24 Sep 2026, 1430\" to the Recycle Bin?"));
+        assert!(q.contains("Download again") && q.ends_with("Plaud account."));
+        let b = row(State::Downloaded, "Seminar", None, false);
+        assert!(delete_question(&[&a, &b], 1).contains("these 2 recordings") );
+        assert!(delete_question(&[&a, &b], 1).contains("1 of the selected recordings is not downloaded"));
     }
 }

@@ -130,7 +130,8 @@ These let the user work out which recording is which, give it a meaningful name,
 
 ### Renaming
 
-- F2 edits the name in place, as in File Explorer. Only the name part is edited; the date and time suffix is kept automatically.
+- F2 edits the name in place, as in File Explorer. Only the name part is edited; the date and time suffix is kept automatically, and so is a clash number such as " (2)" while the new name still clashes. A name that no longer clashes loses its number.
+- Only downloaded recordings can be renamed, since the name is the folder's name. Renaming, moving and deleting wait until any sync or download has finished, and say so if asked for meanwhile.
 - Renaming changes the folder and every file inside it to the new name, and records the new name in the database and `metadata.json`.
 - Renaming is local only. Plaud's MCP server is read-only, so the name in the Plaud app does not change.
 - Sync never overwrites a local name.
@@ -142,6 +143,7 @@ These let the user work out which recording is which, give it a meaningful name,
 - Delete moves the recording's whole folder to the Recycle Bin, so it can also be restored from there.
 - A confirmation question is asked first, naming the recording and saying it will not be downloaded again unless the user chooses Download again. The question can be turned off in settings. It is on by default.
 - The database keeps the recording with the status "Deleted", so sync never downloads it again by itself.
+- Delete on a recording that was never downloaded marks it "Don't download" instead, without a question, since nothing on disk is lost. It then appears in the Deleted view.
 - Deleting in NoteFetch never deletes anything in the Plaud account.
 
 ### The Deleted view
@@ -188,7 +190,9 @@ Opened with the Applications key or Shift+F10 on the focused recording. The menu
 - Deleted or skipped:
   - Download again (default)
 
-With several recordings selected, only the items that make sense for a group are available: Download, Move to folder, Delete and Don't download. The others are shown but disabled, so the menu does not change shape unexpectedly.
+With several recordings selected, only the items that make sense for a group are available: Download, Move to folder, Delete and Don't download. The others are shown but disabled, so the menu does not change shape unexpectedly. The default item stays available: it is what Enter does, which is decided by the focused recording. Play plays the focused recording only; Download and Download again download every selected recording, as Ctrl+D does.
+
+The Recording menu in the menu bar follows the same rules each time it opens, with the same default item. The Folder menu names the folder its Rename and Delete items will act on, for example "Rename the folder "Neuroscience"...", or says to choose one in the Folder box first.
 
 ## What is saved
 

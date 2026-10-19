@@ -88,21 +88,23 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 
 ## Milestone 4: local recordings
 
-- [ ] Default action on Enter in the list: play, download or download again, depending on status. Dialogs normally treat Enter as the default button, so the list view needs subclassing to answer `WM_GETDLGCODE` with `DLGC_WANTALLKEYS` for Enter.
-- [ ] Play, Open transcript and Open summary through `ShellExecuteW`, with any failure reported in the Log.
-- [ ] Context menu on the Applications key and Shift+F10. `WM_CONTEXTMENU` with coordinates of -1 means the keyboard opened it, so position the menu at the focused row. Items depend on status, with a default item set by `SetMenuDefaultItem`.
-- [ ] Recording menu in the menu bar with the same items.
-- [ ] F2 in-place rename (`LVS_EDITLABELS`), editing the name part only. If JAWS handles the in-place edit badly, replace it with a small rename dialog and record why in PLAN.md.
-- [ ] Delete key: a confirmation question (with a setting to turn it off), the move to the Recycle Bin, and the status set to Deleted.
-- [ ] "Don't download" for recordings never downloaded.
-- [ ] The Deleted view in the Show combo box, with Download again.
-- [ ] Copy audio file path.
-- [ ] Move to folder (Ctrl+Shift+M) with its small dialog, and the Folder menu (new, rename, delete).
-- [ ] After each of these actions, focus stays on or near the same row, and the Log says what happened.
-- [ ] Test script and `test-milestone-4.txt`. Check in particular:
+- [x] Default action on Enter in the list: play, download or download again, depending on status. Dialogs normally treat Enter as the default button, so the list view needs subclassing to answer `WM_GETDLGCODE` with `DLGC_WANTALLKEYS` for Enter.
+- [x] Play, Open transcript and Open summary through `ShellExecuteW`, with any failure reported in the Log.
+- [x] Context menu on the Applications key and Shift+F10. `WM_CONTEXTMENU` with coordinates of -1 means the keyboard opened it, so position the menu at the focused row. Items depend on status, with a default item set by `SetMenuDefaultItem`.
+- [x] Recording menu in the menu bar with the same items.
+- [x] F2 in-place rename (`LVS_EDITLABELS`), editing the name part only. If JAWS handles the in-place edit badly, replace it with a small rename dialog and record why in PLAN.md.
+- [x] Delete key: a confirmation question (with a setting to turn it off), the move to the Recycle Bin, and the status set to Deleted.
+- [x] "Don't download" for recordings never downloaded.
+- [x] The Deleted view in the Show combo box, with Download again.
+- [x] Copy audio file path.
+- [x] Move to folder (Ctrl+Shift+M) with its small dialog, and the Folder menu (new, rename, delete).
+- [x] After each of these actions, focus stays on or near the same row, and the Log says what happened.
+- [x] Test script `test-milestone-4.txt` written. Built and checked on the machine first (see PLAN.md).
+- [ ] Laurent's results in `test-milestone-4.txt`. Check in particular:
   - [ ] how JAWS reads the context menu and its default item;
   - [ ] in-place rename;
-  - [ ] focus after delete.
+  - [ ] focus after delete;
+  - [ ] rows kept in the list during a download (from milestone 3, round 3).
 
 ## Milestone 5: sign-in, first sync and settings
 

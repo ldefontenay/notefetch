@@ -141,7 +141,11 @@ async fn run(args: Vec<String>) -> Result<()> {
             println!("Settings written to {}", config::config_path().display());
         }
         "--rename" | "--move" | "--delete" | "--skip" | "--new-folder" | "--rename-folder" | "--delete-folder" => {
-            let e = engine().await?;
+            // Local changes only, so no sign-in is needed.
+            let config = load_config();
+            let store = store::Store::open(&config::local_dir().join("notefetch.db"))?;
+            let library = library::Library::new(config.output_folder.clone());
+            let e = actions::Local { store: &store, library: &library };
             let arg = |i: usize| args.get(i).map(String::as_str).ok_or_else(|| Error::Disk(format!("{command} needs more arguments.")));
             let line = match command {
                 "--rename" => e.rename(arg(1)?, arg(2)?)?,

@@ -81,7 +81,12 @@ impl From<rusqlite::Error> for Error {
 /// Describe a file system failure on a path, with what to do next.
 pub fn disk(action: &str, path: &std::path::Path, e: &std::io::Error) -> Error {
     use std::io::ErrorKind::*;
+    // Windows' "being used by another process" (32) and "locked" (33), as
+    // when a player has the audio open. Checked by number, because Rust does
+    // not give them a kind of their own on every version.
+    let in_use = matches!(e.raw_os_error(), Some(32 | 33));
     let advice = match e.kind() {
+        _ if in_use => "A file in it is open in another program, such as a media player. Close it and try again.",
         PermissionDenied => "Windows refused access. If the file is open in another program, such as a media player, close it and try again.",
         NotFound => "It was not found. It may have been moved or deleted outside NoteFetch.",
         StorageFull | QuotaExceeded => "The disk is full. Free some space and try again.",

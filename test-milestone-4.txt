@@ -1,0 +1,352 @@
+NoteFetch milestone 4 test: playing, renaming, deleting and folders
+
+About 40 minutes. It checks everything new in milestone 4: Enter to play,
+opening the transcript and summary, the context menu, renaming with F2,
+deleting, the Deleted view, Don't download, and folders. It also checks the
+change you asked for in round 3: recordings stay in the list until a
+download finishes.
+
+It runs on the same test copy of your data as before, so nothing touches
+your Documents folder. Deleting here sends test folders to your Recycle Bin;
+you can empty it afterwards. Nothing is ever deleted from your Plaud account.
+
+You should still be signed in from round 3. Steps 22 and 26 download, so
+they need the sign-in and the internet.
+
+One thing to know before you start: renaming, moving and deleting wait for
+a sync or download to finish. NoteFetch syncs as it opens, so wait for
+"Sync finished." before step 2. If you try sooner, the Log says the command
+"cannot start while something else is running". Question 2 in log.md asks
+whether that is acceptable.
+
+Please write your answers after each ANSWER line. Leave any you cannot do
+blank, and say so. Save the file when you are done.
+
+
+SECTION 1: ENTER, AND OPENING FILES
+
+1. In File Explorer, go to C:\Users\ldefo\dev\NoteFetch\test-data and press
+   Enter on "Start NoteFetch test.cmd". Wait until you hear "Sync
+   finished." Focus is in the Recordings list.
+   Did it open and sync as usual?
+
+ANSWER:
+Yes.
+2. Press T to move to "Test lecture" (in the Neuroscience folder). Press
+   Enter.
+   Expected: the audio starts playing in your default player, which takes
+   the focus. Nothing is spoken by NoteFetch.
+   Did it play? Which program opened?
+
+ANSWER:
+It played in Windoes Media Player.
+3. Close or pause the player, and Alt+Tab back to NoteFetch. Focus should be
+   back on "Test lecture". Press Alt+G for the Log and read the top line,
+   then press Alt+C to return to the list.
+   Expected Log line: "Playing "Test lecture, 21 Sep 2026, 1601"."
+   Was focus back on Test lecture, and was the Log line there?
+
+ANSWER:
+Yes to both.
+4. With focus on "Test lecture", press Ctrl+M.
+   Expected: its summary opens in your program for .md files (Leasy Word,
+   you said in milestone 2). If it has no summary, NoteFetch says so
+   instead and says that each sync checks again for 14 days.
+   Then Alt+Tab back and press Ctrl+T.
+   Expected: the transcript opens in your program for .txt files, or the
+   same kind of message if it has none.
+   What happened each time?
+
+ANSWER:
+For this file, both messages said that there was no summary or transcript. The expected messages for the situation.
+5. Back in NoteFetch on "Test lecture", press Ctrl+Shift+C.
+   Expected: "Copied the path of the audio file of "Test lecture, 21 Sep
+   2026, 1601"." Then press Windows+R, Ctrl+V, and read the box: it should
+   hold the full path, ending in ".ogg". Press Escape to close it.
+   Was it right?
+
+ANSWER:
+Yes, perfect.
+6. Press End to go to the last recording in the list (the oldest). If its
+   status is "Not downloaded", press Ctrl+T.
+   Expected: "... is not downloaded yet. Press Enter on it to download it."
+   (Do not press Enter yet.) If the last one is downloaded, skip this step.
+   What did you hear?
+
+ANSWER:
+"[name of a real recording, removed before publishing]" is not downloaded yet. Press Enter on it to download it.
+
+ANYTHING ODD:
+No
+
+SECTION 2: THE CONTEXT MENU
+
+7. Press Home, then T, to go back to "Test lecture". Press the Applications
+   key.
+   Expected: a menu opens with "Play" first. Its items, in order: Play,
+   Open transcript, Open summary, Open folder, Copy audio file path,
+   Rename, Move to folder, possibly Download missing parts, and Delete.
+   Each shows its shortcut, for example "Open transcript Ctrl+T". Play is
+   the default item, which is what Enter does.
+   Please write down exactly what JAWS says for the first item. Does it say
+   anything that tells you Play is the default? Arrow down through the
+   rest: do they read well?
+
+ANSWER:
+The first item says "Play	Enter p", perfect.
+The rest of the items make complete sense, including their shortcuts.
+
+8. Press Escape.
+   Expected: the menu closes and focus is back on "Test lecture". Nothing is
+   cancelled and the Log is unchanged.
+   Then press Shift+F10.
+   Expected: the same menu. Press Escape again.
+   Was it the same both ways?
+
+ANSWER:
+Yes, excellent.
+9. Press Alt+S, choose "Not yet downloaded" with the arrows, then press
+   Alt+C to go to the list. On the first recording, press the Applications
+   key.
+   Expected: two items: "Download Enter" (the default) and "Don't download".
+   Press Escape.
+   Was that what you heard?
+
+ANSWER:
+Yes
+10. Press Alt+S, choose "All recordings", and Alt+C. Press Home. Hold Shift
+    and press Down Arrow twice, so three recordings are selected. Press the
+    Applications key.
+    Expected: the same items as for a single recording, but Open
+    transcript, Open summary, Open folder, Copy audio file path and Rename
+    are unavailable, because they only make sense for one recording. Play
+    (the default) stays available, and so do Move to folder and Delete.
+    Press Escape, then press Home on its own so only one recording is
+    selected.
+    Does JAWS say "unavailable" (or similar) for those items? Is that clear?
+
+ANSWER:
+Yes, very well thought through.
+11. Press Alt+R for the Recording menu in the menu bar. Arrow through it.
+    Expected: Play, Open transcript, Open summary, Open the recording's
+    folder, Copy audio file path, Download selected, Don't download, Rename,
+    Move to folder, Delete, Select all. Items that do not apply to the
+    focused recording are unavailable (Don't download, for a downloaded
+    one), and Play is the default. Press Escape twice.
+    Did it read as expected?
+
+ANSWER:
+Yes
+ANYTHING ODD:
+Nothing odd, but if possible, it would be elegant for the summary and transcript options to be indicated as unavailable for downloaded recordings with no summaries or transcripts, in both the context menu and recording menu. The error message is still perfect for when ctrl+m or ctrl+t are pressed.
+
+SECTION 3: RENAMING WITH F2
+
+12. Press T to go to "Test lecture". Press F2.
+    Expected: an edit box opens in place of the name, holding only "Test
+    lecture", all selected. The date is not in it: it is kept
+    automatically.
+    Please write down exactly what JAWS says.
+
+ANSWER:
+Jaws says "edit test lecture", followed by the rest of the line. Reading the current line does indicate that "test lecture" is the only thing in the edit box. Ideally that would be the only thing being read, but not a biggy.
+
+13. Type "Test lecture renamed" and press Enter.
+    Expected: "Renamed "Test lecture, 21 Sep 2026, 1601" to "Test lecture
+    renamed, 21 Sep 2026, 1601". The name in Plaud is unchanged." Focus is
+    back in the list on the same recording, now called "Test lecture
+    renamed".
+    What did you hear, and where was focus?
+
+ANSWER:
+Messages exactly as expected.
+14. Press F2 again, type "Should not stick", and press Escape.
+    Expected: the edit box closes, the name stays "Test lecture renamed",
+    and nothing is said about cancelling. Focus is back on the recording.
+    Was it so?
+
+ANSWER:
+Yes
+15. Press F2 once more, type "Test lecture", and press Enter, to put the
+    name back.
+    Expected: "Renamed ... to "Test lecture, 21 Sep 2026, 1601". ..."
+    Then press Alt+O for the output folder in File Explorer, open the
+    Neuroscience folder, and check the recording's folder and every file in
+    it are called "Test lecture" again. Close File Explorer.
+    Were they?
+
+ANSWER:
+Yes
+16. Back in NoteFetch, find "Untitled (2)" (the one-hour recording of 15
+    October at 12:29). Press F2.
+    Expected: the edit box holds "Untitled" only, without "(2)".
+    Type "Short test" and press Enter.
+    Expected: "Renamed "Untitled, 15 Oct 2026, 1229 (2)" to "Short test,
+    15 Oct 2026, 1229". ..." The "(2)" goes, because nothing else is called
+    "Short test" now. See question 1 in log.md.
+    What did you hear?
+
+ANSWER:
+Exactly as expected.
+17. A rename while the audio is open in a player. On "Short test", press
+    Enter to play it. Leave the player open, Alt+Tab back to NoteFetch, and
+    press F2. Type "Locked test" and press Enter.
+    Expected: either it renames (some players do not lock the file), or
+    "Could not rename ..." with the file's path, then "A file in it is open
+    in another program, such as a media player. Close it and try again."
+    Either way, nothing is left half-renamed.
+    Which happened? Close the player afterwards.
+
+ANSWER:
+The file renamed successfully, and the audio stopped playing. I tested this twice with Windows Media Player. Of course, the behaviour with other players may be different. This is ok.
+
+ANYTHING ODD:
+
+
+SECTION 4: DELETING, AND THE DELETED VIEW
+
+18. Find the 20-second "Untitled" recording of 15 October at 12:29 (the
+    other one of that minute). Press Delete.
+    Expected: a question titled "Delete": "Move "Untitled, 15 Oct 2026,
+    1229" to the Recycle Bin? NoteFetch will not download it again unless
+    you choose Download again in the Deleted view. Nothing is deleted from
+    your Plaud account." Yes is the default button, as in File Explorer.
+    How did JAWS read the question, and is Yes the right default? (See
+    question 3 in log.md.)
+
+ANSWER:
+Jaws read the message as expected and yes is the right default.
+19. Press N for No.
+    Expected: the Log says "Nothing was deleted." and focus is back on the
+    same recording.
+    Then press Delete again and this time press Enter for Yes.
+    Expected: "Moved "Untitled, 15 Oct 2026, 1229" to the Recycle Bin. ..."
+    Focus moves to the recording that came after it, and that recording is
+    selected, so pressing Delete again would act on it.
+    Where did focus land? (This is one of the main things to check.)
+
+ANSWER:
+Focus landed correctly on the next recording.
+20. Press Alt+S and choose "Deleted", then Alt+C.
+    Expected: the recording you just deleted is there, with status
+    "Deleted". Press the Applications key.
+    Expected: one item, "Download again", the default. Press Escape.
+    Was it there, and did the menu read well?
+
+ANSWER:
+Yes, it was there and the menu read well.
+21. Press Alt+S and choose "Not yet downloaded", then Alt+C. Pick a
+    recording you do not mind leaving out, press the Applications key, and
+    choose "Don't download".
+    Expected: ""..." will not be downloaded. It is listed in the Deleted
+    view." It leaves this view straight away, and focus moves to the next
+    recording, which is selected.
+    What did you hear, and where was focus?
+
+ANSWER:
+Focus correctly jumped to the next recording. This was announced first, followed by the expected message. Good.
+22. Press Alt+S and choose "Deleted", then Alt+C. Go to the recording you
+    deleted in step 19 and press Enter.
+    Expected: "Downloading 1 recording.", then "Download finished. 1
+    recording downloaded." It stays in the Deleted view, with its status
+    changing to downloaded, until the download finishes; then it leaves
+    the view. Check it is back under "All recordings".
+    Did it come back?
+
+ANSWER:
+Yes, perfectly.
+ANYTHING ODD:
+No.
+
+SECTION 5: FOLDERS
+
+23. Press Alt+L for the Folder menu.
+    Expected: New folder, then "Rename folder (choose one in the Folder box
+    first)" and "Delete folder (choose one in the Folder box first)", both
+    unavailable, then Open output folder.
+    Press N for New folder.
+    Expected: a small window "New folder", with the focus in "Folder name",
+    an empty edit box. Type "Test folder" and press Enter.
+    Expected: "Created the folder "Test folder"." Focus is back in the list.
+    How did the menu and the window read?
+
+ANSWER:
+Very well.
+
+24. Press Alt+S and choose "All recordings", then Alt+C. Find "Short test"
+    (renamed in step 16) and press Ctrl+Shift+M.
+    Expected: a window "Move to folder". Focus is in "Folders", a list,
+    on "Not in a folder", which is where it is now. Arrow down to "Test
+    folder" and press Enter.
+    Expected: "Moved "Short test, 15 Oct 2026, 1229" to the folder "Test
+    folder"." Focus is back on "Short test" in the list, whose Folder column
+    now says Test folder.
+    How did the window read, and where was focus?
+
+ANSWER:
+The window read very well and after pressing ctrl+shift+m, focus was on the list of folders to select from. Worked seamlessly and after pressing enter, focus was back on the recording, the line read, followed by the message that it had been moved to the test folder. All good as expected.
+
+25. On another downloaded recording, press Ctrl+Shift+M, then Alt+N for
+    "New folder name (optional)", type "Second test folder", and press
+    Enter.
+    Expected: "Created the folder "Second test folder"." then a line saying
+    it was moved there. Only the second is spoken. Both are in the Log.
+    Was it so?
+
+ANSWER:
+Yes.
+26. Rows kept during a download (from round 3). Press Alt+S and choose "Not
+    yet downloaded", then Alt+C. Select two short recordings (Shift+Down
+    Arrow) and press Ctrl+D. While it runs, arrow up and down.
+    Expected: both recordings stay in the list while downloading, with their
+    status changing to downloaded as each finishes. When "Download
+    finished" is spoken they leave the view, and focus moves to the next
+    recording.
+    Was it as expected?
+
+ANSWER:
+Yes.
+27. Press Alt+S and choose "All recordings". Press Alt+E for the Folder box
+    and choose "Test folder". Press Alt+L.
+    Expected: the menu now says "Rename the folder "Test folder"..." and
+    "Delete the folder "Test folder"...". Press R.
+    Expected: a window "Rename folder", "Folder name" holding "Test folder",
+    selected. Type "Lectures test" and press Enter.
+    Expected: "Renamed the folder "Test folder" to "Lectures test"." The
+    Folder box now shows "Lectures test", and "Short test" is still listed.
+    What did you hear?
+
+ANSWER:
+As expected.
+28. Press Alt+L, then D for "Delete the folder "Lectures test"...".
+    Expected: a question: "Delete the folder "Lectures test"? Its recording
+    will move back to the output folder, shown as Not in a folder. Nothing
+    goes to the Recycle Bin." Press Enter for Yes.
+    Expected: "Deleted the folder "Lectures test". Its recording is now in
+    the output folder, not in a folder." The Folder box goes back to "All
+    folders".
+    Then do the same for "Second test folder".
+    Was it all clear?
+
+ANSWER:
+Good, as expected.
+
+29. Press Alt+O for the output folder in File Explorer. Check that "Lectures
+    test" and "Second test folder" are gone, and that "Short test, 15 Oct
+    2026, 1229" is directly in the output folder. Close File Explorer, then
+    close NoteFetch with Alt+F4.
+    Did File Explorer match what NoteFetch said?
+
+ANSWER:
+Yes.
+
+ANYTHING ODD:
+Nothing odd, but from the file explorer perspective, it would be helpful to have some distinction between what is a folder containing recordings and what is a category folder containing subfolders with recordings. Your ideas on this would be helpful. Maybe have an "Uncategorised" folder for uncategorised recordings? I realise this adds complexity and may not be worth worrying about, but do let me know your thoghts.
+
+ANYTHING ELSE
+
+Anything you noticed that is not covered above, including wording you would
+change.
+
+ANSWER:
+No, all very good indeed.

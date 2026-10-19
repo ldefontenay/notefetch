@@ -2,6 +2,69 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-10-18: Milestone 4 built, ready for you to test
+
+### The short version
+
+- **Milestone 4 is built:** Enter to play, the context menu, renaming with F2, deleting, the Deleted view, Don't download, Copy audio file path, Move to folder, and the Folder menu.
+- **Please run test-milestone-4.txt.** 29 steps, about 40 minutes. It also checks your round 3 request that recordings stay in the list until a download finishes.
+- **Four questions below.** Each has its own ANSWER line.
+- All automatic checks pass: 74 tests, and clippy is clean. Not committed yet; I will commit once your results are in, unless you would like it sooner.
+
+### What is new
+
+- **Enter** plays a downloaded recording in your default player, and downloads one that is not downloaded, or that is in the Deleted view.
+- **Ctrl+T and Ctrl+M** open the transcript and the summary in your own programs. If there is none, the Log says so and why.
+- **Ctrl+Shift+C** copies the full path of the audio file.
+- **The Applications key and Shift+F10** open a context menu for the focused recording, at that recording, not at the mouse. Its items depend on the status, and its default item is what Enter does. With several recordings selected, the items that only make sense for one are unavailable, so the menu keeps the same shape.
+- **The Recording menu** (Alt+R) has the same commands, set up the same way each time it opens.
+- **F2** edits the name in place, as in File Explorer. Only the name is in the edit box; the date and any "(2)" are kept for you. Enter renames the folder and every file in it; Escape leaves it as it was.
+- **Delete** asks first, then moves the recording's folder to the Recycle Bin and lists it in the Deleted view, where Enter downloads it again. Nothing is deleted in Plaud.
+- **Don't download** is in the context menu for recordings not yet downloaded.
+- **Ctrl+Shift+M** opens "Move to folder": a list of your folders, and a box for a new folder name.
+- **The Folder menu** (Alt+L) has New folder, Rename folder and Delete folder. Rename and Delete act on the folder chosen in the Folder box, and the menu says which: "Rename the folder "Neuroscience"...". When none is chosen, they say "choose one in the Folder box first".
+- None of these need a Plaud sign-in: they only change your disk.
+
+### What I checked before handing it over
+
+- I ran the accessibility probe on the main window, the Move to folder window, the folder name window and both questions. Every control has its label as its name, and the Alt letters are right.
+- I drove a separate copy of NoteFetch with simulated keys: Enter, F2 then Enter, F2 then Escape, Delete with No and with Yes, Move to folder with a new folder, rename and delete a folder, and the context menu. All worked.
+- **One real problem found and fixed:** after deleting, focus moved to the next recording but nothing was selected, so pressing Delete again said "No recordings are selected". Now the next recording is focused and selected.
+- **Another fixed:** if a player has the audio open and a rename is refused, the message could have told you to restart Windows. It now says a file is open in another program, such as a media player, and to close it and try again.
+- What only you can tell: how JAWS reads the context menu and whether it says which item is the default, how it reads the F2 edit box, and where focus lands after a delete.
+
+### What I did on your desktop
+
+- I opened the separate copy of NoteFetch a few times, with announcements off. Once, for about three seconds, it took the foreground so I could press Shift+F10, Ctrl+T and Ctrl+Shift+M for real; then I gave the foreground back to whatever had it.
+- For the Copy audio file path check, I saved your clipboard first and put it back afterwards. If anything you had copied is missing, that is why, and I am sorry.
+- The delete check sent two small test folders to your Recycle Bin, each holding only a metadata.json file from the test copy, no audio or text. You can empty them away.
+
+### Questions
+
+#### Question 1: renaming a recording with "(2)"
+
+Two recordings started in the same minute are told apart by "(2)". If you rename the second one to a name nothing else has, for example "Short test", should the "(2)" go? I have made it go, because it no longer tells anything apart: you get "Short test, 15 Oct 2026, 1229". If the new name does clash, for example you name both "Lecture", the second keeps its "(2)". Step 16 shows it. Is that right?
+
+ANSWER:
+Yes, that's right.
+#### Question 2: changes wait for a sync or download
+
+Renaming, moving and deleting wait until a sync or download has finished. Renaming a folder while a download is writing into it would break the download, so this keeps things safe and simple. The cost: NoteFetch syncs as it opens, so for the first moments after opening, F2 or Delete just says it cannot start yet. Is that acceptable, or would you like these to work during a sync (which I can do, with care, for recordings the sync is not touching)?
+
+ANSWER:
+If possible, allow actions on recordings unaffected by the sync.
+#### Question 3: the default answer when deleting
+
+The delete question has Yes as its default button, as File Explorer's does, since the Recycle Bin can undo it. So Delete then Enter deletes. Would you rather No were the default, so Delete then Enter does nothing until you press Y?
+
+ANSWER:
+Keep the Windows Explorer convention.
+#### Question 4: Delete on a recording that was never downloaded
+
+There is nothing on disk to delete, so Delete marks it "Don't download" instead, without asking, and it moves to the Deleted view, where Enter downloads it after all. Is that what you would expect, or should Delete do nothing for those and say to use Don't download?
+
+ANSWER:
+Delete moves to "don't download" on such recordings by default, but make that a setting so that optionally delete does nothing.
 ## 2026-10-18: Milestone 3 finished, committed and pushed
 
 ### The short version

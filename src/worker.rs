@@ -19,6 +19,7 @@ use crate::clock::{self, Stamp};
 use crate::config::{self, Config};
 use crate::error::Error;
 use crate::library::{self, Library};
+use crate::actions::Local;
 use crate::store::{State, Store};
 use crate::sync::{Engine, Event};
 
@@ -32,6 +33,35 @@ pub enum Command {
     /// Sign in through the browser, then sync if sync on start is set.
     SignIn,
     SignOut,
+    /// The user's own changes, which need no sign-in. SPEC.md "Playing,
+    /// renaming and deleting" and "Folders".
+    Rename(String, String),
+    /// Downloaded recordings go to the Recycle Bin; ones never downloaded are
+    /// marked Don't download, which is what Delete means for them.
+    Delete(Vec<String>),
+    Skip(Vec<String>),
+    /// Move to a folder, or out of any folder with `None`. With `create`, the
+    /// folder is made first.
+    Move { ids: Vec<String>, folder: Option<String>, create: bool },
+    NewFolder(String),
+    RenameFolder(String, String),
+    DeleteFolder(String),
+}
+
+impl Command {
+    /// Work on the disk and the database alone, with no need for Plaud.
+    fn is_local(&self) -> bool {
+        matches!(
+            self,
+            Command::Rename(..)
+                | Command::Delete(_)
+                | Command::Skip(_)
+                | Command::Move { .. }
+                | Command::NewFolder(_)
+                | Command::RenameFolder(..)
+                | Command::DeleteFolder(_)
+        )
+    }
 }
 
 /// What the worker is doing, so closing the window knows whether to ask.
@@ -42,6 +72,8 @@ pub enum Activity {
     Refreshing,
     Syncing,
     Downloading,
+    /// Renaming, moving, deleting: quick, and never worth a question on closing.
+    Changing,
 }
 
 /// How much an announcement matters, for the announcement level setting.
@@ -60,6 +92,8 @@ pub struct Row {
     pub id: String,
     /// The name part, without the date, with any clash number: "Untitled (2)".
     pub name: String,
+    /// The name part alone, as F2 edits it: no date, no clash number.
+    pub plain_name: String,
     pub folder: Option<String>,
     pub date: String,
     pub duration: String,
@@ -213,7 +247,7 @@ async fn run(mut rx: mpsc::UnboundedReceiver<(Command, Cancel)>, sink: Sink, sta
     }
 
     while let Some((command, cancel)) = rx.recv().await {
-        match command {
+        let command = match command {
             Command::SignIn => {
                 sign_in(&mut cx, cancel, &sink).await;
                 continue;
@@ -222,8 +256,12 @@ async fn run(mut rx: mpsc::UnboundedReceiver<(Command, Cancel)>, sink: Sink, sta
                 sign_out(&mut cx, &sink);
                 continue;
             }
-            _ => {}
-        }
+            c if c.is_local() => {
+                local_command(&cx, c, &sink);
+                continue;
+            }
+            c => c,
+        };
         if cx.engine.is_none() {
             sink.send(UiEvent::Activity(Activity::Connecting));
             match connect(&cx).await {
@@ -324,7 +362,6 @@ async fn run_command(cx: &Context, command: Command, cancel: Cancel, sink: &Sink
 
     // The final line to speak, and whether the engine has already logged it.
     let outcome: Result<Option<(String, bool)>, Error> = match command {
-        Command::SignIn | Command::SignOut => Ok(None),
         Command::Refresh => {
             sink.send(UiEvent::Activity(Activity::Refreshing));
             sink.announce("Refreshing the list from Plaud.", Importance::Routine);
@@ -358,6 +395,8 @@ async fn run_command(cx: &Context, command: Command, cancel: Cancel, sink: &Sink
                 Err(e) => Err(e),
             }
         }
+        // Sign-in and local changes are handled before a connection is needed.
+        _ => Ok(None),
     };
     match outcome {
         Ok(Some((line, true))) => sink.send(UiEvent::Speak(line, Importance::Completion)),
@@ -373,6 +412,100 @@ async fn run_command(cx: &Context, command: Command, cancel: Cancel, sink: &Sink
     }
     send_snapshot(cx, sink);
     sink.send(UiEvent::Finished);
+}
+
+/// The user's own changes to the disk and the database. Each result goes to
+/// the Log; one line is spoken at the end. SPEC.md "Playing, renaming and
+/// deleting" and "Folders".
+fn local_command(cx: &Context, command: Command, sink: &Sink) {
+    sink.send(UiEvent::Activity(Activity::Changing));
+    let local = Local { store: &cx.store, library: &cx.library };
+    let mut results: Vec<Result<String, Error>> = Vec::new();
+    // What a group of results adds up to, when there is more than one.
+    let summary: Option<(&str, usize)> = match command {
+        Command::Rename(id, name) => {
+            results.push(local.rename(&id, &name));
+            None
+        }
+        Command::Delete(ids) => {
+            let n = ids.len();
+            for id in &ids {
+                let state = cx.store.get(id).ok().flatten().map(|r| r.state);
+                results.push(match state {
+                    Some(State::New | State::Failed) => local.skip(id),
+                    _ => local.delete(id),
+                });
+            }
+            Some(("deleted", n))
+        }
+        Command::Skip(ids) => {
+            let n = ids.len();
+            for id in &ids {
+                results.push(local.skip(id));
+            }
+            Some(("marked Don't download", n))
+        }
+        Command::Move { ids, folder, create } => {
+            let n = ids.len();
+            let mut target = folder;
+            if create && let Some(name) = target.clone() {
+                match cx.library.create_folder(&name) {
+                    Ok(made) => {
+                        results.push(Ok(format!("Created the folder \"{made}\".")));
+                        target = Some(made);
+                    }
+                    // No folder, so nothing can move into it.
+                    Err(e) => results.push(Err(e)),
+                }
+            }
+            if results.iter().all(Result::is_ok) {
+                for id in &ids {
+                    results.push(local.move_to_folder(id, target.as_deref()));
+                }
+            }
+            Some(("moved", n))
+        }
+        Command::NewFolder(name) => {
+            results.push(local.create_folder(&name));
+            None
+        }
+        Command::RenameFolder(old, new) => {
+            results.push(local.rename_folder(&old, &new));
+            None
+        }
+        Command::DeleteFolder(name) => {
+            results.push(local.delete_folder(&name));
+            None
+        }
+        _ => None,
+    };
+    let (mut done, mut failed) = (Vec::new(), Vec::new());
+    for r in results {
+        match r {
+            Ok(line) => done.push(line),
+            Err(e) => failed.push(e.to_string()),
+        }
+    }
+    for line in done.iter().chain(&failed) {
+        sink.log(line.clone());
+    }
+    send_snapshot(cx, sink);
+    sink.send(UiEvent::Finished);
+    match (summary, failed.len()) {
+        (Some((verb, n)), 0) if n > 1 => {
+            sink.announce(format!("{n} recordings {verb}."), Importance::Completion)
+        }
+        (_, 0) => {
+            if let Some(line) = done.last() {
+                sink.send(UiEvent::Speak(line.clone(), Importance::Completion));
+            }
+        }
+        (Some((verb, n)), bad) if n > 1 => sink.announce(
+            format!("{bad} of {n} recordings could not be {verb}. The Log says why for each."),
+            Importance::Error,
+        ),
+        (_, _) => sink.send(UiEvent::Speak(failed[0].clone(), Importance::Error)),
+    }
 }
 
 fn send_snapshot(cx: &Context, sink: &Sink) {
@@ -407,6 +540,7 @@ fn snapshot(store: &Store, library: &Library) -> Option<Snapshot> {
             let clash = r.location.as_deref().map(library::base_of).and_then(crate::naming::clash_of).unwrap_or("");
             Row {
                 name: format!("{name}{clash}"),
+                plain_name: name,
                 folder: r.location.as_deref().and_then(library::folder_of).map(str::to_string),
                 date: local.list_date(),
                 duration: clock::duration_words(r.duration_ms),

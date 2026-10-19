@@ -222,20 +222,20 @@ impl Library {
         let clean = naming::clean(new_name_part);
         let new_base = naming::fit_base(&parent, &clean, &local)
             .ok_or_else(|| Error::Disk("The folder is too deeply nested for that name. Try a shorter one.".into()))?;
-        // Keep a clash number if the old name had one.
-        let new_base = match old_base.rfind(" (") {
-            Some(i) if old_base.ends_with(')') && old_base[i + 2..old_base.len() - 1].parse::<u32>().is_ok() => {
-                format!("{new_base}{}", &old_base[i..])
-            }
-            _ => new_base,
+        // A clash number only when another folder already has the name, as
+        // for a download. The old number goes: "Untitled (2)" renamed to
+        // "Seminar" is just "Seminar" unless a "Seminar" of the same minute
+        // is already there.
+        let Some(new_base) = (1..1000).map(|n| naming::numbered(&new_base, n)).find(|b| {
+            let dir = parent.join(b);
+            !dir.exists() || same_folder(&dir, &old_dir)
+        }) else {
+            return Err(Error::Disk(format!("Too many recordings are called \"{new_base}\". Choose a different name.")));
         };
         if new_base == old_base {
             return Ok(location.to_string());
         }
         let new_dir = parent.join(&new_base);
-        if new_dir.exists() && !same_folder(&new_dir, &old_dir) {
-            return Err(Error::Disk(format!("There is already a recording called \"{new_base}\" there. Choose a different name.")));
-        }
 
         let mut done: Vec<(PathBuf, PathBuf)> = Vec::new();
         let result = (|| -> Result<()> {
@@ -602,7 +602,8 @@ mod tests {
         // is renamed before the refusal and must be put back.
         use std::os::windows::fs::OpenOptionsExt;
         let held = std::fs::OpenOptions::new().read(true).share_mode(1).open(lib.file_path(&loc, naming::TRANSCRIPT)).unwrap();
-        assert!(lib.rename(&loc, "New name", &start()).is_err());
+        let refused = lib.rename(&loc, "New name", &start()).unwrap_err().to_string();
+        assert!(refused.contains("open in another program"), "{refused}");
         drop(held);
         let dir = t.0.join(&loc);
         assert!(dir.join("Audio, Lecture, 24 Sep 2026, 1430.ogg").is_file(), "the audio was put back");
@@ -611,12 +612,15 @@ mod tests {
     }
 
     #[test]
-    fn rename_keeps_a_clash_number() {
+    fn rename_numbers_a_name_only_when_it_clashes() {
         let t = TempDir::new("renameclash");
         let lib = Library::new(t.0.clone());
-        make(&lib, "a", "Lecture");
+        let a = make(&lib, "a", "Lecture");
         let b = make(&lib, "b", "Lecture");
-        assert_eq!(lib.rename(&b, "Seminar", &start()).unwrap(), "Seminar, 24 Sep 2026, 1430 (2)");
+        assert_eq!(lib.rename(&b, "Lecture", &start()).unwrap(), b, "still clashes, so keeps its number");
+        let b = lib.rename(&b, "Seminar", &start()).unwrap();
+        assert_eq!(b, "Seminar, 24 Sep 2026, 1430", "no clash, so no number");
+        assert_eq!(lib.rename(&a, "Seminar", &start()).unwrap(), "Seminar, 24 Sep 2026, 1430 (2)");
     }
 
     #[test]

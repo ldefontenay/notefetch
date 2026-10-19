@@ -49,6 +49,25 @@
 #define IDM_FIND           2023
 #define IDM_OPEN_OUTPUT    2024
 #define IDM_TEST_SPEECH    2030
+#define IDM_DEFAULT        2040
+#define IDM_PLAY           2041
+#define IDM_TRANSCRIPT     2042
+#define IDM_SUMMARY        2043
+#define IDM_COPY_PATH      2044
+#define IDM_RENAME         2045
+#define IDM_MOVE           2046
+#define IDM_DELETE         2047
+#define IDM_SKIP           2048
+#define IDM_NEW_FOLDER     2060
+#define IDM_RENAME_FOLDER  2061
+#define IDM_DELETE_FOLDER  2062
+
+#define IDD_MOVE            110
+#define IDC_MOVE_LIST      1101
+#define IDC_MOVE_NEW       1102
+#define IDD_NAME            120
+#define IDC_NAME_LABEL     1201
+#define IDC_NAME_EDIT      1202
 
 IDD_MAIN DIALOGEX 0, 0, 400, 292
 STYLE DS_SETFONT | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
@@ -67,7 +86,7 @@ BEGIN
     EDITTEXT    IDC_FILTER, 66, 25, 327, 12, ES_AUTOHSCROLL | WS_GROUP | WS_TABSTOP
 
     LTEXT       "Re&cordings:", -1, 7, 44, 100, 8
-    CONTROL     "", IDC_LIST, "SysListView32", LVS_REPORT | LVS_SHOWSELALWAYS | WS_BORDER | WS_GROUP | WS_TABSTOP, 7, 54, 386, 146
+    CONTROL     "", IDC_LIST, "SysListView32", LVS_REPORT | LVS_SHOWSELALWAYS | LVS_EDITLABELS | WS_BORDER | WS_GROUP | WS_TABSTOP, 7, 54, 386, 146
 
     PUSHBUTTON  "S&ync new", IDC_SYNC, 7, 205, 70, 14, WS_GROUP | WS_TABSTOP
     PUSHBUTTON  "&Download selected", IDC_DOWNLOAD, 82, 205, 84, 14, WS_TABSTOP
@@ -77,7 +96,39 @@ BEGIN
     EDITTEXT    IDC_LOG, 7, 235, 386, 50, ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL | WS_GROUP | WS_TABSTOP
 END
 
+// Move to folder (Ctrl+Shift+M). SPEC.md "Folders". Rules 1 and 3 above
+// apply; Alt letters need only be unique within this window: F, N. OK and
+// Cancel have none: they are Enter and Escape.
+IDD_MOVE DIALOGEX 0, 0, 220, 150
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Move to folder"
+FONT 9, "Segoe UI", 400, 0, 0x1
+BEGIN
+    LTEXT           "&Folders:", -1, 7, 7, 206, 8
+    LISTBOX         IDC_MOVE_LIST, 7, 17, 206, 76, LBS_NOTIFY | WS_VSCROLL | WS_BORDER | WS_GROUP | WS_TABSTOP
+    LTEXT           "&New folder name (optional):", -1, 7, 99, 206, 8
+    EDITTEXT        IDC_MOVE_NEW, 7, 109, 206, 12, ES_AUTOHSCROLL | WS_GROUP | WS_TABSTOP
+    DEFPUSHBUTTON   "OK", IDOK, 109, 129, 50, 14, WS_GROUP | WS_TABSTOP
+    PUSHBUTTON      "Cancel", IDCANCEL, 163, 129, 50, 14, WS_TABSTOP
+END
+
+// One name: New folder and Rename folder. The caption is set when it opens.
+// Alt letter: F.
+IDD_NAME DIALOGEX 0, 0, 220, 62
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Name"
+FONT 9, "Segoe UI", 400, 0, 0x1
+BEGIN
+    LTEXT           "&Folder name:", IDC_NAME_LABEL, 7, 7, 206, 8
+    EDITTEXT        IDC_NAME_EDIT, 7, 17, 206, 12, ES_AUTOHSCROLL | WS_GROUP | WS_TABSTOP
+    DEFPUSHBUTTON   "OK", IDOK, 109, 41, 50, 14, WS_GROUP | WS_TABSTOP
+    PUSHBUTTON      "Cancel", IDCANCEL, 163, 41, 50, 14, WS_TABSTOP
+END
+
 // Every command with its shortcut, so commands can be found without the help.
+// The Recording menu holds the same commands as the context menu (SPEC.md);
+// which are available, and which one Enter carries out, is set each time it
+// opens, from the focused recording.
 IDR_MENU MENU
 BEGIN
     POPUP "&File"
@@ -85,25 +136,40 @@ BEGIN
         MENUITEM "Sign &in to Plaud...", IDM_SIGN_IN
         MENUITEM "Sign &out of Plaud", IDM_SIGN_OUT
         MENUITEM SEPARATOR
-        MENUITEM "E&xit\tAlt+F4", IDM_EXIT
+        MENUITEM "E&xit	Alt+F4", IDM_EXIT
     END
     POPUP "&Recording"
     BEGIN
-        MENUITEM "&Download selected\tCtrl+D", IDM_DOWNLOAD
-        MENUITEM "Open the recording's &folder\tCtrl+Shift+O", IDM_OPEN_RECORDING
-        MENUITEM "Select &all\tCtrl+A", IDM_SELECT_ALL
+        MENUITEM "&Play", IDM_PLAY
+        MENUITEM "Open &transcript	Ctrl+T", IDM_TRANSCRIPT
+        MENUITEM "Open su&mmary	Ctrl+M", IDM_SUMMARY
+        MENUITEM "Open the recording's &folder	Ctrl+Shift+O", IDM_OPEN_RECORDING
+        MENUITEM "&Copy audio file path	Ctrl+Shift+C", IDM_COPY_PATH
+        MENUITEM SEPARATOR
+        MENUITEM "&Download selected	Ctrl+D", IDM_DOWNLOAD
+        MENUITEM "Do&n't download", IDM_SKIP
+        MENUITEM SEPARATOR
+        MENUITEM "&Rename	F2", IDM_RENAME
+        MENUITEM "Mo&ve to folder...	Ctrl+Shift+M", IDM_MOVE
+        MENUITEM "D&elete	Delete", IDM_DELETE
+        MENUITEM SEPARATOR
+        MENUITEM "Select &all	Ctrl+A", IDM_SELECT_ALL
     END
     POPUP "Fo&lder"
     BEGIN
-        MENUITEM "&Open output folder\tCtrl+O", IDM_OPEN_OUTPUT
+        MENUITEM "&New folder...", IDM_NEW_FOLDER
+        MENUITEM "&Rename folder...", IDM_RENAME_FOLDER
+        MENUITEM "&Delete folder...", IDM_DELETE_FOLDER
+        MENUITEM SEPARATOR
+        MENUITEM "&Open output folder	Ctrl+O", IDM_OPEN_OUTPUT
     END
     POPUP "&Actions"
     BEGIN
-        MENUITEM "&Sync new\tCtrl+S", IDM_SYNC
-        MENUITEM "&Refresh the list from Plaud\tF5", IDM_REFRESH
-        MENUITEM "&Cancel what is running\tEscape", IDM_CANCEL
+        MENUITEM "&Sync new	Ctrl+S", IDM_SYNC
+        MENUITEM "&Refresh the list from Plaud	F5", IDM_REFRESH
+        MENUITEM "&Cancel what is running	Escape", IDM_CANCEL
         MENUITEM SEPARATOR
-        MENUITEM "Move to the &filter box\tCtrl+F", IDM_FIND
+        MENUITEM "Move to the &filter box	Ctrl+F", IDM_FIND
     END
     POPUP "&Help"
     BEGIN
@@ -111,9 +177,10 @@ BEGIN
     END
 END
 
-// Window-wide keys only. Keys that belong to the list (Ctrl+A, Ctrl+D,
-// Ctrl+Shift+O, and later Enter, Delete and F2) are handled by the list
-// itself, so they keep their usual meaning in the filter box.
+// Window-wide keys only. Keys that belong to the list (Enter, Delete, F2,
+// Ctrl+A, Ctrl+D, Ctrl+T, Ctrl+M, Ctrl+Shift+C, Ctrl+Shift+M and
+// Ctrl+Shift+O) are handled by the list itself, so they keep their usual
+// meaning in the filter box.
 IDR_ACCEL ACCELERATORS
 BEGIN
     "S", IDM_SYNC, VIRTKEY, CONTROL
