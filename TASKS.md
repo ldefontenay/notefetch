@@ -111,12 +111,16 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 
 ## Milestone 5: sign-in, first sync and settings
 
-- [ ] Sign in and sign out from the settings dialog. (From the File menu, with Escape and the five-minute timeout, done in milestone 3.)
-- [ ] The first-sync question (whole history, last N days, or start from now).
-- [ ] Settings dialog as described in SPEC.md, with the Windows folder picker. Include "Download new recordings when syncing" (`sync_downloads_new`) and "Delete marks a recording never downloaded as Don't download" (`delete_marks_dont_download`).
-- [ ] Sync on start.
-- [ ] The "Uncategorised" folder (PLAN.md, 23 October 2026): new downloads go into it, "Not in a folder" becomes "Uncategorised" everywhere, the name is reserved, and existing recordings move into it once, safely, one at a time.
-- [ ] Test script and `test-milestone-5.txt`.
+- [x] Sign in and sign out from the settings dialog. (From the File menu, with Escape and the five-minute timeout, done in milestone 3.)
+- [x] The first-sync question (whole history, last N days, or start from now).
+- [x] Settings dialog as described in SPEC.md, with the Windows folder picker. Include "Download new recordings when syncing" (`sync_downloads_new`) and "Delete marks a recording never downloaded as Don't download" (`delete_marks_dont_download`).
+- [x] Changing the output folder moves the recordings, after asking.
+- [x] Sync on start (in place since milestone 3, now in Settings).
+- [x] The "Uncategorised" folder (PLAN.md, 23 October 2026): new downloads go into it, "Not in a folder" becomes "Uncategorised" everywhere, the name is reserved, and existing recordings move into it once, safely, one at a time.
+- [x] Accessibility probe run on Settings and the first-sync question: no defects.
+- [x] Test script `test-milestone-5.txt` written.
+- [x] Laurent's results in `test-milestone-5.txt`, and his changes (PLAN.md, 24 October 2026).
+- [ ] Laurent's results in `test-milestone-5-round-2.txt`.
 
 ## Milestone 6: announcements, help and polish
 

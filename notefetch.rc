@@ -40,6 +40,7 @@
 #define IDM_EXIT           2001
 #define IDM_SIGN_IN        2002
 #define IDM_SIGN_OUT       2003
+#define IDM_SETTINGS       2004
 #define IDM_DOWNLOAD       2010
 #define IDM_SELECT_ALL     2011
 #define IDM_OPEN_RECORDING 2012
@@ -68,6 +69,28 @@
 #define IDD_NAME            120
 #define IDC_NAME_LABEL     1201
 #define IDC_NAME_EDIT      1202
+#define IDD_SETTINGS        130
+#define IDC_SET_FOLDER     1301
+#define IDC_SET_BROWSE     1302
+#define IDC_SET_SYNC_START 1303
+#define IDC_SET_SYNC_NEW   1304
+#define IDC_SET_CONFIRM    1305
+#define IDC_SET_DEL_SKIPS  1306
+#define IDC_SET_AUDIO      1307
+#define IDC_SET_TRANSCRIPT 1308
+#define IDC_SET_SUMMARY    1309
+#define IDC_SET_OTHER      1310
+#define IDC_SET_TXT        1311
+#define IDC_SET_DAYS       1312
+#define IDC_SET_ANNOUNCE   1313
+#define IDC_SET_LOG_FILE   1314
+#define IDC_SET_ACCOUNT    1315
+#define IDD_FIRST           140
+#define IDC_FIRST_INTRO    1401
+#define IDC_FIRST_ALL      1402
+#define IDC_FIRST_DAYS     1403
+#define IDC_FIRST_NOW      1404
+#define IDC_FIRST_N        1405
 
 IDD_MAIN DIALOGEX 0, 0, 400, 292
 STYLE DS_SETFONT | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
@@ -125,6 +148,58 @@ BEGIN
     PUSHBUTTON      "Cancel", IDCANCEL, 163, 41, 50, 14, WS_TABSTOP
 END
 
+// Settings (Ctrl+Comma). SPEC.md "Settings", in its order. Rules 1 and 3
+// above apply. Alt letters, unique within this window: O B S N K L A T M R X
+// D E W, and I or U on the account button, whose text says Sign in or Sign
+// out. OK and Cancel have none: they are Enter and Escape. The output folder
+// is a single-line read-only box, which a screen reader reads in full.
+IDD_SETTINGS DIALOGEX 0, 0, 280, 286
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Settings"
+FONT 9, "Segoe UI", 400, 0, 0x1
+BEGIN
+    LTEXT           "&Output folder:", -1, 7, 7, 266, 8
+    EDITTEXT        IDC_SET_FOLDER, 7, 17, 210, 12, ES_AUTOHSCROLL | ES_READONLY | WS_GROUP | WS_TABSTOP
+    PUSHBUTTON      "&Browse...", IDC_SET_BROWSE, 223, 16, 50, 14, WS_GROUP | WS_TABSTOP
+    AUTOCHECKBOX    "&Sync when NoteFetch starts", IDC_SET_SYNC_START, 7, 36, 266, 10, WS_GROUP | WS_TABSTOP
+    AUTOCHECKBOX    "Download &new recordings when syncing", IDC_SET_SYNC_NEW, 7, 50, 266, 10, WS_GROUP | WS_TABSTOP
+    AUTOCHECKBOX    "As&k before deleting", IDC_SET_CONFIRM, 7, 64, 266, 10, WS_GROUP | WS_TABSTOP
+    AUTOCHECKBOX    "De&lete marks a recording never downloaded as Don't download", IDC_SET_DEL_SKIPS, 7, 78, 266, 10, WS_GROUP | WS_TABSTOP
+    AUTOCHECKBOX    "Download &audio", IDC_SET_AUDIO, 7, 96, 266, 10, WS_GROUP | WS_TABSTOP
+    AUTOCHECKBOX    "Download &transcripts", IDC_SET_TRANSCRIPT, 7, 110, 266, 10, WS_GROUP | WS_TABSTOP
+    AUTOCHECKBOX    "Download su&mmaries", IDC_SET_SUMMARY, 7, 124, 266, 10, WS_GROUP | WS_TABSTOP
+    AUTOCHECKBOX    "Download othe&r parts: cleaned transcript, outline and highlights", IDC_SET_OTHER, 7, 138, 266, 10, WS_GROUP | WS_TABSTOP
+    AUTOCHECKBOX    "Save summaries as .t&xt files instead of .md", IDC_SET_TXT, 7, 152, 266, 10, WS_GROUP | WS_TABSTOP
+    LTEXT           "&Days to keep checking for a transcript or summary Plaud has not made yet:", -1, 7, 170, 266, 8
+    EDITTEXT        IDC_SET_DAYS, 7, 180, 40, 12, ES_NUMBER | ES_AUTOHSCROLL | WS_GROUP | WS_TABSTOP
+    LTEXT           "Spoken announcem&ents:", -1, 7, 198, 266, 8
+    COMBOBOX        IDC_SET_ANNOUNCE, 7, 208, 150, 60, CBS_DROPDOWNLIST | WS_VSCROLL | WS_GROUP | WS_TABSTOP
+    AUTOCHECKBOX    "Also &write the Log to the file notefetch.log", IDC_SET_LOG_FILE, 7, 228, 266, 10, WS_GROUP | WS_TABSTOP
+    PUSHBUTTON      "Sign &in to Plaud", IDC_SET_ACCOUNT, 7, 244, 100, 14, WS_GROUP | WS_TABSTOP
+    DEFPUSHBUTTON   "OK", IDOK, 169, 265, 50, 14, WS_GROUP | WS_TABSTOP
+    PUSHBUTTON      "Cancel", IDCANCEL, 223, 265, 50, 14, WS_TABSTOP
+END
+
+// The first-sync question. SPEC.md "Sync". The three choices are one group
+// of radio buttons, moved through with the arrow keys; their text is set when
+// it opens, to say how many recordings each means. The number of days comes
+// after them, since a box between two radio buttons would split the group.
+// Alt letters: E S N D.
+IDD_FIRST DIALOGEX 0, 0, 260, 132
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "First sync"
+FONT 9, "Segoe UI", 400, 0, 0x1
+BEGIN
+    LTEXT           "", IDC_FIRST_INTRO, 7, 7, 246, 26
+    AUTORADIOBUTTON "&Everything", IDC_FIRST_ALL, 7, 38, 246, 10, WS_GROUP | WS_TABSTOP
+    AUTORADIOBUTTON "&Specified duration", IDC_FIRST_DAYS, 7, 52, 246, 10
+    AUTORADIOBUTTON "&Nothing old", IDC_FIRST_NOW, 7, 66, 246, 10
+    LTEXT           "Specified duration, number of &days:", -1, 7, 84, 246, 8
+    EDITTEXT        IDC_FIRST_N, 7, 94, 40, 12, ES_NUMBER | ES_AUTOHSCROLL | WS_GROUP | WS_TABSTOP
+    DEFPUSHBUTTON   "OK", IDOK, 149, 112, 50, 14, WS_GROUP | WS_TABSTOP
+    PUSHBUTTON      "Cancel", IDCANCEL, 203, 112, 50, 14, WS_TABSTOP
+END
+
 // Every command with its shortcut, so commands can be found without the help.
 // The Recording menu holds the same commands as the context menu (SPEC.md);
 // which are available, and which one Enter carries out, is set each time it
@@ -135,6 +210,8 @@ BEGIN
     BEGIN
         MENUITEM "Sign &in to Plaud...", IDM_SIGN_IN
         MENUITEM "Sign &out of Plaud", IDM_SIGN_OUT
+        MENUITEM SEPARATOR
+        MENUITEM "&Settings...	Ctrl+Comma", IDM_SETTINGS
         MENUITEM SEPARATOR
         MENUITEM "E&xit	Alt+F4", IDM_EXIT
     END
@@ -187,6 +264,7 @@ BEGIN
     VK_F5, IDM_REFRESH, VIRTKEY
     "F", IDM_FIND, VIRTKEY, CONTROL
     "O", IDM_OPEN_OUTPUT, VIRTKEY, CONTROL
+    0xBC, IDM_SETTINGS, VIRTKEY, CONTROL    // VK_OEM_COMMA
 END
 
 // Keep the numbers in step with the version in Cargo.toml.

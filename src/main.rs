@@ -19,6 +19,8 @@
 //! - `--tools` lists the tools Plaud's server offers, and saves the full
 //!   reply as `tools-list.json` beside the database.
 //! - `--write-settings` writes the settings file with every setting in it.
+//! - `--first-sync-question` shows the first-sync question on its own, with
+//!   the recordings in the database, and prints the choice. Nothing is saved.
 //!
 //! Set `NOTEFETCH_DATA` to a folder such as `test-data\dev` to keep the
 //! settings, sign-in and database there instead of in the user's profile.
@@ -29,6 +31,7 @@ mod auth;
 mod cancel;
 mod clock;
 mod config;
+mod dialogs;
 mod download;
 mod error;
 mod library;
@@ -158,6 +161,17 @@ async fn run(args: Vec<String>) -> Result<()> {
                 _ => e.delete_folder(arg(1)?)?,
             };
             println!("{line}");
+        }
+        "--first-sync-question" => {
+            let store = store::Store::open(&config::local_dir().join("notefetch.db"))?;
+            let waiting: Vec<(i64, u64)> = store
+                .all()?
+                .into_iter()
+                .filter(|r| matches!(r.state, store::State::New | store::State::Failed))
+                .map(|r| (r.start_ms, r.duration_ms))
+                .collect();
+            let choice = dialogs::first_sync(windows::Win32::Foundation::HWND::default(), &waiting, Box::new(|t| println!("{t}")));
+            println!("Chosen: {choice:?}");
         }
         "--list" => {
             let store = store::Store::open(&config::local_dir().join("notefetch.db"))?;

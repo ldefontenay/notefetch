@@ -21,7 +21,7 @@ use crate::error::Error;
 use crate::library::{self, Library};
 use crate::actions::Local;
 use crate::store::{State, Store};
-use crate::sync::{Engine, Event, Guard};
+use crate::sync::{Engine, Event, FirstSync, Guard};
 
 /// Posted to the window when events are waiting in the queue.
 pub const WM_APP_EVENTS: u32 = WM_APP + 10;
@@ -46,6 +46,11 @@ pub enum Command {
     NewFolder(String),
     RenameFolder(String, String),
     DeleteFolder(String),
+    /// The answer to the first-sync question, then the sync that asked it.
+    FirstSync(FirstSync),
+    /// New settings, already saved. With `move_from`, the recordings in that
+    /// old output folder move to the new one first.
+    Settings { config: Config, move_from: Option<PathBuf> },
 }
 
 impl Command {
@@ -72,6 +77,8 @@ pub enum Activity {
     Refreshing,
     Syncing,
     Downloading,
+    /// Moving recordings to a new output folder.
+    Moving,
 }
 
 /// How much an announcement matters, for the announcement level setting.
@@ -126,6 +133,10 @@ pub enum UiEvent {
     /// The sign-in is missing or no longer works, so the window offers to
     /// sign in. True if there was one and it has expired.
     SignInNeeded(bool),
+    /// The first sync needs the user's choice of how much history to
+    /// download. Each recording not yet downloaded, as (start, duration) in
+    /// milliseconds, so the question can say how much each choice means.
+    FirstSyncNeeded(Vec<(i64, u64)>),
     /// The command that was running has finished, one way or another.
     Finished,
 }
@@ -181,6 +192,8 @@ impl Worker {
     /// `startup` cancels the sync that runs at start-up.
     pub fn start(hwnd: HWND, queue: Arc<Mutex<VecDeque<UiEvent>>>, startup: Cancel) -> Worker {
         let (tx, rx) = mpsc::unbounded_channel();
+        // The worker's own way in, for work that finishes with a command.
+        let own = tx.clone();
         let sink = Sink { queue, hwnd: hwnd.0 as isize };
         std::thread::spawn(move || {
             let runtime = match tokio::runtime::Builder::new_multi_thread().enable_all().build() {
@@ -193,7 +206,7 @@ impl Worker {
                     return;
                 }
             };
-            runtime.block_on(run(rx, sink, startup));
+            runtime.block_on(run(rx, own, sink, startup));
         });
         Worker { tx }
     }
@@ -234,7 +247,12 @@ impl Shared {
 /// The loop takes each command as it comes. Syncs, downloads and sign-in run
 /// as tasks of their own, so the user's changes are not held up behind them
 /// (Laurent, milestone 4). The window starts only one of those at a time.
-async fn run(mut rx: mpsc::UnboundedReceiver<(Command, Cancel)>, sink: Sink, startup: Cancel) {
+async fn run(
+    mut rx: mpsc::UnboundedReceiver<(Command, Cancel)>,
+    own: mpsc::UnboundedSender<(Command, Cancel)>,
+    sink: Sink,
+    startup: Cancel,
+) {
     let (config, problems) = Config::load();
     for p in problems {
         sink.log(format!("Settings: {p}"));
@@ -248,18 +266,18 @@ async fn run(mut rx: mpsc::UnboundedReceiver<(Command, Cancel)>, sink: Sink, sta
             return;
         }
     };
-    let library = Library::new(config.output_folder.clone());
-    let shared = Arc::new(Shared {
+    let mut library = Library::new(config.output_folder.clone());
+    let mut shared = Arc::new(Shared {
         snapshots: SnapshotSource { db, output: config.output_folder.clone() },
         config,
         guard: Arc::default(),
         engine: Mutex::new(None),
     });
 
-    // Show what is known straight away, before the network answers.
-    if let Some(scan) = library.scan().ok().flatten() {
-        let _ = library.reconcile(&store, &scan);
-    }
+    // Show what is known straight away, before the network answers. The
+    // first time after the Uncategorised folder came in, this moves every
+    // recording into it.
+    tidy_and_reconcile(&shared, &store, &library, &sink);
     send_snapshot(&store, &library, &sink);
 
     tokio::spawn(start_up(shared.clone(), startup, sink.clone()));
@@ -267,11 +285,99 @@ async fn run(mut rx: mpsc::UnboundedReceiver<(Command, Cancel)>, sink: Sink, sta
         match command {
             c if c.is_local() => local_command(&shared, &store, &library, c, &sink),
             Command::SignOut => sign_out(&shared, &sink),
+            Command::Settings { config, move_from: Some(old) } => {
+                tokio::spawn(move_recordings(shared.clone(), old, config, sink.clone(), own.clone()));
+            }
+            Command::Settings { config, move_from: None } => {
+                let moved = config.output_folder != shared.config.output_folder;
+                library = Library::new(config.output_folder.clone());
+                // A new engine is made with the new settings at the next sync.
+                shared = Arc::new(Shared {
+                    snapshots: SnapshotSource { db: shared.snapshots.db.clone(), output: config.output_folder.clone() },
+                    config,
+                    guard: shared.guard.clone(),
+                    engine: Mutex::new(None),
+                });
+                if moved {
+                    tidy_and_reconcile(&shared, &store, &library, &sink);
+                }
+                send_snapshot(&store, &library, &sink);
+            }
             c => {
                 tokio::spawn(network(shared.clone(), c, cancel, sink.clone()));
             }
         }
     }
+}
+
+/// Move recordings left directly in the output folder into Uncategorised,
+/// then bring the database into line with the disk.
+fn tidy_and_reconcile(shared: &Shared, store: &Store, library: &Library, sink: &Sink) {
+    let Some(mut scan) = library.scan().ok().flatten() else { return };
+    let _disk = shared.guard.lock();
+    for line in library.tidy(&mut scan, &shared.guard.fetching()) {
+        sink.log(line);
+    }
+    match library.reconcile(store, &scan) {
+        Ok(lines) => lines.into_iter().for_each(|l| sink.log(l)),
+        Err(e) => sink.log(e.to_string()),
+    }
+}
+
+/// Move every recording to a new output folder, one at a time, then switch
+/// to it. It cannot be cancelled part way, so that none are left behind by
+/// accident; one that cannot move stays in the old folder, and the Log says
+/// what to do.
+async fn move_recordings(shared: Arc<Shared>, old: PathBuf, config: Config, sink: Sink, own: mpsc::UnboundedSender<(Command, Cancel)>) {
+    use std::sync::atomic::Ordering;
+    sink.send(UiEvent::Activity(Activity::Moving));
+    let new = config.output_folder.clone();
+    sink.announce(format!("Moving your recordings to \"{}\".", new.display()), Importance::Routine);
+    shared.guard.moving.store(true, Ordering::SeqCst);
+    let (guard, task_sink) = (shared.guard.clone(), sink.clone());
+    let to = new.clone();
+    let outcome = tokio::task::spawn_blocking(move || {
+        let from = Library::new(old);
+        let Some(scan) = from.scan().ok().flatten() else { return (0, 0) };
+        let mut locations: Vec<String> = scan.recordings.values().map(|f| f.location.clone()).collect();
+        locations.sort();
+        let total = locations.len();
+        let (mut moved, mut failed) = (0, 0);
+        for (i, location) in locations.iter().enumerate() {
+            let _disk = guard.lock();
+            match from.move_out(location, &to) {
+                Ok(()) => moved += 1,
+                Err(e) => {
+                    failed += 1;
+                    task_sink.log(e.to_string());
+                }
+            }
+            task_sink.send(UiEvent::Progress { done: i + 1, total });
+        }
+        // The folders come too, even empty ones, and the old ones go if they
+        // are empty now.
+        for folder in scan.folders.iter().map(String::as_str).chain([library::UNCATEGORISED]) {
+            let _ = std::fs::create_dir_all(to.join(folder));
+            from.remove_if_empty(folder);
+        }
+        (moved, failed)
+    })
+    .await
+    .unwrap_or((0, 0));
+    shared.guard.moving.store(false, Ordering::SeqCst);
+    // Switch to the new folder before saying it is done, so the next command
+    // from the window finds it switched.
+    let _ = own.send((Command::Settings { config, move_from: None }, Cancel::new()));
+    let line = match outcome {
+        (m, 0) => format!("Moved {} to \"{}\". It is now the output folder.", plural(m, "recording"), new.display()),
+        (m, f) => format!(
+            "Moved {} to \"{}\", which is now the output folder. {f} could not be moved, and the Log says why for each. They are still in the old folder: move them into the new one in File Explorer, then press F5.",
+            plural(m, "recording"),
+            new.display()
+        ),
+    };
+    sink.announce(line, if outcome.1 == 0 { Importance::Completion } else { Importance::Error });
+    sink.send(UiEvent::Finished);
 }
 
 async fn start_up(shared: Arc<Shared>, cancel: Cancel, sink: Sink) {
@@ -308,6 +414,19 @@ async fn network(shared: Arc<Shared>, command: Command, cancel: Cancel, sink: Si
             }
         }
     }
+    let command = match command {
+        Command::FirstSync(choice) => {
+            if let Some(engine) = shared.engine()
+                && let Err(e) = engine.set_first_sync(choice)
+            {
+                sink.send(UiEvent::Finished);
+                sink.error(e);
+                return;
+            }
+            Command::Sync
+        }
+        c => c,
+    };
     run_command(&shared, command, cancel, &sink).await;
 }
 
@@ -333,7 +452,7 @@ async fn sign_in(shared: &Shared, cancel: Cancel, sink: &Sink) {
             }
         }
         Err(Error::Cancelled) => {
-            sink.announce("Sign-in cancelled. You can sign in later from the File menu.", Importance::Completion)
+            sink.announce("Sign-in cancelled. You can sign in later from the File menu or from Settings.", Importance::Completion)
         }
         // Not sink.error: offering to sign in again straight after a failed
         // sign-in would only go round in a circle.
@@ -346,7 +465,7 @@ fn sign_out(shared: &Shared, sink: &Sink) {
     shared.set_engine(None);
     match crate::auth::forget() {
         Ok(()) => sink.announce(
-            "Signed out of Plaud. Your downloaded recordings are still in the output folder. To sign in again, choose Sign in from the File menu.",
+            "Signed out of Plaud. Your downloaded recordings are still in the output folder. To sign in again, choose Sign in from the File menu or from Settings.",
             Importance::Completion,
         ),
         Err(e) => sink.announce(e.to_string(), Importance::Error),
@@ -406,10 +525,22 @@ async fn run_command(shared: &Shared, command: Command, cancel: Cancel, sink: &S
             sink.send(UiEvent::Activity(Activity::Syncing));
             sink.announce("Syncing with Plaud.", Importance::Routine);
             match engine.sync(&cancel, emit.clone()).await {
-                Ok(report) if report.needs_first_sync_choice => Ok(Some((
-                    "Nothing was downloaded, because NoteFetch has not yet asked how much of your Plaud history to download. That question arrives in a later version.".to_string(),
-                    false,
-                ))),
+                Ok(report) if report.needs_first_sync_choice => {
+                    let waiting = engine
+                        .store
+                        .lock()
+                        .map(|s| s.all().unwrap_or_default())
+                        .unwrap_or_default()
+                        .into_iter()
+                        .filter(|r| matches!(r.state, State::New | State::Failed))
+                        .map(|r| (r.start_ms, r.duration_ms))
+                        .collect();
+                    sink.send(UiEvent::FirstSyncNeeded(waiting));
+                    Ok(Some((
+                        "This is NoteFetch's first sync, so it asks how much of your Plaud audio, transcripts and summaries to download.".to_string(),
+                        false,
+                    )))
+                }
                 Ok(_) => Ok(Some((last(), true))),
                 Err(e) => Err(e),
             }
@@ -454,6 +585,13 @@ async fn run_command(shared: &Shared, command: Command, cancel: Cancel, sink: &S
 /// deleting" and "Folders". They run while a sync or download does, except
 /// on the recordings it is fetching at that moment.
 fn local_command(shared: &Shared, store: &Store, library: &Library, command: Command, sink: &Sink) {
+    if shared.guard.moving.load(std::sync::atomic::Ordering::SeqCst) {
+        sink.announce(
+            "NoteFetch is moving your recordings to the new output folder, so nothing can be changed yet. Try again when it finishes.",
+            Importance::Error,
+        );
+        return;
+    }
     let _disk = shared.guard.lock();
     let fetching = shared.guard.fetching();
     let local = Local { store, library };
@@ -614,7 +752,7 @@ fn snapshot(store: &Store, library: &Library) -> Option<Snapshot> {
             Row {
                 name: format!("{name}{clash}"),
                 plain_name: name,
-                folder: r.location.as_deref().and_then(library::folder_of).map(str::to_string),
+                folder: r.location.as_deref().and_then(library::category_of).map(str::to_string),
                 date: local.list_date(),
                 duration: clock::duration_words(r.duration_ms),
                 status: r.status(),

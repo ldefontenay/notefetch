@@ -1,0 +1,77 @@
+NoteFetch milestone 5 test, round 2: your changes
+
+About 10 minutes. It checks only what changed after your milestone 5
+results. Everything runs on the usual test copy.
+
+Please write your answers after each ANSWER line. Leave any you cannot do
+blank, and say so. Save the file when you are done.
+
+
+SECTION 1: THE CHANGES
+
+1. In File Explorer, go to C:\Users\ldefo\dev\NoteFetch\test-data and press
+   Enter on "Start NoteFetch test.cmd". Wait for "Sync finished." Press
+   Alt+L, then N for New folder. Type uncategorized, with a z, and press
+   Enter.
+   Expected: no folder is made, and you hear that "Uncategorised" is
+   NoteFetch's own folder and no other folder can have that name.
+   Was it refused?
+
+ANSWER:
+
+2. Press Ctrl+Comma for Settings, then Tab down to the download boxes.
+   Expected: "Download audio", "Download transcripts", "Download
+   summaries", and "Download other parts: cleaned transcript, outline and
+   highlights".
+   Do they read better now?
+
+ANSWER:
+
+3. Press Alt+B for Browse.
+   Expected: the folder picker opens in the test-data folder, so the list
+   holds "output" beside the other folders there, not Neuroscience and
+   Uncategorised. Press Escape to close it, then Escape again to close
+   Settings.
+   Was it so?
+
+ANSWER:
+
+4. In File Explorer, in test-data, make the folder "output 2" again with
+   Ctrl+Shift+N. In NoteFetch, press Ctrl+Comma, then Alt+B, choose
+   "output 2", and press Enter on "Select Folder". Then press Enter for
+   OK.
+   Expected: the question "Move your 51 downloaded recordings to the new
+   output folder?" with focus on No. Press Enter.
+   Expected: Enter means No, so nothing moves, and you are back in Settings
+   with the old output folder. Press Escape, and delete "output 2".
+   Was No the default?
+
+ANSWER:
+
+5. Press Alt+F, then O to sign out. Listen to the message.
+   Expected: it ends "choose Sign in from the File menu or from Settings."
+   Then sign in again from the File menu, with Alt+F, I.
+   Was it so?
+
+ANSWER:
+
+6. Close NoteFetch. In test-data, press Enter on "Start NoteFetch first sync
+   test.cmd" and sign in when asked. When the "First sync" window opens,
+   listen to the text at the top, then arrow through the three choices.
+   Expected: the text says "How much of your Plaud audio, transcripts and
+   summaries should it download now?", and the middle choice says
+   "Specified duration, the last 30 days:" with its count. Press Alt+D.
+   Expected: "Specified duration, number of days", 30.
+   Press Escape, so nothing is downloaded, then close NoteFetch and delete
+   the "fresh" and "fresh-output" folders in test-data.
+   Is it now clear that the number of days can be changed?
+
+ANSWER:
+
+ANYTHING ODD:
+
+ANYTHING ELSE
+Anything you noticed that is not covered above, including wording you would
+change.
+
+ANSWER:

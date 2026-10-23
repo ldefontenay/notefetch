@@ -2,6 +2,78 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-10-24: Milestone 5 passed, your changes are made
+
+### The short version
+
+- **Milestone 5 passed.** Thank you, and thank you for the kind words. Your own words are in PLAN.md.
+- **All seven of your changes are made,** listed below. 81 tests pass, clippy is clean, and the probe found no defects in the new first-sync wording.
+- **Milestone 5 is committed,** with your results and these changes.
+- **Please run test-milestone-5-round-2.txt.** 6 steps, about 10 minutes, only on what changed.
+- **Two questions below:** UK or American spelling, and whether the Delete questions should also default to No.
+- Step 15 (moving the recordings back) had no answer, but section 3 said "No, excellent", so I took it as working. Say if not.
+- The earlier question about a recording put straight into the output folder was left blank. It stays as built, moved into Uncategorised at the next refresh, which you heard in section 1.
+
+### Your changes
+
+- **"Uncategorized" with a z** is now refused as a folder name too, and typing it in Move to folder means the Uncategorised folder.
+- **Settings** now says "Download audio", "Download transcripts", "Download summaries" and "Download other parts".
+- **The folder picker** opens one level up, in the folder holding the output folder, so you see the output folder beside its neighbours.
+- **Moving recordings to a new output folder** now has No as the default, so Enter does nothing by accident.
+- **Every sign-in hint** now says "from the File menu or from Settings".
+- **The first sync** asks "How much of your Plaud audio, transcripts and summaries should it download now?"
+- **The middle choice** is now "Specified duration, the last 30 days: 12 recordings, about 9 hours", with Alt+S, and the box below it is "Specified duration, number of days", so the two read as a pair.
+
+### Question: UK or American spelling
+
+You asked for my steer. I recommend keeping UK spelling everywhere NoteFetch speaks: the interface, messages, help and the folder name "Uncategorised". The reasons:
+
+- It is your rule for all your projects, and it is how you and most of your likely first users write.
+- JAWS says both spellings the same way, so a listener never hears a difference.
+- Mixing the two would look careless in the help and the readme, which sighted readers will see.
+- Where someone types a name, NoteFetch should accept both spellings, as it now does for Uncategorised. That covers the only place where an American user could trip over it.
+
+The one place Windows itself is American, such as "Select Folder" in the folder picker, is outside NoteFetch's control and reads naturally anyway.
+
+Do you agree: UK spelling throughout, both spellings accepted when typed?
+
+ANSWER:
+
+### Question: should the Delete questions also default to No?
+
+Your change makes No the default for moving recordings. The question before deleting a recording, and the one before deleting a folder, still have Yes as the default. A deleted recording goes to the Recycle Bin and can be brought back, so it is less risky than a move, but the same caution could apply. Should those two default to No as well?
+
+ANSWER:
+
+## 2026-10-23: Milestone 5 built, ready for you to test
+
+### The short version
+
+- **Milestone 5 is built:** the Uncategorised folder, the Settings window, moving your recordings when you change the output folder, signing in and out from Settings, and the first-sync question.
+- **Please run test-milestone-5.txt.** 22 steps, about 40 minutes. Section 5 needs one more sign-in in your browser, on a new empty test copy.
+- 81 tests pass and clippy is clean. Not committed yet; I will commit with your results.
+- The question in the entry below, about a recording put straight into the output folder, still stands. I built it the way I suggested, so section 1 shows you how it behaves.
+
+### What is new
+
+- **Uncategorised.** At the first start, NoteFetch moves every recording not in a category into a folder called Uncategorised. After that, new downloads go there. The Folder box, the Folder column and Move to folder all say "Uncategorised". It cannot be renamed or deleted, and no category can take its name.
+- **Settings, with Ctrl+Comma** or File menu, Settings. Everything from the settings file is there, in the order of the spec, and each control reads on its own. OK saves at once; Escape leaves everything as it was.
+- **Changing the output folder** opens the Windows folder picker. If the old folder holds recordings, NoteFetch asks whether to move them. Yes moves them all, keeping their categories. No takes you back to Settings. A move cannot be stopped half way, so nothing is left behind by accident.
+- **Sign in or Sign out** is one button in Settings, whose name says which.
+- **The first sync** now asks how much to download: everything, only the last so many days (30 to begin with), or nothing old. Each choice says how many recordings and roughly how many hours. Typing a number of days changes that choice's count as you type.
+
+### What I checked
+
+- I ran the accessibility probe on Settings and on the first-sync question. Every control has its label as its name, and every Alt letter is unique.
+- On a separate copy of the test data, with no sign-in, no audio and announcements off, I started NoteFetch: it moved the 50 test recordings into Uncategorised. I opened Settings, ticked a box and pressed OK: the settings file changed and the Log said "Settings saved."
+- I opened the first-sync question on its own, typed 200 days (the choice then said "Only the last 200 days: 24 recordings, about 10 hours"), tried OK with the box empty (it said what to type and kept the window open), and chose OK.
+- What I could not check: the folder picker with JAWS, moving your real test recordings, signing in from Settings, and a real first sync. Those are sections 3 to 5.
+
+### What I did on your desktop
+
+- The separate copy of NoteFetch opened a few times for the probe, without taking the foreground. I closed it each time. No keys were pressed on your behalf, and your clipboard was not touched.
+- I made a new file, "Start NoteFetch first sync test.cmd", in test-data, for section 5.
+
 ## 2026-10-23: Milestone 4 finished, and your three ideas are in the plan
 
 ### The short version
@@ -49,7 +121,7 @@ It is written in milestone 6, once everything it describes is built, so the step
 With the Uncategorised folder, the output folder should hold only folders of folders. But you could still move a recording folder straight into the output folder in File Explorer. My plan is that the next refresh moves it into Uncategorised, and the Log says so, so the app and File Explorer always agree. The other way would be to leave it there and show it as Uncategorised in NoteFetch, which means the two disagree. Is moving it into Uncategorised what you would expect?
 
 ANSWER:
-
+Yes.
 ## 2026-10-19: Milestone 4 passed, and your requests are done
 
 ### The short version

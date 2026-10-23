@@ -47,23 +47,23 @@ impl Local<'_> {
         Ok(format!("Renamed \"{before}\" to \"{after}\". The name in Plaud is unchanged."))
     }
 
-    /// Move a recording into a folder, or out of any folder with `None`.
+    /// Move a recording into a category folder, or into Uncategorised with
+    /// `None`.
     pub fn move_to_folder(&self, id: &str, folder: Option<&str>) -> Result<String> {
         let r = self.record(id)?;
         let location = self.on_disk(&r)?;
         let name = library::display_name(&r);
-        if library::folder_of(&location) == folder {
-            return Ok(match folder {
-                Some(f) => format!("\"{name}\" is already in the folder \"{f}\"."),
-                None => format!("\"{name}\" is already not in a folder."),
-            });
+        let folder = folder.filter(|f| !library::means_uncategorised(f));
+        let already = match folder {
+            Some(f) => library::category_of(&location).is_some_and(|c| c.eq_ignore_ascii_case(f)),
+            None => library::folder_of(&location).is_some_and(library::is_uncategorised),
+        };
+        if already {
+            return Ok(format!("\"{name}\" is already in the folder \"{}\".", folder.unwrap_or(library::UNCATEGORISED)));
         }
         let new_location = self.library.move_to(&location, folder)?;
         self.store.set_location(id, Some(&new_location))?;
-        Ok(match folder {
-            Some(f) => format!("Moved \"{name}\" to the folder \"{f}\"."),
-            None => format!("Moved \"{name}\" out of its folder."),
-        })
+        Ok(format!("Moved \"{name}\" to the folder \"{}\".", folder.unwrap_or(library::UNCATEGORISED)))
     }
 
     /// Move a recording to the Recycle Bin and remember it as deleted.
@@ -120,8 +120,8 @@ impl Local<'_> {
         let moved = moved?;
         Ok(match moved.len() {
             0 => format!("Deleted the folder \"{name}\"."),
-            1 => format!("Deleted the folder \"{name}\". Its recording is now in the output folder, not in a folder."),
-            n => format!("Deleted the folder \"{name}\". Its {n} recordings are now in the output folder, not in a folder."),
+            1 => format!("Deleted the folder \"{name}\". Its recording is now in {}.", library::UNCATEGORISED),
+            n => format!("Deleted the folder \"{name}\". Its {n} recordings are now in {}.", library::UNCATEGORISED),
         })
     }
 
@@ -208,7 +208,7 @@ mod tests {
         assert!(local.rename("a", "Lecture").unwrap().contains("already has that name"));
         let line = local.rename("a", "Seminar").unwrap();
         assert_eq!(line, "Renamed \"Lecture, 24 Sep 2026, 1430\" to \"Seminar, 24 Sep 2026, 1430\". The name in Plaud is unchanged.");
-        assert_eq!(store.get("a").unwrap().unwrap().location.as_deref(), Some("Seminar, 24 Sep 2026, 1430"));
+        assert_eq!(store.get("a").unwrap().unwrap().location.as_deref(), Some("Uncategorised\\Seminar, 24 Sep 2026, 1430"));
     }
 
     #[test]
@@ -224,6 +224,8 @@ mod tests {
         assert_eq!(loc, "Neuroscience\\Lecture, 24 Sep 2026, 1430");
         assert!(library.path_of(&loc).is_dir());
         local.delete_folder("Neuroscience").unwrap();
-        assert_eq!(store.get("a").unwrap().unwrap().location.as_deref(), Some("Lecture, 24 Sep 2026, 1430"));
+        assert_eq!(store.get("a").unwrap().unwrap().location.as_deref(), Some("Uncategorised\\Lecture, 24 Sep 2026, 1430"));
+        assert!(local.move_to_folder("a", None).unwrap().contains("already in the folder \"Uncategorised\""));
+        assert!(local.create_folder("uncategorised").is_err(), "the name is reserved in any case");
     }
 }

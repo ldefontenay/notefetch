@@ -345,6 +345,38 @@ The principles taken from them, for milestone 6's `help.html`:
 - **"The sounds NoteFetch makes",** a troubleshooting part, a quick reference of keys, the files NoteFetch keeps, and credits and licence.
 - Plain words, warm and direct, UK English, no em dashes, no tables unless genuinely tabular with headers.
 
+### Milestone 5: the Uncategorised folder, Settings and the first sync (23 October 2026)
+
+Built and checked on the machine by tests (81), clippy, the probe and posted messages, on a separate copy of the test data with no sign-in, no audio and announcements off. Nothing here is yet heard by Laurent; `test-milestone-5.txt` checks it.
+
+- **Uncategorised, as designed above.** New downloads go into it. At each start and refresh, a recording found directly in the output folder moves into it (`Library::tidy`), one at a time with the same rename as Move to folder, skipping any being downloaded. `[proven]` on the probe copy: "Moved 50 recordings into the Uncategorised folder, so the output folder holds only folders." The Folder column says "Uncategorised" for a downloaded recording in no category, and stays empty for one not downloaded. Typing "uncategorised" in Move to folder's new folder box means the Uncategorised folder, not a new one.
+- **Settings** (Ctrl+Comma, and File menu, Settings) is a modal dialog from the template, in SPEC.md's order: the output folder as a single-line read-only box with Browse beside it, then a checkbox each, the days box, the announcements box, the Log file checkbox, and one account button whose text says "Sign in to Plaud" or "Sign out of Plaud". `[proven]` by the probe: every control named by its label, every Alt letter unique. OK saves `notefetch.conf` at once, and the worker takes the new settings for its next command (`Command::Settings`); a running sync carries on with the old ones. `[proven]` on the probe copy: the file changed and the Log said "Settings saved."
+- **A refused days box** keeps the window open, says what to type, and puts focus back in the box, the skill's rule for refusals. `[reasoned]`
+- **Browse** opens the Windows folder picker (`IFileOpenDialog` with `FOS_PICKFOLDERS`). Afterwards focus goes to the output folder box, so the new path is read in full. How JAWS handles the picker is `[untested]`.
+- **Changing the output folder moves the recordings.** When the old folder holds downloaded recordings, OK asks "Move your N downloaded recordings to the new output folder?" No goes back to Settings with the old folder. Yes moves them one at a time, each folder whole, keeping their category: a rename on the same drive, a copy then delete on another, so a failed copy leaves the original. `[reasoned]`, with `move_out` unit-tested. The alternative, switching without moving, would make every recording look deleted, since the disk is the truth.
+- **A move cannot be cancelled or closed part way.** Escape says it carries on, and Alt+F4 says to wait, so no recording is left behind by accident. Changes in the list are refused while it runs. A recording that cannot move stays in the old folder; the Log says to move it by hand and press F5. The output folder cannot change while a sync or download runs; OK says so and stays open. `[reasoned]`
+- **Sign in from Settings** saves the settings and closes the window, since sign-in happens in the browser. **Sign out** works at once and leaves Settings open, with the button renamed. `[reasoned]`
+- **The first-sync question** replaces the "arrives in a later version" message. It is asked once the sync that found it has finished, so OK can start the sync at once. Three radio buttons, then the number of days: "Everything: 79 recordings, about 112 hours", "Only the last 30 days: 12 recordings, about 9 hours" (chosen at first), and "Nothing old: start from now, and download only new recordings". Typing a number of days chooses that option and its text follows the number. `[proven]` by the probe and a posted number: "Only the last 200 days: 24 recordings, about 10 hours". Cancel downloads nothing, and the next sync asks again. Whether JAWS reads the explanation at the top by itself is `[untested]`.
+- **The days box comes after the radio buttons,** because a box between two radio buttons would split their group, and the arrow keys would stop at it. `[reasoned]`
+- **Sync on start** was already in place since milestone 3; it is now in Settings.
+- **The completion tone setting** stays out of Settings, because milestone 6 replaces it with the sound palette.
+- **New developer flag** `--first-sync-question` shows the question on its own, so it can be probed without signing in afresh. **New test launcher** `test-data\Start NoteFetch first sync test.cmd` starts an empty copy in `test-data\fresh`, for a real first sync.
+
+### Milestone 5 results (24 October 2026)
+
+Laurent ran `test-milestone-5.txt`. Everything worked, including the folder picker ("All good, standard dialogues as expected"), moving to another output folder and back, signing in from Settings ("Perfectly") and a real first sync of the last 3 days. Recording folders and category folders now tell apart: "Yes, excellent." The question about a recording put straight into the output folder was left blank; it stays as built (moved into Uncategorised at the next refresh), which section 1 showed him and he called "Very good."
+
+His changes, all made the same day:
+
+- **The American spelling is reserved too.** "Also make sure that "uncategorized" can't go through." Creating or renaming a folder to it is refused, and typing it in Move to folder means Uncategorised (`library::means_uncategorised`). The folder on disk keeps the UK name. He asked for a steer on UK or US spelling; the log recommends UK throughout, with both spellings accepted wherever he types a name.
+- **Settings labels without "the":** "Rather say "download audio", "download transcripts", "download summaries", etc. just sounds better." Now "Download audio", "Download transcripts", "Download summaries", "Download other parts: ...".
+- **The folder picker starts one level up:** "Ideally it should be a level up the tree, i.e. listing the folder containing the output folder." It now opens in the folder holding the output folder, so the output folder is in the list beside its neighbours.
+- **The move question defaults to No:** "Please make "no" the default option when enter is pressed and have focus land on "no" instead of "yes". More cautious, but could prevent some accidents." (`MB_DEFBUTTON2`.) The Delete and Delete folder questions still default to Yes; the log asks whether they should follow.
+- **Sign-in hints name Settings too:** "Maybe say to sign in via the file menu or settings dialogue." Every "from the File menu" hint about signing in now says "from the File menu or from Settings".
+- **The first-sync text says what is downloaded:** "instead of "recording history", say "audio, transcripts and summaries"."
+- **The days choice says it can be changed:** "for a new screenreader user going down the radio buttons, it may not be clear that the 30 days is customisable. Maybe change the lable to "specified duration: {number} days"." Now "Specified duration, the last 30 days: 12 recordings, about 9 hours", Alt+S, and the box below is "Specified duration, number of days:", so the two read as a pair. `[proven]` by the probe: names and Alt letters correct.
+- JAWS read the first-sync explanation by itself (step 19, "Yes"), so that is now `[proven]`.
+
 ### Name: NoteFetch
 
 - Rejected names:

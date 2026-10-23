@@ -80,6 +80,12 @@ fn auth_path() -> PathBuf {
     crate::config::roaming_dir().join(AUTH_FILE)
 }
 
+/// Whether a sign-in is stored, without reading it: for the Settings window's
+/// Sign in or Sign out button.
+pub fn has_sign_in() -> bool {
+    auth_path().is_file()
+}
+
 /// The stored sign-in, if any.
 pub fn load() -> Result<Option<Tokens>> {
     let path = auth_path();

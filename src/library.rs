@@ -3,11 +3,13 @@
 //! "Renaming" and "Deleting".
 //!
 //! The disk is the truth for where things are. A recording is a folder holding
-//! `metadata.json`, found by the Plaud ID inside it, either directly in the
-//! output folder or one level down inside a folder of the user's. Anything
-//! File Explorer does to those folders is picked up on the next scan.
+//! `metadata.json`, found by the Plaud ID inside it, one level down inside a
+//! category folder of the user's or the Uncategorised folder. Anything File
+//! Explorer does to those folders is picked up on the next scan. A recording
+//! found directly in the output folder is moved into Uncategorised, so the
+//! output folder holds only folders of recordings (Laurent, after milestone 4).
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -16,6 +18,21 @@ use crate::clock::{self, Stamp};
 use crate::error::{Error, Result, disk};
 use crate::naming::{self, METADATA, Part};
 use crate::store::{Record, State, Store};
+
+/// The folder for recordings not in a category. Its name is reserved.
+pub const UNCATEGORISED: &str = "Uncategorised";
+
+/// Whether a folder name is the Uncategorised folder, in any letter case,
+/// since Windows names are not case sensitive.
+pub fn is_uncategorised(folder: &str) -> bool {
+    folder.eq_ignore_ascii_case(UNCATEGORISED)
+}
+
+/// Whether a name typed by the user means the Uncategorised folder: its own
+/// name, or the American spelling, so neither can become a category.
+pub fn means_uncategorised(name: &str) -> bool {
+    is_uncategorised(name) || name.eq_ignore_ascii_case("Uncategorized")
+}
 
 /// `metadata.json` in every recording folder.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -44,7 +61,7 @@ impl Metadata {
 pub struct Scan {
     /// Plaud ID to the recording's folder, relative to the output folder.
     pub recordings: HashMap<String, Found>,
-    /// Folder names, sorted.
+    /// Category folder names, sorted. Uncategorised is not one of them.
     pub folders: Vec<String>,
     /// Folders found deeper than NoteFetch looks, relative to the output folder.
     pub too_deep: Vec<String>,
@@ -80,6 +97,8 @@ impl Library {
         let mut scan = Scan::default();
         for (name, path) in subfolders(&self.root)? {
             if let Some(found) = read_recording(&path, &name) {
+                // Directly in the output folder: `tidy` moves it into
+                // Uncategorised.
                 scan.recordings.insert(found.metadata.plaud_id.clone(), found);
                 continue;
             }
@@ -92,10 +111,46 @@ impl Library {
                     None => scan.too_deep.push(location),
                 }
             }
-            scan.folders.push(name);
+            if !is_uncategorised(&name) {
+                scan.folders.push(name);
+            }
         }
         scan.folders.sort_by_key(|f| f.to_lowercase());
         Ok(Some(scan))
+    }
+
+    /// Move recordings found directly in the output folder into Uncategorised,
+    /// one at a time, each all or nothing, and update `scan` to match. Those
+    /// in `skip` (being downloaded) are left for the next time. Returns the
+    /// lines for the Log.
+    pub fn tidy(&self, scan: &mut Scan, skip: &HashSet<String>) -> Vec<String> {
+        let mut loose: Vec<(String, String)> = scan
+            .recordings
+            .iter()
+            .filter(|(id, f)| !f.location.contains('\\') && !skip.contains(*id))
+            .map(|(id, f)| (id.clone(), f.location.clone()))
+            .collect();
+        loose.sort_by(|a, b| a.1.cmp(&b.1));
+        let (mut moved, mut said) = (0, Vec::new());
+        for (id, location) in loose {
+            match self.move_to(&location, None) {
+                Ok(to) => {
+                    if let Some(f) = scan.recordings.get_mut(&id) {
+                        f.location = to;
+                    }
+                    moved += 1;
+                }
+                Err(e) => said.push(format!(
+                    "\"{location}\" is directly in the output folder, but could not be moved into {UNCATEGORISED}. {e} NoteFetch will try again at the next refresh."
+                )),
+            }
+        }
+        match moved {
+            0 => {}
+            1 => said.insert(0, format!("Moved 1 recording into the {UNCATEGORISED} folder, so the output folder holds only folders.")),
+            n => said.insert(0, format!("Moved {n} recordings into the {UNCATEGORISED} folder, so the output folder holds only folders.")),
+        }
+        said
     }
 
     /// Bring the database into line with the disk, and return what changed,
@@ -140,12 +195,14 @@ impl Library {
         Ok(said)
     }
 
-    /// Choose and create the folder for a recording not yet on disk. The base
-    /// name is numbered if a different recording already has it.
+    /// Choose and create the folder for a recording not yet on disk, in
+    /// Uncategorised. The base name is numbered if a different recording
+    /// already has it.
     pub fn create_recording_folder(&self, id: &str, name_part: &str, start_utc: &Stamp) -> Result<String> {
-        std::fs::create_dir_all(&self.root).map_err(|e| disk("create the output folder", &self.root, &e))?;
+        let parent = self.root.join(UNCATEGORISED);
+        std::fs::create_dir_all(&parent).map_err(|e| disk("create the folder", &parent, &e))?;
         let local = clock::to_local(start_utc);
-        let base = naming::fit_base(&self.root, name_part, &local).ok_or_else(|| {
+        let base = naming::fit_base(&parent, name_part, &local).ok_or_else(|| {
             Error::Disk(format!(
                 "The output folder \"{}\" is too deeply nested to save recordings in. Choose a shorter output folder in Settings.",
                 self.root.display()
@@ -153,14 +210,15 @@ impl Library {
         })?;
         for n in 1..1000 {
             let candidate = naming::numbered(&base, n);
-            let path = self.root.join(&candidate);
+            let path = parent.join(&candidate);
+            let location = format!("{UNCATEGORISED}\\{candidate}");
             match read_metadata(&path) {
-                Some(m) if m.plaud_id == id => return Ok(candidate),
+                Some(m) if m.plaud_id == id => return Ok(location),
                 Some(_) => continue,
                 None if path.exists() => continue,
                 None => {
                     std::fs::create_dir(&path).map_err(|e| disk("create the folder", &path, &e))?;
-                    return Ok(candidate);
+                    return Ok(location);
                 }
             }
         }
@@ -264,25 +322,25 @@ impl Library {
         Ok(new_location)
     }
 
-    /// Move a recording into a folder, or back to the output folder with
+    /// Move a recording into a category folder, or into Uncategorised with
     /// `None`. Returns the new location.
     pub fn move_to(&self, location: &str, folder: Option<&str>) -> Result<String> {
         let from = self.path_of(location);
-        let parent = match folder {
-            Some(f) => self.root.join(f),
-            None => self.root.clone(),
-        };
+        let folder = folder.unwrap_or(UNCATEGORISED);
+        let parent = self.root.join(folder);
+        if is_uncategorised(folder) {
+            std::fs::create_dir_all(&parent).map_err(|e| disk("create the folder", &parent, &e))?;
+        }
         let to = parent.join(base_of(location));
         if same_folder(&from, &to) {
             return Ok(location.to_string());
         }
         if !parent.is_dir() {
-            return Err(Error::Disk(format!("The folder \"{}\" no longer exists.", folder.unwrap_or(""))));
+            return Err(Error::Disk(format!("The folder \"{folder}\" no longer exists.")));
         }
         if to.exists() {
             return Err(Error::Disk(format!(
-                "\"{}\" already holds a recording called \"{}\". Rename one of them first.",
-                folder.unwrap_or("The output folder"),
+                "\"{folder}\" already holds a recording called \"{}\". Rename one of them first.",
                 base_of(location)
             )));
         }
@@ -292,6 +350,7 @@ impl Library {
 
     pub fn create_folder(&self, name: &str) -> Result<String> {
         let name = naming::clean(name);
+        reserved(&name)?;
         let path = self.root.join(&name);
         if path.exists() {
             return Err(Error::Disk(format!("There is already a folder called \"{name}\".")));
@@ -302,6 +361,8 @@ impl Library {
 
     pub fn rename_folder(&self, old: &str, new: &str) -> Result<String> {
         let new = naming::clean(new);
+        reserved(old)?;
+        reserved(&new)?;
         let from = self.root.join(old);
         let to = self.root.join(&new);
         if to.exists() && !same_folder(&from, &to) {
@@ -311,11 +372,12 @@ impl Library {
         Ok(new)
     }
 
-    /// Delete a folder of the user's: its recordings move back to the output
-    /// folder first, never to the Recycle Bin. A recording that cannot move,
+    /// Delete a category folder: its recordings move into Uncategorised
+    /// first, never to the Recycle Bin. A recording that cannot move,
     /// for example because a file in it is open, stops the deletion and stays
     /// in the folder. Returns the recordings moved, as (old, new) locations.
     pub fn delete_folder(&self, name: &str) -> Result<Vec<(String, String)>> {
+        reserved(name)?;
         let dir = self.root.join(name);
         let mut moved = Vec::new();
         for (inner, _) in subfolders(&dir)? {
@@ -328,9 +390,56 @@ impl Library {
         match std::fs::remove_dir(&dir) {
             Ok(()) => Ok(moved),
             Err(_) => Err(Error::Disk(format!(
-                "Its recordings were moved back to the output folder, but the folder \"{name}\" still holds other files, so it was left in place."
+                "Its recordings were moved into {UNCATEGORISED}, but the folder \"{name}\" still holds other files, so it was left in place."
             ))),
         }
+    }
+
+    /// Move a recording to the same place in another output folder, when the
+    /// output folder is changed in Settings. On the same drive this is a
+    /// rename. To another drive it is a copy and then a delete, so the
+    /// original stays put if the copy fails.
+    pub fn move_out(&self, location: &str, to_root: &Path) -> Result<()> {
+        let from = self.path_of(location);
+        let to = to_root.join(location);
+        if to.exists() {
+            return Err(Error::Disk(format!(
+                "The new output folder already holds a recording called \"{}\", so \"{}\" was left where it is.",
+                base_of(location),
+                base_of(location)
+            )));
+        }
+        if let Some(parent) = to.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| disk("create the folder", parent, &e))?;
+        }
+        match std::fs::rename(&from, &to) {
+            Ok(()) => Ok(()),
+            // ERROR_NOT_SAME_DEVICE: another drive, so copy instead.
+            Err(e) if e.raw_os_error() == Some(17) => {
+                if let Err(e) = copy_folder(&from, &to) {
+                    let _ = std::fs::remove_dir_all(&to);
+                    return Err(disk("copy", &from, &e));
+                }
+                let moved = Library::new(to_root.to_path_buf());
+                if let Some(start) = moved.read_metadata(location).and_then(|m| Stamp::parse(&m.start)) {
+                    moved.set_dates(location, &start);
+                }
+                std::fs::remove_dir_all(&from).map_err(|_| {
+                    Error::Disk(format!(
+                        "\"{}\" was copied to the new output folder, but the old copy in \"{}\" could not be removed. You can delete it yourself.",
+                        base_of(location),
+                        self.root.display()
+                    ))
+                })
+            }
+            Err(e) => Err(disk("move", &from, &e)),
+        }
+    }
+
+    /// Remove a folder of this output folder if it is empty, after its
+    /// recordings have moved to another one.
+    pub fn remove_if_empty(&self, folder: &str) {
+        let _ = std::fs::remove_dir(self.root.join(folder));
     }
 
     /// Move a recording's folder to the Recycle Bin. SPEC.md "Deleting".
@@ -360,6 +469,22 @@ pub fn base_of(location: &str) -> &str {
 /// The folder a recording is in, if any, from its location.
 pub fn folder_of(location: &str) -> Option<&str> {
     location.rsplit_once('\\').map(|(f, _)| f)
+}
+
+/// The category a recording is in, from its location: `None` for
+/// Uncategorised, or for one waiting to be moved there.
+pub fn category_of(location: &str) -> Option<&str> {
+    folder_of(location).filter(|f| !is_uncategorised(f))
+}
+
+/// Refuse the Uncategorised folder's name for a category.
+fn reserved(name: &str) -> Result<()> {
+    if means_uncategorised(name) {
+        return Err(Error::Disk(format!(
+            "\"{UNCATEGORISED}\" is NoteFetch's own folder for recordings not in a category, so it cannot be created, renamed or deleted, and no other folder can have that name. Choose a different name."
+        )));
+    }
+    Ok(())
 }
 
 fn relative(root: &Path, path: &Path) -> String {
@@ -392,6 +517,21 @@ fn files(dir: &Path) -> Result<Vec<(String, PathBuf)>> {
         }
     }
     Ok(out)
+}
+
+/// Copy a folder and everything in it. File dates come with the files.
+fn copy_folder(from: &Path, to: &Path) -> std::io::Result<()> {
+    std::fs::create_dir(to)?;
+    for e in std::fs::read_dir(from)? {
+        let e = e?;
+        let target = to.join(e.file_name());
+        if e.file_type()?.is_dir() {
+            copy_folder(&e.path(), &target)?;
+        } else {
+            std::fs::copy(e.path(), target)?;
+        }
+    }
+    Ok(())
 }
 
 fn read_metadata(dir: &Path) -> Option<Metadata> {
@@ -508,8 +648,8 @@ mod tests {
         let t = TempDir::new("base");
         let lib = Library::new(t.0.clone());
         let loc = make(&lib, "a", "Lecture");
-        assert_eq!(loc, "Lecture, 24 Sep 2026, 1430");
-        assert!(t.0.join("Lecture, 24 Sep 2026, 1430").join("Transcript, Lecture, 24 Sep 2026, 1430.txt").is_file());
+        assert_eq!(loc, "Uncategorised\\Lecture, 24 Sep 2026, 1430");
+        assert!(t.0.join(&loc).join("Transcript, Lecture, 24 Sep 2026, 1430.txt").is_file());
     }
 
     #[test]
@@ -518,7 +658,7 @@ mod tests {
         let lib = Library::new(t.0.clone());
         let a = make(&lib, "a", "Lecture");
         let b = make(&lib, "b", "Lecture");
-        assert_eq!(b, "Lecture, 24 Sep 2026, 1430 (2)");
+        assert_eq!(b, "Uncategorised\\Lecture, 24 Sep 2026, 1430 (2)");
         assert_eq!(lib.create_recording_folder("a", "Lecture", &start()).unwrap(), a);
     }
 
@@ -542,7 +682,7 @@ mod tests {
         assert_eq!(moved, "Neuroscience\\Lecture, 24 Sep 2026, 1430");
         std::fs::create_dir_all(t.0.join("Neuroscience").join("Deeper")).unwrap();
         let scan = lib.scan().unwrap().unwrap();
-        assert_eq!(scan.folders, ["Empty", "Neuroscience"]);
+        assert_eq!(scan.folders, ["Empty", "Neuroscience"], "Uncategorised is not a category");
         assert_eq!(scan.recordings["a"].location, moved);
         assert!(scan.recordings["a"].has_audio && scan.recordings["a"].has_transcript);
         assert_eq!(scan.too_deep, ["Neuroscience\\Deeper"]);
@@ -584,7 +724,7 @@ mod tests {
         let loc = make(&lib, "a", "Untitled");
         std::fs::write(t.0.join(&loc).join("notes of mine.txt"), b"x").unwrap();
         let new = lib.rename(&loc, "Neuroscience: week 3", &start()).unwrap();
-        assert_eq!(new, "Neuroscience. week 3, 24 Sep 2026, 1430");
+        assert_eq!(new, "Uncategorised\\Neuroscience. week 3, 24 Sep 2026, 1430");
         let dir = t.0.join(&new);
         assert!(dir.join("Audio, Neuroscience. week 3, 24 Sep 2026, 1430.ogg").is_file());
         assert!(dir.join("Transcript, Neuroscience. week 3, 24 Sep 2026, 1430.txt").is_file());
@@ -608,7 +748,7 @@ mod tests {
         let dir = t.0.join(&loc);
         assert!(dir.join("Audio, Lecture, 24 Sep 2026, 1430.ogg").is_file(), "the audio was put back");
         assert!(dir.join("Transcript, Lecture, 24 Sep 2026, 1430.txt").is_file());
-        assert!(!t.0.join("New name, 24 Sep 2026, 1430").exists());
+        assert!(!t.0.join("Uncategorised").join("New name, 24 Sep 2026, 1430").exists());
     }
 
     #[test]
@@ -619,19 +759,19 @@ mod tests {
         let b = make(&lib, "b", "Lecture");
         assert_eq!(lib.rename(&b, "Lecture", &start()).unwrap(), b, "still clashes, so keeps its number");
         let b = lib.rename(&b, "Seminar", &start()).unwrap();
-        assert_eq!(b, "Seminar, 24 Sep 2026, 1430", "no clash, so no number");
-        assert_eq!(lib.rename(&a, "Seminar", &start()).unwrap(), "Seminar, 24 Sep 2026, 1430 (2)");
+        assert_eq!(b, "Uncategorised\\Seminar, 24 Sep 2026, 1430", "no clash, so no number");
+        assert_eq!(lib.rename(&a, "Seminar", &start()).unwrap(), "Uncategorised\\Seminar, 24 Sep 2026, 1430 (2)");
     }
 
     #[test]
-    fn deleting_a_folder_moves_its_recordings_out() {
+    fn deleting_a_folder_moves_its_recordings_into_uncategorised() {
         let t = TempDir::new("delfolder");
         let lib = Library::new(t.0.clone());
         let loc = make(&lib, "a", "Lecture");
         lib.create_folder("Course").unwrap();
         lib.move_to(&loc, Some("Course")).unwrap();
         let moved = lib.delete_folder("Course").unwrap();
-        assert_eq!(moved, [("Course\\Lecture, 24 Sep 2026, 1430".to_string(), "Lecture, 24 Sep 2026, 1430".to_string())]);
+        assert_eq!(moved, [("Course\\Lecture, 24 Sep 2026, 1430".to_string(), "Uncategorised\\Lecture, 24 Sep 2026, 1430".to_string())]);
         assert!(!t.0.join("Course").exists());
         assert!(t.0.join(&loc).is_dir());
     }
@@ -642,9 +782,71 @@ mod tests {
         let lib = Library::new(t.0.clone());
         let loc = make(&lib, "a", "Lecture");
         lib.create_folder("Course").unwrap();
-        std::fs::create_dir_all(t.0.join("Course").join(&loc)).unwrap();
+        std::fs::create_dir_all(t.0.join("Course").join(base_of(&loc))).unwrap();
         assert!(lib.move_to(&loc, Some("Course")).is_err());
         assert!(t.0.join(&loc).is_dir());
+    }
+
+    #[test]
+    fn tidy_moves_loose_recordings_into_uncategorised() {
+        let t = TempDir::new("tidy");
+        let lib = Library::new(t.0.clone());
+        // As milestone 4 left them: directly in the output folder.
+        let a = make(&lib, "a", "Lecture");
+        let b = make(&lib, "b", "Seminar");
+        let c = make(&lib, "c", "Busy");
+        for loc in [&a, &b, &c] {
+            std::fs::rename(lib.path_of(loc), t.0.join(base_of(loc))).unwrap();
+        }
+        let mut scan = lib.scan().unwrap().unwrap();
+        assert_eq!(scan.recordings["a"].location, "Lecture, 24 Sep 2026, 1430");
+        let said = lib.tidy(&mut scan, &HashSet::from(["c".to_string()]));
+        assert_eq!(said, ["Moved 2 recordings into the Uncategorised folder, so the output folder holds only folders."]);
+        assert_eq!(scan.recordings["a"].location, a);
+        assert_eq!(scan.recordings["b"].location, b);
+        assert!(lib.path_of(&a).join(METADATA).is_file());
+        assert_eq!(scan.recordings["c"].location, base_of(&c), "being downloaded, so left for next time");
+        assert!(lib.tidy(&mut scan, &HashSet::new()).len() == 1);
+        assert!(lib.tidy(&mut scan, &HashSet::new()).is_empty(), "nothing left to move");
+    }
+
+    #[test]
+    fn a_recording_moves_to_another_output_folder_and_keeps_its_place() {
+        let t = TempDir::new("moveout");
+        let lib = Library::new(t.0.join("old"));
+        let a = make(&lib, "a", "Lecture");
+        lib.create_folder("Course").unwrap();
+        let a = lib.move_to(&a, Some("Course")).unwrap();
+        let new_root = t.0.join("new");
+        lib.move_out(&a, &new_root).unwrap();
+        assert!(new_root.join(&a).join(METADATA).is_file());
+        assert!(!lib.path_of(&a).exists());
+        lib.remove_if_empty("Course");
+        assert!(!lib.root.join("Course").exists());
+        // A second recording of the same name is not moved on top of it.
+        let b = make(&lib, "b", "Lecture");
+        std::fs::create_dir_all(new_root.join(&b)).unwrap();
+        assert!(lib.move_out(&b, &new_root).is_err());
+        assert!(lib.path_of(&b).join(METADATA).is_file(), "left where it was");
+        // The copy used for another drive takes every file.
+        let copied = t.0.join("copied");
+        copy_folder(&lib.path_of(&b), &copied).unwrap();
+        assert!(copied.join(METADATA).is_file());
+        assert!(copied.join(naming::AUDIO.file_name(base_of(&b))).is_file());
+    }
+
+    #[test]
+    fn uncategorised_is_reserved() {
+        let t = TempDir::new("reserved");
+        let lib = Library::new(t.0.clone());
+        make(&lib, "a", "Lecture");
+        assert!(lib.create_folder("UNCATEGORISED").is_err());
+        assert!(lib.create_folder("uncategorized").is_err(), "the American spelling too");
+        lib.create_folder("Course").unwrap();
+        assert!(lib.rename_folder("Course", "Uncategorised").is_err());
+        assert!(lib.rename_folder("Uncategorised", "Other").is_err());
+        assert!(lib.delete_folder("Uncategorised").is_err());
+        assert!(t.0.join("Uncategorised").is_dir());
     }
 
     #[test]

@@ -64,6 +64,8 @@ pub struct Engine {
 pub struct Guard {
     disk: Mutex<()>,
     fetching: Mutex<HashSet<String>>,
+    /// Recordings are moving to a new output folder, so no change may start.
+    pub moving: std::sync::atomic::AtomicBool,
 }
 
 impl Guard {
@@ -151,8 +153,9 @@ impl Engine {
         // A rename half way through the scan could look like a deletion.
         let _disk = self.guard.lock();
         match self.library.scan()? {
-            Some(scan) => {
-                for line in self.library.reconcile(&self.store(), &scan)? {
+            Some(mut scan) => {
+                let tidied = self.library.tidy(&mut scan, &self.guard.fetching());
+                for line in tidied.into_iter().chain(self.library.reconcile(&self.store(), &scan)?) {
                     emit(Event::Log(line));
                 }
             }

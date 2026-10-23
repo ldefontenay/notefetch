@@ -58,6 +58,7 @@ const IDC_LOG: i32 = 1008;
 const IDM_EXIT: i32 = 2001;
 const IDM_SIGN_IN: i32 = 2002;
 const IDM_SIGN_OUT: i32 = 2003;
+const IDM_SETTINGS: i32 = 2004;
 const IDM_DOWNLOAD: i32 = 2010;
 const IDM_SELECT_ALL: i32 = 2011;
 const IDM_OPEN_RECORDING: i32 = 2012;
@@ -106,6 +107,8 @@ const WM_APP_ASK_SIGN_IN: u32 = WM_APP + 11;
 /// Posted by the list when its context menu is asked for, with the
 /// WM_CONTEXTMENU coordinates as lparam: -1 for the keyboard.
 const WM_APP_CONTEXT: u32 = WM_APP + 12;
+/// Posted when a first sync has stopped to ask how much history to download.
+const WM_APP_ASK_FIRST: u32 = WM_APP + 13;
 
 const FILTER_TIMER: usize = 1;
 const SELECT_TIMER: usize = 2;
@@ -156,6 +159,9 @@ struct Ui {
     /// The Folder box's choice to make once the next list arrives, after a
     /// folder is renamed.
     want_folder: Option<String>,
+    /// The recordings a first sync is waiting to ask about, as (start,
+    /// duration). The question is asked once the sync has finished.
+    first_sync: Option<Vec<(i64, u64)>>,
 }
 
 thread_local! {
@@ -171,20 +177,20 @@ fn with_ui<R>(f: impl FnOnce(&mut Ui) -> R) -> Option<R> {
     UI.with(|cell| cell.try_borrow_mut().ok().and_then(|mut ui| ui.as_mut().map(f)))
 }
 
-fn wide(text: &str) -> Vec<u16> {
+pub(crate) fn wide(text: &str) -> Vec<u16> {
     text.encode_utf16().chain(std::iter::once(0)).collect()
 }
 
-fn resource(id: u16) -> PCWSTR {
+pub(crate) fn resource(id: u16) -> PCWSTR {
     PCWSTR(id as usize as *const u16)
 }
 
-fn item(dialog: HWND, id: i32) -> HWND {
+pub(crate) fn item(dialog: HWND, id: i32) -> HWND {
     // SAFETY: a plain lookup on a window this thread owns.
     unsafe { GetDlgItem(Some(dialog), id).unwrap_or_default() }
 }
 
-fn send(hwnd: HWND, message: u32, wparam: usize, lparam: isize) -> isize {
+pub(crate) fn send(hwnd: HWND, message: u32, wparam: usize, lparam: isize) -> isize {
     // SAFETY: messages to controls this thread owns, with arguments of the
     // types each message documents.
     unsafe { SendMessageW(hwnd, message, Some(WPARAM(wparam)), Some(LPARAM(lparam))).0 }
@@ -250,6 +256,10 @@ unsafe extern "system" fn dialog_proc(hwnd: HWND, message: u32, wparam: WPARAM, 
         }
         WM_APP_CONTEXT => {
             context_menu(hwnd, lparam.0);
+            1
+        }
+        WM_APP_ASK_FIRST => {
+            ask_first_sync(hwnd);
             1
         }
         WM_INITMENUPOPUP => {
@@ -406,6 +416,7 @@ fn init(dialog: HWND) {
             config,
             last_progress: None,
             want_folder: None,
+            first_sync: None,
         });
     });
     // SAFETY: focus on a control of this window.
@@ -417,7 +428,7 @@ fn init(dialog: HWND) {
 fn fill_folders(dialog: HWND, folders: &[String], keep: Option<String>) {
     let combo = item(dialog, IDC_FOLDER);
     send(combo, CB_RESETCONTENT, 0, 0);
-    let mut entries = vec!["All folders".to_string(), "Not in a folder".to_string()];
+    let mut entries = vec!["All folders".to_string(), "Uncategorised".to_string()];
     entries.extend(folders.iter().cloned());
     let mut chosen = 0;
     for (i, e) in entries.iter().enumerate() {
@@ -534,6 +545,7 @@ fn command(hwnd: HWND, id: i32, code: u32) {
         IDM_SIGN_OUT => {
             with_ui(|ui| start(ui, Command::SignOut, "Signing out"));
         }
+        IDM_SETTINGS => open_settings(hwnd),
         IDM_EXIT => close(hwnd),
         IDM_TEST_SPEECH => {
             with_ui(|ui| {
@@ -563,12 +575,89 @@ fn start(ui: &mut Ui, command: Command, what: &str) {
 
 fn cancel(ui: &mut Ui) {
     match (&ui.cancel, ui.busy) {
+        _ if ui.busy && ui.activity == Activity::Moving => say(
+            ui,
+            "Moving recordings to the new output folder cannot be stopped part way, so that none are left behind. It carries on.",
+            Importance::Completion,
+        ),
         (Some(c), true) => {
             c.cancel();
             say(ui, "Cancelling.", Importance::Completion);
         }
         _ => say(ui, "Nothing is running, so there is nothing to cancel.", Importance::Completion),
     }
+}
+
+/// Ask how much history the first sync should download, then run it.
+fn ask_first_sync(hwnd: HWND) {
+    let Some(waiting) = with_ui(|ui| ui.first_sync.take()).flatten() else { return };
+    let say_error = Box::new(|text: &str| {
+        with_ui(|ui| say(ui, text, Importance::Error));
+    });
+    let choice = crate::dialogs::first_sync(hwnd, &waiting, say_error);
+    with_ui(|ui| match choice {
+        Some(c) => start(ui, Command::FirstSync(c), "The first sync"),
+        None => say(
+            ui,
+            "Nothing was downloaded. NoteFetch will ask again at the next sync. Press Ctrl+S when you are ready.",
+            Importance::Completion,
+        ),
+    });
+    focus_list(hwnd);
+}
+
+/// Settings (Ctrl+Comma). SPEC.md "Settings".
+fn open_settings(hwnd: HWND) {
+    let Some((config, downloaded)) =
+        with_ui(|ui| (ui.config.clone(), ui.snapshot.rows.iter().filter(|r| r.location.is_some()).count()))
+    else {
+        return;
+    };
+    let hooks = crate::dialogs::Hooks {
+        busy: Box::new(|| with_ui(|ui| ui.busy).unwrap_or(true)),
+        sign_out: Box::new(|| {
+            with_ui(|ui| {
+                let free = !ui.busy;
+                start(ui, Command::SignOut, "Signing out");
+                free
+            })
+            .unwrap_or(false)
+        }),
+        say: Box::new(|text| {
+            with_ui(|ui| say(ui, text, Importance::Error));
+        }),
+    };
+    let saved = crate::dialogs::settings(hwnd, &config, crate::auth::has_sign_in(), downloaded, hooks);
+    with_ui(|ui| {
+        let Some(saved) = saved else {
+            log(ui, "Settings were not changed.");
+            return;
+        };
+        let changed = saved.config != ui.config;
+        ui.config = saved.config.clone();
+        let moving = saved.move_from.is_some();
+        if changed {
+            log(ui, "Settings saved.");
+        }
+        match saved.move_from {
+            Some(old) => start(ui, Command::Settings { config: saved.config, move_from: Some(old) }, "Moving recordings"),
+            None if changed => {
+                ui.worker.send(Command::Settings { config: saved.config, move_from: None }, Cancel::new());
+                if !saved.sign_in {
+                    speak(ui, "Settings saved.", Importance::Completion);
+                }
+            }
+            None => {}
+        }
+        if saved.sign_in {
+            if moving {
+                log(ui, "Sign in once the recordings have moved, from the File menu or from Settings.");
+            } else {
+                start(ui, Command::SignIn, "Signing in");
+            }
+        }
+    });
+    focus_list(hwnd);
 }
 
 /// Offer to sign in, after the worker found the sign-in missing or expired.
@@ -587,12 +676,26 @@ fn ask_sign_in(hwnd: HWND, expired: bool) {
         if answer == IDYES {
             start(ui, Command::SignIn, "Signing in");
         } else {
-            log(ui, "Not signed in. You can sign in at any time from the File menu.");
+            log(ui, "Not signed in. You can sign in at any time from the File menu or from Settings.");
         }
     });
 }
 
 fn close(hwnd: HWND) {
+    let moving = with_ui(|ui| {
+        let moving = ui.busy && ui.activity == Activity::Moving;
+        if moving {
+            say(
+                ui,
+                "NoteFetch is still moving your recordings to the new output folder. Wait for it to finish, then close NoteFetch.",
+                Importance::Error,
+            );
+        }
+        moving
+    });
+    if moving != Some(false) {
+        return;
+    }
     // Only work that writes files is worth a question; anything else just stops.
     let question = with_ui(|ui| match (ui.busy, ui.activity) {
         (true, Activity::Downloading) => {
@@ -638,7 +741,11 @@ fn drain() {
                         ui.last_progress = Some(Instant::now());
                         // A sync also counts recordings only checked again, so
                         // "Downloaded 1 of 6" was wrong when nothing was (round 3).
-                        let verb = if ui.activity == Activity::Downloading { "Downloaded" } else { "Fetched" };
+                        let verb = match ui.activity {
+                            Activity::Downloading => "Downloaded",
+                            Activity::Moving => "Moved",
+                            _ => "Fetched",
+                        };
                         say(ui, &format!("{verb} {done} of {total}."), Importance::Routine);
                     }
                 }
@@ -653,12 +760,19 @@ fn drain() {
                         }
                     }
                 }
+                UiEvent::FirstSyncNeeded(waiting) => ui.first_sync = Some(waiting),
                 UiEvent::Finished => {
                     ui.busy = false;
                     ui.cancel = None;
                     if !ui.kept.is_empty() {
                         ui.kept.clear();
                         apply_filter(ui);
+                    }
+                    if ui.first_sync.is_some() {
+                        // SAFETY: posting to this thread's own window.
+                        unsafe {
+                            let _ = PostMessageW(Some(ui.dialog), WM_APP_ASK_FIRST, WPARAM(0), LPARAM(0));
+                        }
                     }
                 }
             }
@@ -748,7 +862,7 @@ fn matches(row: &Row, show: usize, folder: &str, filter: &str) -> bool {
     };
     let in_folder = match folder {
         "" | "All folders" => true,
-        "Not in a folder" => row.folder.is_none(),
+        "Uncategorised" => row.folder.is_none(),
         f => row.folder.as_deref() == Some(f),
     };
     shown && in_folder && (filter.is_empty() || row.name.to_lowercase().contains(filter))
@@ -779,7 +893,14 @@ fn apply_filter(ui: &mut Ui) {
     send(ui.list, LVM_DELETEALLITEMS, 0, 0);
     for (n, &r) in ui.visible.iter().enumerate() {
         let row = &ui.snapshot.rows[r];
-        let cells = [row.name.as_str(), row.folder.as_deref().unwrap_or(""), &row.date, &row.duration, row.status];
+        // A recording on disk and in no category is in Uncategorised; one not
+        // downloaded is in no folder yet.
+        let folder = match (&row.folder, &row.location) {
+            (Some(f), _) => f.as_str(),
+            (None, Some(_)) => crate::library::UNCATEGORISED,
+            (None, None) => "",
+        };
+        let cells = [row.name.as_str(), folder, &row.date, &row.duration, row.status];
         let mut first = wide(cells[0]);
         let it = LVITEMW {
             mask: LVIF_TEXT | LVIF_PARAM,
@@ -1029,9 +1150,13 @@ fn init_menu(dialog: HWND, menu: HMENU) {
             // Rename and Delete act on the folder chosen in the Folder box,
             // and say which, so the menu explains itself.
             let chosen = chosen_folder(dialog);
+            let uncategorised = library::is_uncategorised(&combo_text(dialog, IDC_FOLDER));
             for (id, verb) in [(IDM_RENAME_FOLDER, "&Rename"), (IDM_DELETE_FOLDER, "&Delete")] {
                 let (text, flags) = match &chosen {
                     Some(f) => (format!("{verb} the folder \"{f}\"..."), MF_STRING),
+                    None if uncategorised => {
+                        (format!("{verb} folder (Uncategorised is NoteFetch's own, so it cannot be changed)"), MF_STRING | MF_GRAYED)
+                    }
                     None => (format!("{verb} folder (choose one in the Folder box first)"), MF_STRING | MF_GRAYED),
                 };
                 let text = wide(&text);
@@ -1044,7 +1169,7 @@ fn init_menu(dialog: HWND, menu: HMENU) {
 /// The folder chosen in the Folder box, if it is one of the user's folders.
 fn chosen_folder(dialog: HWND) -> Option<String> {
     let f = combo_text(dialog, IDC_FOLDER);
-    (!f.is_empty() && f != "All folders" && f != "Not in a folder").then_some(f)
+    (!f.is_empty() && f != "All folders" && f != "Uncategorised").then_some(f)
 }
 
 #[derive(Clone, Copy)]
@@ -1411,7 +1536,7 @@ unsafe extern "system" fn move_proc(hwnd: HWND, message: u32, wparam: WPARAM, lp
                 let mut chosen = 0;
                 let entries = std::iter::once(None).chain(c.folders.iter().map(|f| Some(f.as_str())));
                 for (i, f) in entries.enumerate() {
-                    let t = wide(f.unwrap_or("Not in a folder"));
+                    let t = wide(f.unwrap_or("Uncategorised"));
                     send(list, LB_ADDSTRING, 0, t.as_ptr() as isize);
                     if c.current.as_ref().is_some_and(|cur| cur.as_deref() == f) {
                         chosen = i;
@@ -1435,6 +1560,7 @@ unsafe extern "system" fn move_proc(hwnd: HWND, message: u32, wparam: WPARAM, lp
                         // A name typed that is already a folder means that folder.
                         match c.folders.iter().find(|f| f.eq_ignore_ascii_case(typed)) {
                             Some(f) => (Some(f.clone()), false),
+                            None if crate::library::means_uncategorised(typed) => (None, false),
                             None => (Some(typed.to_string()), true),
                         }
                     } else {
@@ -1461,7 +1587,7 @@ unsafe extern "system" fn move_proc(hwnd: HWND, message: u32, wparam: WPARAM, lp
     }
 }
 
-fn dialog_text(dialog: HWND, id: i32) -> String {
+pub(crate) fn dialog_text(dialog: HWND, id: i32) -> String {
     let mut buf = [0u16; 512];
     // SAFETY: buf is a live buffer of the length given.
     let len = unsafe { GetDlgItemTextW(dialog, id, &mut buf) } as usize;
@@ -1565,8 +1691,8 @@ fn delete_folder(dialog: HWND) {
     };
     let what = match count {
         0 => "It has no recordings in it.".to_string(),
-        1 => "Its recording will move back to the output folder, shown as Not in a folder.".to_string(),
-        n => format!("Its {n} recordings will move back to the output folder, shown as Not in a folder."),
+        1 => "Its recording will move into Uncategorised.".to_string(),
+        n => format!("Its {n} recordings will move into Uncategorised."),
     };
     let text = wide(&format!("Delete the folder \"{name}\"?\r\n\r\n{what} Nothing goes to the Recycle Bin."));
     // A question the user must answer. Nothing is lost either way.
@@ -1736,7 +1862,7 @@ mod tests {
         let a = row(State::Downloaded, "Neuroscience week 3", Some("Neuro"), false);
         let b = row(State::Downloaded, "Staff training", None, false);
         assert!(matches(&a, 0, "Neuro", "") && !matches(&b, 0, "Neuro", ""));
-        assert!(matches(&b, 0, "Not in a folder", "") && !matches(&a, 0, "Not in a folder", ""));
+        assert!(matches(&b, 0, "Uncategorised", "") && !matches(&a, 0, "Uncategorised", ""));
         assert!(matches(&a, 0, "All folders", "week"));
         assert!(!matches(&a, 0, "All folders", "training"));
     }

@@ -32,10 +32,10 @@ pub type Result<T> = std::result::Result<T, Error>;
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::NotSignedIn => write!(f, "You are not signed in to Plaud. Choose Sign in from the File menu."),
+            Error::NotSignedIn => write!(f, "You are not signed in to Plaud. Choose Sign in from the File menu or from Settings."),
             Error::SignInExpired => write!(
                 f,
-                "Your Plaud sign-in has expired. Choose Sign in from the File menu to sign in again."
+                "Your Plaud sign-in has expired. Choose Sign in from the File menu or from Settings to sign in again."
             ),
             Error::SignIn(why) => write!(f, "Sign-in did not finish: {why} Try signing in again."),
             Error::Network(why) => write!(

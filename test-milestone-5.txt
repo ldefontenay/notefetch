@@ -1,0 +1,259 @@
+NoteFetch milestone 5 test: the Uncategorised folder, Settings and the first sync
+
+About 40 minutes. It checks everything new in milestone 5: the
+Uncategorised folder you chose, the Settings window, moving your recordings
+to another output folder, signing in and out from Settings, and the
+question the very first sync asks.
+
+Sections 1 to 4 run on the same test copy as before. Section 5 uses a new,
+empty copy, so that NoteFetch thinks it has never synced. It needs you to
+sign in to Plaud in your browser once more, and it downloads a few
+recordings into the test-data folder.
+
+Please write your answers after each ANSWER line. Leave any you cannot do
+blank, and say so. Save the file when you are done.
+
+
+SECTION 1: THE UNCATEGORISED FOLDER
+
+1. In File Explorer, go to C:\Users\ldefo\dev\NoteFetch\test-data and press
+   Enter on "Start NoteFetch test.cmd". Wait for "Sync finished." Then
+   press Alt+G for the Log, and read down a few lines.
+   Expected: a line saying "Moved 50 recordings into the Uncategorised
+   folder, so the output folder holds only folders." (the number may
+   differ a little). This happens only this once.
+   Was it there?
+
+ANSWER:
+Yes. From the log, it looks like this is the first thing the app did. Very good.
+2. Press Alt+C for the list. Arrow to a recording that is not in
+   Neuroscience, and listen to the whole row.
+   Expected: its Folder column says "Uncategorised". A recording not
+   downloaded has nothing in that column, since it is not on disk yet.
+   Was it so?
+
+ANSWER:
+Yes
+3. In File Explorer, go into C:\Users\ldefo\dev\NoteFetch\test-data\output.
+   Expected: only two folders, "Neuroscience" and "Uncategorised". Go into
+   Uncategorised: it holds the recording folders, each one ending in its
+   date and time.
+   Does this tell recording folders and category folders apart the way you
+   hoped?
+
+ANSWER:
+Yes, excellent.
+4. Back in NoteFetch, press Alt+E for the Folder box and arrow through it.
+   Expected: "All folders", "Uncategorised", "Neuroscience". Choose
+   Uncategorised. The list shows only recordings in it, plus those not yet
+   downloaded (they will go there).
+   Then press Alt+L for the Folder menu and arrow to Rename folder and
+   Delete folder.
+   Expected: both unavailable, saying "Uncategorised is NoteFetch's own, so
+   it cannot be changed". Press Escape twice.
+   Was it so, and is that wording clear?
+
+ANSWER:
+Yes.
+5. Press Alt+E, choose "All folders", then Alt+C. Press T for "Test
+   lecture", press Ctrl+Shift+M, and arrow through the Folders list.
+   Expected: "Uncategorised" first, then "Neuroscience". Arrow to
+   Uncategorised and press Enter.
+   Expected: "Moved "test lecture, 21 Sep 2026, 1601" to the folder
+   "Uncategorised"."
+   Then press Ctrl+Shift+M again, arrow to Neuroscience and press Enter to
+   put it back.
+   Did both moves work?
+
+ANSWER:
+Yes
+6. Press Alt+L, then N for New folder. Type uncategorised (any letter case)
+   and press Enter.
+   Expected: no folder is made, and you hear that "Uncategorised" is
+   NoteFetch's own folder and no other folder can have that name.
+   Was it clear?
+
+ANSWER:
+Yes. Also make sure that "uncategorized" can't go through. Which makes me wonder whether its best to follow UK or American spellings in the app. I'd like your steer on that please.
+
+ANYTHING ODD:
+No.
+
+SECTION 2: THE SETTINGS WINDOW
+
+7. Press Ctrl+Comma (the comma key, with Ctrl). The Settings window opens.
+   Expected: focus on "Output folder", a read-only box, and JAWS reads the
+   whole path: C:\Users\ldefo\dev\NoteFetch\test-data\output.
+   Was the whole path read?
+
+ANSWER:
+Yes
+8. Press Tab through every control to OK and Cancel, listening to each.
+   The order should be: Output folder, Browse, Sync when NoteFetch starts,
+   Download new recordings when syncing, Ask before deleting, Delete marks a
+   recording never downloaded as Don't download, Download the audio,
+   Download the transcript, Download the summary, Download the other parts,
+   Save summaries as .txt files instead of .md, Days to keep checking (14),
+   Spoken announcements (All), Also write the Log to the file
+   notefetch.log, Sign out of Plaud, OK, Cancel.
+   Does each one make sense on its own? Any wording you would change?
+
+ANSWER:
+Mostly good. Rather say "download audio", "download transcripts", "download summaries", etc. just sounds better.
+9. Press Alt+X to tick "Save summaries as .txt files instead of .md", then
+   press Enter.
+   Expected: the window closes, you hear "Settings saved." and focus is
+   back in the list.
+   Press Ctrl+Comma again, then Alt+X.
+   Expected: it is ticked. Press Space to untick it, and Enter.
+   Was it kept, and then put back?
+
+ANSWER:
+It was kept. Note that pressing alt+x actually also toggles the setting, which is expected behaviour.
+10. Press Ctrl+Comma, then Alt+D for the days box. Delete the number and
+    press Enter with the box empty.
+    Expected: the window stays open, you hear "Type the number of days to
+    keep checking, such as 14, then choose OK again.", and focus is back in
+    the days box. Type 14, then press Escape.
+    Expected: the window closes and the Log says "Settings were not
+    changed."
+    Was it so?
+
+ANSWER:
+Yes
+ANYTHING ODD:
+No.
+
+SECTION 3: MOVING TO ANOTHER OUTPUT FOLDER
+
+This moves every test recording to a new folder and back. On the same drive
+it takes a moment.
+
+11. Close NoteFetch with Alt+F4. In File Explorer, in
+    C:\Users\ldefo\dev\NoteFetch\test-data, make a new folder with
+    Ctrl+Shift+N and call it output 2. Start NoteFetch with "Start NoteFetch
+    test.cmd" and wait for "Sync finished."
+    Done?
+
+ANSWER:
+Yes
+12. Press Ctrl+Comma, then Alt+B for Browse. The Windows folder picker
+    opens. Choose the "output 2" folder you made, and press Enter on
+    "Select Folder".
+    Expected: you are back in Settings with focus on Output folder, and
+    JAWS reads the new path, ending in "output 2".
+    Was it so? How did the folder picker go with JAWS?
+
+ANSWER:
+All good, standard dialogues as expected. Note that the list of folders initially displayed was the content of the output folder, i.e. uncategorised and neuroscience. Ideally it should be a level up the tree, i.e. listing the folder containing the output folder.
+
+13. Press Enter for OK.
+    Expected: a question: "Move your 51 downloaded recordings to the new
+    output folder?", with From and To lines. Press N for No.
+    Expected: you are back in Settings, and the output folder is the old
+    one again. Press Alt+B and choose "output 2" again, then press Enter,
+    and this time Y for Yes.
+    Expected: "Moving your recordings to ...output 2", then "Moved 51
+    recordings to "...output 2". It is now the output folder."
+    What did you hear?
+
+ANSWER:
+Exactly as expected. Note: Please make "no" the default option when enter is pressed and have focus land on "no" instead of "yes". More cautious, but could prevent some accidents.
+
+14. In File Explorer, check "output 2": it holds Neuroscience and
+    Uncategorised, with the recordings inside. The old "output" folder is
+    empty. In NoteFetch, press Enter on a downloaded recording to play it,
+    to show the files are found in their new place.
+    Was it so?
+
+ANSWER:
+Yes, perfect.
+15. Put it back: press Ctrl+Comma, Alt+B, choose the "output" folder, press
+    Enter, then Y.
+    Expected: the recordings move back. You can then delete "output 2".
+    Did they go back?
+
+ANSWER:
+
+ANYTHING ODD:
+No, excellent.
+
+SECTION 4: SIGNING OUT AND IN FROM SETTINGS
+
+16. Press Ctrl+Comma, then Alt+U for "Sign out of Plaud".
+    Expected: you hear "Signed out of Plaud. ..." and the button now says
+    "Sign in to Plaud". Press Tab and Shift+Tab to hear its new name.
+    Was it so?
+
+ANSWER:
+Yes. Note that a message is spoken saying that the user is now signed out from Plaud and to sign in via the file menu. This is very good. Maybe say to sign in via the file menu or settings dialogue.
+
+17. Press Alt+I for "Sign in to Plaud".
+    Expected: Settings closes, and Plaud's sign-in page opens in your
+    browser. Sign in as before. Back in NoteFetch, it syncs.
+    Did it work?
+
+ANSWER:
+Perfectly.
+ANYTHING ODD:
+No.
+
+SECTION 5: THE FIRST SYNC
+
+18. Close NoteFetch with Alt+F4. In File Explorer, in
+    C:\Users\ldefo\dev\NoteFetch\test-data, press Enter on "Start NoteFetch
+    first sync test.cmd". This copy has never signed in or synced.
+    Expected: "You are not signed in to Plaud. Sign in now?" Press Y and
+    sign in in your browser.
+    Did the sign-in work?
+
+ANSWER:
+
+19. Back in NoteFetch, after the sign-in it lists your recordings, then the
+    "First sync" window opens.
+    Expected: JAWS may read the text at the top, which says this is the
+    first sync and that anything left out stays in the list. Focus is on
+    "Only the last 30 days", which says how many recordings and roughly how
+    many hours that is. Arrow up and down through the three choices:
+    "Everything" with the whole count, and "Nothing old".
+    Did JAWS read the text at the top by itself? Were the three choices
+    clear, and the counts believable?
+
+ANSWER:
+Yes. But instead of "recording history", say "audio, transcripts and summaries". This is a bit clearer for a new user. 
+
+20. Press Alt+D for the number of days, and type 3 in place of 30. Then
+    press Shift+Tab to go back to the choices.
+    Expected: "Only the last 3 days" is chosen, with its own count, perhaps
+    "no recordings" or one or two. Press Enter.
+    Expected: the sync downloads only what is in the last 3 days, then
+    "Sync finished."
+    What did you hear? Did it download only those?
+
+ANSWER:
+Yes. Note, for a new screenreader user going down the radio buttons, it may not be clear that the 30 days is customisable. Maybe change the lable to "specified duration: {number} days". This would make the dialogue clearer.
+
+21. Press Alt+S, choose "Not yet downloaded", then Alt+C.
+    Expected: your older recordings are all there, ready to download when
+    you like. Press Ctrl+S to sync again.
+    Expected: no question this time, and nothing old is downloaded.
+    Was it so?
+
+ANSWER:
+Yes
+22. Close NoteFetch. In File Explorer, delete the "fresh" and
+    "fresh-output" folders in test-data, if you like; they were only for
+    this section.
+    Done?
+
+ANSWER:
+Yes
+ANYTHING ODD:
+No.
+
+ANYTHING ELSE
+Anything you noticed that is not covered above, including wording you would
+change.
+
+ANSWER:
+No, very good.

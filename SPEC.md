@@ -116,7 +116,7 @@ The app also has a menu bar (File, Recording, Folder, Actions, Help) that lists 
 - The Log says what a sync will fetch and why, before it starts.
 - It never downloads recordings marked Deleted or Skipped. Only the user can bring those back, with Download again.
 - Recordings with no transcript or summary yet are checked again on later syncs for a set number of days (a setting, 14 by default), because Plaud may generate them later. After that the missing parts count as "not available" and are no longer retried.
-- **First sync.** On the first sync the app asks whether to download the whole history, only recordings from the last N days, or nothing (start from now). This prevents an unexpected download of hundreds of hours of audio.
+- **First sync.** On the first sync the app asks whether to download the whole history, only recordings from the last N days, or nothing (start from now). This prevents an unexpected download of hundreds of hours of audio. Each choice says how many recordings and roughly how many hours it means. "The last 30 days" is chosen at first. Cancel downloads nothing, and the next sync asks again.
 
 ## Playing, renaming and deleting
 
@@ -254,7 +254,9 @@ A dialog built from a resource template, with:
 - save notes as .txt instead of .md (off by default);
 - how many days to keep checking for missing transcripts and summaries;
 - announcement level, sounds and their volume;
-- a Sign out button.
+- a Sign in or Sign out button, whose text says which. Sign in saves the settings and closes the window, then opens the browser.
+
+Changing the output folder, when the old one holds downloaded recordings, asks whether to move them to the new one. Yes moves them, keeping their categories; No goes back to Settings. The move cannot be cancelled part way, so none are left behind by accident. The output folder cannot change while a sync or download runs.
 
 ## Files the app writes
 
