@@ -21,7 +21,7 @@ use crate::error::Error;
 use crate::library::{self, Library};
 use crate::actions::Local;
 use crate::store::{State, Store};
-use crate::sync::{Engine, Event};
+use crate::sync::{Engine, Event, Guard};
 
 /// Posted to the window when events are waiting in the queue.
 pub const WM_APP_EVENTS: u32 = WM_APP + 10;
@@ -72,8 +72,6 @@ pub enum Activity {
     Refreshing,
     Syncing,
     Downloading,
-    /// Renaming, moving, deleting: quick, and never worth a question on closing.
-    Changing,
 }
 
 /// How much an announcement matters, for the announcement level setting.
@@ -101,6 +99,10 @@ pub struct Row {
     pub state: State,
     pub location: Option<String>,
     pub incomplete: bool,
+    /// Whether a transcript and a summary were downloaded, so the menus can
+    /// show Open transcript and Open summary as unavailable. Laurent, milestone 4.
+    pub has_transcript: bool,
+    pub has_summary: bool,
 }
 
 /// Everything the window shows, read fresh after each change.
@@ -201,13 +203,37 @@ impl Worker {
     }
 }
 
-struct Context {
+/// What the network tasks share with the loop. The loop's own database
+/// connection stays with the loop, because a connection cannot be shared
+/// between threads.
+struct Shared {
     config: Config,
-    library: Library,
-    store: Store,
-    engine: Option<Arc<Engine>>,
+    guard: Arc<Guard>,
+    engine: Mutex<Option<Arc<Engine>>>,
+    snapshots: SnapshotSource,
 }
 
+impl Shared {
+    fn engine(&self) -> Option<Arc<Engine>> {
+        self.engine.lock().ok().and_then(|e| e.clone())
+    }
+
+    fn set_engine(&self, engine: Option<Arc<Engine>>) {
+        if let Ok(mut e) = self.engine.lock() {
+            *e = engine;
+        }
+    }
+
+    fn send_snapshot(&self, sink: &Sink) {
+        if let Some(s) = self.snapshots.read() {
+            sink.send(UiEvent::Snapshot(s));
+        }
+    }
+}
+
+/// The loop takes each command as it comes. Syncs, downloads and sign-in run
+/// as tasks of their own, so the user's changes are not held up behind them
+/// (Laurent, milestone 4). The window starts only one of those at a time.
 async fn run(mut rx: mpsc::UnboundedReceiver<(Command, Cancel)>, sink: Sink, startup: Cancel) {
     let (config, problems) = Config::load();
     for p in problems {
@@ -223,19 +249,37 @@ async fn run(mut rx: mpsc::UnboundedReceiver<(Command, Cancel)>, sink: Sink, sta
         }
     };
     let library = Library::new(config.output_folder.clone());
-    let mut cx = Context { config, library, store, engine: None };
+    let shared = Arc::new(Shared {
+        snapshots: SnapshotSource { db, output: config.output_folder.clone() },
+        config,
+        guard: Arc::default(),
+        engine: Mutex::new(None),
+    });
 
     // Show what is known straight away, before the network answers.
-    if let Some(scan) = cx.library.scan().ok().flatten() {
-        let _ = cx.library.reconcile(&cx.store, &scan);
+    if let Some(scan) = library.scan().ok().flatten() {
+        let _ = library.reconcile(&store, &scan);
     }
-    send_snapshot(&cx, &sink);
+    send_snapshot(&store, &library, &sink);
 
-    match connect(&cx).await {
+    tokio::spawn(start_up(shared.clone(), startup, sink.clone()));
+    while let Some((command, cancel)) = rx.recv().await {
+        match command {
+            c if c.is_local() => local_command(&shared, &store, &library, c, &sink),
+            Command::SignOut => sign_out(&shared, &sink),
+            c => {
+                tokio::spawn(network(shared.clone(), c, cancel, sink.clone()));
+            }
+        }
+    }
+}
+
+async fn start_up(shared: Arc<Shared>, cancel: Cancel, sink: Sink) {
+    match connect(&shared).await {
         Ok(engine) => {
-            cx.engine = Some(engine);
-            if cx.config.sync_on_start {
-                run_command(&cx, Command::Sync, startup, &sink).await;
+            shared.set_engine(Some(engine));
+            if shared.config.sync_on_start {
+                run_command(&shared, Command::Sync, cancel, &sink).await;
             } else {
                 sink.send(UiEvent::Finished);
             }
@@ -245,56 +289,46 @@ async fn run(mut rx: mpsc::UnboundedReceiver<(Command, Cancel)>, sink: Sink, sta
             sink.error(e);
         }
     }
+}
 
-    while let Some((command, cancel)) = rx.recv().await {
-        let command = match command {
-            Command::SignIn => {
-                sign_in(&mut cx, cancel, &sink).await;
-                continue;
-            }
-            Command::SignOut => {
-                sign_out(&mut cx, &sink);
-                continue;
-            }
-            c if c.is_local() => {
-                local_command(&cx, c, &sink);
-                continue;
-            }
-            c => c,
-        };
-        if cx.engine.is_none() {
-            sink.send(UiEvent::Activity(Activity::Connecting));
-            match connect(&cx).await {
-                Ok(engine) => cx.engine = Some(engine),
-                Err(e) => {
-                    sink.send(UiEvent::Finished);
-                    sink.error(e);
-                    continue;
-                }
+/// Sign-in, sync, refresh and download: everything that needs Plaud.
+async fn network(shared: Arc<Shared>, command: Command, cancel: Cancel, sink: Sink) {
+    if let Command::SignIn = command {
+        sign_in(&shared, cancel, &sink).await;
+        return;
+    }
+    if shared.engine().is_none() {
+        sink.send(UiEvent::Activity(Activity::Connecting));
+        match connect(&shared).await {
+            Ok(engine) => shared.set_engine(Some(engine)),
+            Err(e) => {
+                sink.send(UiEvent::Finished);
+                sink.error(e);
+                return;
             }
         }
-        run_command(&cx, command, cancel, &sink).await;
     }
+    run_command(&shared, command, cancel, &sink).await;
 }
 
 /// Sign in through the browser. Escape cancels; it gives up by itself after
 /// five minutes.
-async fn sign_in(cx: &mut Context, cancel: Cancel, sink: &Sink) {
+async fn sign_in(shared: &Shared, cancel: Cancel, sink: &Sink) {
     sink.send(UiEvent::Activity(Activity::SigningIn));
     sink.announce("Signing in to Plaud.", Importance::Routine);
     let result = async {
         let http = crate::http_client()?;
         let status = |line: String| sink.announce(line, Importance::Completion);
         crate::auth::sign_in(&http, &cancel, &status).await?;
-        connect(cx).await
+        connect(shared).await
     }
     .await;
     match result {
         Ok(engine) => {
-            cx.engine = Some(engine);
+            shared.set_engine(Some(engine));
             sink.announce("Signed in to Plaud.", Importance::Completion);
-            if cx.config.sync_on_start && !cancel.is_cancelled() {
-                run_command(cx, Command::Sync, cancel, sink).await;
+            if shared.config.sync_on_start && !cancel.is_cancelled() {
+                run_command(shared, Command::Sync, cancel, sink).await;
                 return;
             }
         }
@@ -308,8 +342,8 @@ async fn sign_in(cx: &mut Context, cancel: Cancel, sink: &Sink) {
     sink.send(UiEvent::Finished);
 }
 
-fn sign_out(cx: &mut Context, sink: &Sink) {
-    cx.engine = None;
+fn sign_out(shared: &Shared, sink: &Sink) {
+    shared.set_engine(None);
     match crate::auth::forget() {
         Ok(()) => sink.announce(
             "Signed out of Plaud. Your downloaded recordings are still in the output folder. To sign in again, choose Sign in from the File menu.",
@@ -320,29 +354,30 @@ fn sign_out(cx: &mut Context, sink: &Sink) {
     sink.send(UiEvent::Finished);
 }
 
-async fn connect(cx: &Context) -> Result<Arc<Engine>, Error> {
+async fn connect(shared: &Shared) -> Result<Arc<Engine>, Error> {
     let tokens = crate::auth::load()?.ok_or(Error::NotSignedIn)?;
     let http = crate::http_client()?;
     let client = crate::mcp::Client::connect(http.clone(), tokens).await?;
-    let store = Store::open(&config::local_dir().join("notefetch.db"))?;
+    let store = Store::open(&shared.snapshots.db)?;
     Ok(Arc::new(Engine {
         http,
         client,
         store: Mutex::new(store),
-        library: Library::new(cx.config.output_folder.clone()),
-        config: cx.config.clone(),
+        library: Library::new(shared.config.output_folder.clone()),
+        config: shared.config.clone(),
+        guard: shared.guard.clone(),
     }))
 }
 
-async fn run_command(cx: &Context, command: Command, cancel: Cancel, sink: &Sink) {
-    let Some(engine) = cx.engine.clone() else {
+async fn run_command(shared: &Shared, command: Command, cancel: Cancel, sink: &Sink) {
+    let Some(engine) = shared.engine() else {
         sink.send(UiEvent::Finished);
         return;
     };
     let last_line = Arc::new(Mutex::new(String::new()));
     let emit = {
         let (sink, last_line) = (sink.clone(), last_line.clone());
-        let cx_snapshot = SnapshotSource { db: config::local_dir().join("notefetch.db"), output: cx.config.output_folder.clone() };
+        let source = SnapshotSource { db: shared.snapshots.db.clone(), output: shared.snapshots.output.clone() };
         Arc::new(move |e: Event| match e {
             Event::Log(line) => {
                 if let Ok(mut l) = last_line.lock() {
@@ -352,7 +387,7 @@ async fn run_command(cx: &Context, command: Command, cancel: Cancel, sink: &Sink
             }
             Event::Progress { done, total } => sink.send(UiEvent::Progress { done, total }),
             Event::Changed(_) => {
-                if let Some(s) = cx_snapshot.read() {
+                if let Some(s) = source.read() {
                     sink.send(UiEvent::Snapshot(s));
                 }
             }
@@ -404,33 +439,60 @@ async fn run_command(cx: &Context, command: Command, cancel: Cancel, sink: &Sink
         Ok(None) => {}
         Err(Error::Cancelled) => sink.announce("Cancelled. Anything already downloaded has been kept.", Importance::Completion),
         Err(e) => {
-            send_snapshot(cx, sink);
+            shared.send_snapshot(sink);
             sink.send(UiEvent::Finished);
             sink.error(e);
             return;
         }
     }
-    send_snapshot(cx, sink);
+    shared.send_snapshot(sink);
     sink.send(UiEvent::Finished);
 }
 
 /// The user's own changes to the disk and the database. Each result goes to
 /// the Log; one line is spoken at the end. SPEC.md "Playing, renaming and
-/// deleting" and "Folders".
-fn local_command(cx: &Context, command: Command, sink: &Sink) {
-    sink.send(UiEvent::Activity(Activity::Changing));
-    let local = Local { store: &cx.store, library: &cx.library };
+/// deleting" and "Folders". They run while a sync or download does, except
+/// on the recordings it is fetching at that moment.
+fn local_command(shared: &Shared, store: &Store, library: &Library, command: Command, sink: &Sink) {
+    let _disk = shared.guard.lock();
+    let fetching = shared.guard.fetching();
+    let local = Local { store, library };
+    // Refuse a recording being fetched, naming it.
+    let wait = |id: &str, verb: &str| -> Option<Error> {
+        fetching.contains(id).then(|| {
+            let name = store.get(id).ok().flatten().map(|r| library::display_name(&r)).unwrap_or_default();
+            Error::Disk(format!("\"{name}\" is being downloaded, so it was not {verb}. Try again when the download finishes."))
+        })
+    };
+    // Refuse a folder holding a recording being fetched.
+    let busy_folder = |folder: &str, verb: &str| -> Option<Error> {
+        let inside = fetching.iter().any(|id| {
+            store.get(id).ok().flatten().and_then(|r| r.location).as_deref().and_then(library::folder_of) == Some(folder)
+        });
+        inside.then(|| {
+            Error::Disk(format!(
+                "A recording in the folder \"{folder}\" is being downloaded, so the folder was not {verb}. Try again when the download finishes."
+            ))
+        })
+    };
     let mut results: Vec<Result<String, Error>> = Vec::new();
     // What a group of results adds up to, when there is more than one.
     let summary: Option<(&str, usize)> = match command {
         Command::Rename(id, name) => {
-            results.push(local.rename(&id, &name));
+            results.push(match wait(&id, "renamed") {
+                Some(e) => Err(e),
+                None => local.rename(&id, &name),
+            });
             None
         }
         Command::Delete(ids) => {
             let n = ids.len();
             for id in &ids {
-                let state = cx.store.get(id).ok().flatten().map(|r| r.state);
+                if let Some(e) = wait(id, "deleted") {
+                    results.push(Err(e));
+                    continue;
+                }
+                let state = store.get(id).ok().flatten().map(|r| r.state);
                 results.push(match state {
                     Some(State::New | State::Failed) => local.skip(id),
                     _ => local.delete(id),
@@ -441,7 +503,10 @@ fn local_command(cx: &Context, command: Command, sink: &Sink) {
         Command::Skip(ids) => {
             let n = ids.len();
             for id in &ids {
-                results.push(local.skip(id));
+                results.push(match wait(id, "marked Don't download") {
+                    Some(e) => Err(e),
+                    None => local.skip(id),
+                });
             }
             Some(("marked Don't download", n))
         }
@@ -449,7 +514,7 @@ fn local_command(cx: &Context, command: Command, sink: &Sink) {
             let n = ids.len();
             let mut target = folder;
             if create && let Some(name) = target.clone() {
-                match cx.library.create_folder(&name) {
+                match library.create_folder(&name) {
                     Ok(made) => {
                         results.push(Ok(format!("Created the folder \"{made}\".")));
                         target = Some(made);
@@ -460,7 +525,10 @@ fn local_command(cx: &Context, command: Command, sink: &Sink) {
             }
             if results.iter().all(Result::is_ok) {
                 for id in &ids {
-                    results.push(local.move_to_folder(id, target.as_deref()));
+                    results.push(match wait(id, "moved") {
+                        Some(e) => Err(e),
+                        None => local.move_to_folder(id, target.as_deref()),
+                    });
                 }
             }
             Some(("moved", n))
@@ -470,11 +538,17 @@ fn local_command(cx: &Context, command: Command, sink: &Sink) {
             None
         }
         Command::RenameFolder(old, new) => {
-            results.push(local.rename_folder(&old, &new));
+            results.push(match busy_folder(&old, "renamed") {
+                Some(e) => Err(e),
+                None => local.rename_folder(&old, &new),
+            });
             None
         }
         Command::DeleteFolder(name) => {
-            results.push(local.delete_folder(&name));
+            results.push(match busy_folder(&name, "deleted") {
+                Some(e) => Err(e),
+                None => local.delete_folder(&name),
+            });
             None
         }
         _ => None,
@@ -489,8 +563,7 @@ fn local_command(cx: &Context, command: Command, sink: &Sink) {
     for line in done.iter().chain(&failed) {
         sink.log(line.clone());
     }
-    send_snapshot(cx, sink);
-    sink.send(UiEvent::Finished);
+    send_snapshot(store, library, sink);
     match (summary, failed.len()) {
         (Some((verb, n)), 0) if n > 1 => {
             sink.announce(format!("{n} recordings {verb}."), Importance::Completion)
@@ -508,8 +581,8 @@ fn local_command(cx: &Context, command: Command, sink: &Sink) {
     }
 }
 
-fn send_snapshot(cx: &Context, sink: &Sink) {
-    if let Some(s) = snapshot(&cx.store, &cx.library) {
+fn send_snapshot(store: &Store, library: &Library, sink: &Sink) {
+    if let Some(s) = snapshot(store, library) {
         sink.send(UiEvent::Snapshot(s));
     }
 }
@@ -547,6 +620,8 @@ fn snapshot(store: &Store, library: &Library) -> Option<Snapshot> {
                 status: r.status(),
                 incomplete: r.state == State::Failed
                     || (r.state == State::Downloaded && !(r.has_audio && r.has_transcript && r.has_summary)),
+                has_transcript: r.has_transcript,
+                has_summary: r.has_summary,
                 state: r.state,
                 location: r.location.clone(),
                 id: r.plaud_id,

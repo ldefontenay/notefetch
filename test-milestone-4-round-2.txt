@@ -1,0 +1,155 @@
+NoteFetch milestone 4, round 2: changes during a download, and the menus
+
+About 15 minutes. It checks the three changes from your answers in round 1:
+renaming, moving and deleting while a download runs; Open transcript and
+Open summary shown as unavailable when there is none; and the new setting
+for Delete on recordings never downloaded.
+
+It runs on the same test copy as before. Section 2 downloads, so it needs
+the sign-in and the internet.
+
+Please write your answers after each ANSWER line. Leave any you cannot do
+blank, and say so. Save the file when you are done.
+
+
+SECTION 1: THE MENUS
+
+1. In File Explorer, go to C:\Users\ldefo\dev\NoteFetch\test-data and press
+   Enter on "Start NoteFetch test.cmd". Straight away, without waiting for
+   "Sync finished.", press T to go to "Test lecture", press F2, type "Test
+   lecture early" and press Enter.
+   Expected: it renames at once, even if the sync is still running:
+   "Renamed "Test lecture, 21 Sep 2026, 1601" to "Test lecture early, 21
+   Sep 2026, 1601". ..." (If the sync had already finished, say so: the
+   step still shows the rename works.)
+   Then press F2 again, type "Test lecture" and press Enter to put it back.
+   Did both renames work? Had you heard "Sync finished." before the first?
+
+ANSWER:
+The sync happened to quickly. The rename worked fine.
+
+2. On "Test lecture", press the Applications key.
+   Expected: Open transcript and Open summary are unavailable, because it
+   has neither. Play, Open folder, Copy audio file path, Rename, Move to
+   folder and Delete are available. Press Escape, then press Ctrl+T.
+   Expected: the same message as in round 1, saying it has no transcript.
+   Was it so?
+
+ANSWER:
+Yes.
+3. Find a recording that has a transcript and summary (most downloaded
+   meetings do), and press the Applications key.
+   Expected: Open transcript and Open summary are available. Press Escape.
+   Then press Alt+R for the Recording menu and arrow to them: the same.
+   Press Escape twice.
+   Was it so?
+
+ANSWER:
+Yes.
+ANYTHING ODD:
+No.
+
+SECTION 2: CHANGES WHILE A DOWNLOAD RUNS
+
+NoteFetch downloads two recordings at a time, so with four selected, two
+download while the other two wait their turn. These steps need quick hands:
+if a download finishes before you get there, say so, and I will learn as
+much from that.
+
+4. Press Alt+S, choose "Not yet downloaded", then Alt+C. Choose four
+   recordings next to each other with long durations, if you can (an hour
+   or more), so the download takes a while. Put focus on the first, hold
+   Shift and press Down Arrow three times. Press Ctrl+D.
+   Expected: "Downloading 4 recordings."
+   Straight away, press Down Arrow until you reach the fourth (the last of
+   the four), and press Delete.
+   Expected: no question, since it is not downloaded. ""..." will not be
+   downloaded. It is listed in the Deleted view." It leaves the view at
+   once, even though the download keeps the other rows.
+   What did you hear?
+
+ANSWER:
+Its amazing how quicly the downloads went. I couldn't test it propperly. Happy to leave as is.
+5. Still while it downloads, press Up Arrow to reach the first of the four,
+   and press Delete.
+   Expected, if it is still downloading: ""..." is being downloaded, so it
+   was not deleted. Try again when the download finishes." Nothing else
+   changes. (If it had already finished, the usual delete question appears
+   instead: press N for No.)
+   What did you hear?
+ANSWER:
+I tried with one longer download again. It spoke the expected message and the downloaded wasn't deleted, just disappeared from the "no downloads" view soon after, with the download having completed.
+
+6. Still while it downloads, press Alt+S, choose "All recordings", then
+   Alt+C. Press T for "Test lecture", press Ctrl+Shift+M, choose "Not in a
+   folder" with the arrows, and press Enter.
+   Expected: it moves at once: "Moved "Test lecture, 21 Sep 2026, 1601" out
+   of its folder." The download carries on.
+   What did you hear?
+
+ANSWER:
+Downloads are to quick to test.
+7. Wait for the download to finish.
+   Expected: "Download finished. 3 recordings downloaded.": the four
+   chosen, less the one deleted in step 4. Then press Alt+G for the Log and
+   look for this line, a few lines down:
+   "Did not download "...", because it was deleted or marked Don't download
+   while it waited."
+   It is about the recording from step 4. Alt+C to return to the list.
+   Was it there, and was the count right?
+
+ANSWER:
+Could not test.
+
+8. Put "Test lecture" back: press T, Ctrl+Shift+M, choose "Neuroscience",
+   and press Enter.
+   Did it go back?
+
+ANSWER:
+Moving between folders works well, I tested it several times now.
+
+ANYTHING ODD:
+No.
+
+SECTION 3: THE NEW DELETE SETTING
+
+The Settings window comes in milestone 5, so this setting is changed by
+hand in the settings file for now.
+
+9. Close NoteFetch with Alt+F4. In File Explorer, open
+   C:\Users\ldefo\dev\NoteFetch\test-data\dev\notefetch.conf in Notepad.
+   Near the top, after "confirm_delete", there may be no line for the new
+   setting yet. At the end of the file, add a line of its own:
+   delete_marks_dont_download = no
+   Save and close Notepad. Start NoteFetch with "Start NoteFetch test.cmd"
+   and wait for "Sync finished."
+   Did NoteFetch start as usual, with nothing in the Log about the
+   settings?
+
+ANSWER:
+Yes, perfectly.
+10. Press Alt+S, choose "Not yet downloaded", then Alt+C. On the first
+    recording, press Delete.
+    Expected: nothing changes, and you hear: ""..." is not downloaded, so
+    there is nothing to delete. To leave a recording out of syncs, choose
+    Don't download from the context menu."
+    Is that clear?
+
+ANSWER:
+Yes
+11. Close NoteFetch, open notefetch.conf again, change "no" to "yes" on
+    that line (or delete the line), and save it.
+    Done?
+
+ANSWER:
+Yes
+ANYTHING ODD:
+No.
+
+ANYTHING ELSE
+Something aesthetic. I'd like my apps, including this one, to use cute distinct little sounds similar to those used in StableSound (check them out). This makes the app feel friendlier. Please include in the plan to design a little sound pallet for NoteFetch at a logical juncture. Another important development in my thinking is how user guides are presented. I want my apps to be easy for new users to get to grips with. You can see the user guide I wrote for Andre Louis's Clipman app on my fork of it on Github and also the one for my Photoscribe app. I'd want Notefetch to have a user guide written along similar principles, very humanised, with worked examples of how to use the app in little tutorials.
+Anything you noticed that is not covered above, including wording you would
+change.
+
+ANSWER:
+Not for now.

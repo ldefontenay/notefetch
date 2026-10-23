@@ -58,7 +58,7 @@ Plaud runs a hosted MCP server. NoteFetch is a native MCP client of that server.
 A modeless dialog built from a resource template, like StableSound's settings dialog. Controls, in tab order:
 
 1. "Show" combo box, with the choices "All recordings", "Downloaded", "Not yet downloaded", "Incomplete" and "Deleted". The Deleted view is part of the same list, not a separate window, so the keys and context menu work the same way everywhere.
-2. "Folder" combo box, with "All folders", "Not in a folder", then each folder by name in alphabetical order. See "Folders".
+2. "Folder" combo box, with "All folders", "Uncategorised", then each folder by name in alphabetical order. See "Folders".
 3. "Filter by name" edit box. Filtering happens locally as the user types, after a short pause.
 4. "Recordings" list view in report view, with the columns Name, Folder, Date, Duration and Status.
 5. Buttons: "Sync new", "Download selected", "Open folder".
@@ -131,7 +131,7 @@ These let the user work out which recording is which, give it a meaningful name,
 ### Renaming
 
 - F2 edits the name in place, as in File Explorer. Only the name part is edited; the date and time suffix is kept automatically, and so is a clash number such as " (2)" while the new name still clashes. A name that no longer clashes loses its number.
-- Only downloaded recordings can be renamed, since the name is the folder's name. Renaming, moving and deleting wait until any sync or download has finished, and say so if asked for meanwhile.
+- Only downloaded recordings can be renamed, since the name is the folder's name. Renaming, moving, deleting and the folder commands work while a sync or download runs, except on a recording being downloaded at that moment, or a folder holding one; the Log then says to try again when the download finishes. A recording deleted or marked Don't download while it waits to be downloaded is left out of that sync. Laurent asked for this in milestone 4.
 - Renaming changes the folder and every file inside it to the new name, and records the new name in the database and `metadata.json`.
 - Renaming is local only. Plaud's MCP server is read-only, so the name in the Plaud app does not change.
 - Sync never overwrites a local name.
@@ -143,7 +143,7 @@ These let the user work out which recording is which, give it a meaningful name,
 - Delete moves the recording's whole folder to the Recycle Bin, so it can also be restored from there.
 - A confirmation question is asked first, naming the recording and saying it will not be downloaded again unless the user chooses Download again. The question can be turned off in settings. It is on by default.
 - The database keeps the recording with the status "Deleted", so sync never downloads it again by itself.
-- Delete on a recording that was never downloaded marks it "Don't download" instead, without a question, since nothing on disk is lost. It then appears in the Deleted view.
+- Delete on a recording that was never downloaded marks it "Don't download" instead, without a question, since nothing on disk is lost. It then appears in the Deleted view. A setting turns this off, and Delete then leaves such a recording alone and says to use Don't download. It is on by default (Laurent, milestone 4).
 - Deleting in NoteFetch never deletes anything in the Plaud account.
 
 ### The Deleted view
@@ -165,9 +165,9 @@ Plaud's MCP server does not expose the folders in the Plaud app (proven in miles
 - **One level only.** Folders sit directly in the output folder, and recordings sit directly in a folder or directly in the output folder. Anything deeper is not scanned, and the Log says so once per refresh, naming the place.
 - **A recording is recognised by the Plaud ID in its `metadata.json`,** wherever it sits within those two levels, so moving it never makes it look deleted.
 - **Changes made in File Explorer are picked up** on the next refresh: a recording moved into or out of a folder, a folder renamed, an empty folder created. A folder deleted in File Explorer deletes the recordings inside it, so they count as Deleted, the same as any recording folder deleted outside the app.
-- **New downloads go to the output folder itself**, shown as "Not in a folder".
-- **Move to folder** (Ctrl+Shift+M, and on the context menu and Recording menu) works on all selected recordings. It opens a small dialog with a "Folders" list, holding "Not in a folder" and every folder, and a "New folder name" edit box. Enter or OK moves them; Escape cancels. Focus returns to the list, on the same recording. If a recording's files are open in another program, it is left where it was and the Log says why.
-- **The Folder menu** holds New folder, Rename folder and Delete folder. Rename and delete act on the folder chosen in the "Folder" combo box, and are disabled when "All folders" or "Not in a folder" is chosen. Delete folder asks first, then moves its recordings back to the output folder and removes the empty folder. It never sends recordings to the Recycle Bin.
+- **Recordings not in a category go in a folder called "Uncategorised"** in the output folder, so the output folder holds only folders, and each of those holds only recordings. New downloads go there. NoteFetch calls it "Uncategorised" everywhere. The name is reserved: no category can take it, and it cannot be renamed or deleted. A recording found directly in the output folder is moved into it at the next refresh, and the Log says so. Laurent chose this after milestone 4.
+- **Move to folder** (Ctrl+Shift+M, and on the context menu and Recording menu) works on all selected recordings. It opens a small dialog with a "Folders" list, holding "Uncategorised" and every folder, and a "New folder name" edit box. Enter or OK moves them; Escape cancels. Focus returns to the list, on the same recording. If a recording's files are open in another program, it is left where it was and the Log says why.
+- **The Folder menu** holds New folder, Rename folder and Delete folder. Rename and delete act on the folder chosen in the "Folder" combo box, and are disabled when "All folders" or "Uncategorised" is chosen. Delete folder asks first, then moves its recordings into Uncategorised and removes the empty folder. It never sends recordings to the Recycle Bin.
 - Folder names are cleaned in the same way as recording names.
 
 ## Context menu
@@ -189,6 +189,8 @@ Opened with the Applications key or Shift+F10 on the focused recording. The menu
   - Don't download
 - Deleted or skipped:
   - Download again (default)
+
+Open transcript and Open summary are unavailable when the recording has none; Ctrl+T and Ctrl+M still say why (Laurent, milestone 4).
 
 With several recordings selected, only the items that make sense for a group are available: Download, Move to folder, Delete and Don't download. The others are shown but disabled, so the menu does not change shape unexpectedly. The default item stays available: it is what Enter does, which is decided by the focused recording. Play plays the focused recording only; Download and Download again download every selected recording, as Ctrl+D does.
 
@@ -236,7 +238,7 @@ Settings choose which parts to download: audio, transcript, summary, and the oth
 - Start, finish and errors are announced through UI Automation notification events, and the same text always goes to the Log.
 - Progress is announced at most once every few seconds, for example "Downloaded 3 of 12". Every item is logged.
 - Settings allow announcements to be "All", "Errors and completion only" or "Off".
-- An optional short tone plays on completion (off by default).
+- A small palette of short sounds, in StableSound's style, answers what the user did: an action done, a download or sync finished, something refused, and a question or sign-in needed. Automatic work, such as the sync on start, is silent unless something goes wrong. Sounds can be turned off, and have a volume. Laurent asked for this after milestone 4.
 - No message boxes for routine information. Message boxes are used only for questions that need an answer, such as the first-sync choice or confirming exit during a download.
 
 ## Settings
@@ -247,10 +249,11 @@ A dialog built from a resource template, with:
 - sync on start (on or off);
 - download new recordings when syncing (on by default);
 - confirm before deleting (on or off);
+- Delete marks a recording never downloaded as Don't download (on by default);
 - what to download (audio, transcript, summary, other parts);
 - save notes as .txt instead of .md (off by default);
 - how many days to keep checking for missing transcripts and summaries;
-- announcement level and completion tone;
+- announcement level, sounds and their volume;
 - a Sign out button.
 
 ## Files the app writes

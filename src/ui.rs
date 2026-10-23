@@ -936,8 +936,8 @@ fn recording_menu(row: &Row, several: bool) -> Vec<MenuItem> {
         State::Downloaded => {
             let mut items = vec![
                 item(IDM_PLAY, "&Play\tEnter", true),
-                item(IDM_TRANSCRIPT, "Open &transcript\tCtrl+T", one),
-                item(IDM_SUMMARY, "Open su&mmary\tCtrl+M", one),
+                item(IDM_TRANSCRIPT, "Open &transcript\tCtrl+T", one && row.has_transcript),
+                item(IDM_SUMMARY, "Open su&mmary\tCtrl+M", one && row.has_summary),
                 item(IDM_OPEN_RECORDING, "Open &folder\tCtrl+Shift+O", one),
                 item(IDM_COPY_PATH, "&Copy audio file path\tCtrl+Shift+C", one),
                 item(IDM_RENAME, "&Rename\tF2", one),
@@ -1176,16 +1176,16 @@ fn copy_text(owner: HWND, text: &str) -> bool {
     }
 }
 
-/// Refuse to start a change while something else is running, saying why.
-fn busy(ui: &mut Ui, what: &str) -> bool {
-    if ui.busy {
-        say(
-            ui,
-            &format!("{what} cannot start while something else is running. Wait for it to finish, or press Escape to cancel it."),
-            Importance::Error,
-        );
+/// Start a change: rename, move, delete or a folder command. Changes run
+/// alongside a sync or download, which refuse only the recordings they are
+/// fetching at that moment (Laurent, milestone 4).
+fn change(ui: &mut Ui, command: Command) {
+    // A recording deleted or moved away leaves the view now, even while a
+    // download keeps the view's rows.
+    if let Command::Delete(ids) | Command::Skip(ids) | Command::Move { ids, .. } = &command {
+        ui.kept.retain(|k| !ids.contains(k));
     }
-    ui.busy
+    ui.worker.send(command, Cancel::new());
 }
 
 /// F2: edit the focused recording's name in the list, as in File Explorer.
@@ -1198,9 +1198,6 @@ fn rename_focused(dialog: HWND) {
                 &format!("\"{}\" is not downloaded, so there is nothing to rename yet. Press Enter on it to download it.", label(&row)),
                 Importance::Error,
             );
-            return None;
-        }
-        if busy(ui, "Renaming") {
             return None;
         }
         next_item(ui.list, -1, LVNI_FOCUSED)
@@ -1221,7 +1218,7 @@ fn rename_focused(dialog: HWND) {
 fn begin_rename(list: HWND, index: i32) -> bool {
     let name = with_ui(|ui| {
         let row = ui.visible.get(usize::try_from(index).ok()?).map(|&r| &ui.snapshot.rows[r])?;
-        (row.state == State::Downloaded && !ui.busy).then(|| row.plain_name.clone())
+        (row.state == State::Downloaded).then(|| row.plain_name.clone())
     })
     .flatten();
     let Some(name) = name else { return false };
@@ -1247,7 +1244,7 @@ fn end_rename(ui: &mut Ui, index: i32, text: &str) {
     if text.is_empty() {
         say(ui, &format!("A name cannot be empty, so \"{}\" was not renamed.", label(&row)), Importance::Error);
     } else if text != row.plain_name {
-        start(ui, Command::Rename(row.id.clone(), text.to_string()), "Renaming");
+        change(ui, Command::Rename(row.id.clone(), text.to_string()));
     }
 }
 
@@ -1263,15 +1260,23 @@ fn delete_selected(dialog: HWND) {
         }
         let on_disk: Vec<&Row> = rows.iter().filter(|r| r.state == State::Downloaded).collect();
         let never: Vec<&Row> = rows.iter().filter(|r| matches!(r.state, State::New | State::Failed)).collect();
+        // With the setting off, Delete leaves recordings never downloaded
+        // alone. Laurent, milestone 4.
+        let never = if ui.config.delete_marks_dont_download { never } else { Vec::new() };
+        if on_disk.is_empty() && never.is_empty() && rows.iter().any(|r| matches!(r.state, State::New | State::Failed)) {
+            let what = match rows.as_slice() {
+                [one] => format!("\"{}\" is not downloaded, so there is nothing to delete.", label(one)),
+                _ => "The selected recordings are not downloaded, so there is nothing to delete.".to_string(),
+            };
+            say(ui, &format!("{what} To leave a recording out of syncs, choose Don't download from the context menu."), Importance::Error);
+            return None;
+        }
         if on_disk.is_empty() && never.is_empty() {
             say(
                 ui,
                 "The selected recordings are already deleted. To bring one back, press Enter on it to download it again.",
                 Importance::Error,
             );
-            return None;
-        }
-        if busy(ui, "Deleting") {
             return None;
         }
         let ids: Vec<String> = on_disk.iter().chain(&never).map(|r| r.id.clone()).collect();
@@ -1292,7 +1297,7 @@ fn delete_selected(dialog: HWND) {
             return;
         }
     }
-    with_ui(|ui| start(ui, Command::Delete(ids), "Deleting"));
+    with_ui(|ui| change(ui, Command::Delete(ids)));
     focus_list(dialog);
 }
 
@@ -1329,9 +1334,7 @@ fn skip_selected(ui: &mut Ui) {
         );
         return;
     }
-    if !busy(ui, "Don't download") {
-        start(ui, Command::Skip(ids), "Don't download");
-    }
+    change(ui, Command::Skip(ids));
 }
 
 fn focus_list(dialog: HWND) {
@@ -1366,9 +1369,6 @@ fn move_selected(dialog: HWND) {
             say(ui, why, Importance::Error);
             return None;
         }
-        if busy(ui, "Moving") {
-            return None;
-        }
         if on_disk.len() < rows.len() {
             let n = rows.len() - on_disk.len();
             log(ui, &format!("{n} of the selected recordings are not downloaded, so they will not be moved."));
@@ -1387,7 +1387,7 @@ fn move_selected(dialog: HWND) {
     }
     match choice.result {
         Some((folder, create)) => {
-            with_ui(|ui| start(ui, Command::Move { ids, folder, create }, "Moving"));
+            with_ui(|ui| change(ui, Command::Move { ids, folder, create }));
         }
         None => {
             with_ui(|ui| log(ui, "Nothing was moved."));
@@ -1529,12 +1529,9 @@ unsafe extern "system" fn name_proc(hwnd: HWND, message: u32, wparam: WPARAM, lp
 }
 
 fn new_folder(dialog: HWND) {
-    if with_ui(|ui| busy(ui, "Creating a folder")).unwrap_or(true) {
-        return;
-    }
     let name = ask_name(dialog, "New folder", "");
     with_ui(|ui| match name {
-        Some(n) => start(ui, Command::NewFolder(n), "Creating a folder"),
+        Some(n) => change(ui, Command::NewFolder(n)),
         None => log(ui, "No folder was created."),
     });
     focus_list(dialog);
@@ -1545,15 +1542,12 @@ fn rename_folder(dialog: HWND) {
         with_ui(|ui| say(ui, "Choose a folder in the Folder box first, then choose Rename folder.", Importance::Error));
         return;
     };
-    if with_ui(|ui| busy(ui, "Renaming a folder")).unwrap_or(true) {
-        return;
-    }
     let new = ask_name(dialog, "Rename folder", &old);
     with_ui(|ui| match new {
         Some(n) if n != old => {
             // Keep showing the same folder, under its new name.
             ui.want_folder = Some(naming::clean(&n));
-            start(ui, Command::RenameFolder(old, n), "Renaming a folder");
+            change(ui, Command::RenameFolder(old, n));
         }
         _ => log(ui, &format!("The folder \"{old}\" was not renamed.")),
     });
@@ -1565,14 +1559,10 @@ fn delete_folder(dialog: HWND) {
         with_ui(|ui| say(ui, "Choose a folder in the Folder box first, then choose Delete folder.", Importance::Error));
         return;
     };
-    let count = with_ui(|ui| {
-        if busy(ui, "Deleting a folder") {
-            return None;
-        }
-        Some(ui.snapshot.rows.iter().filter(|r| r.folder.as_deref() == Some(name.as_str())).count())
-    })
-    .flatten();
-    let Some(count) = count else { return };
+    let Some(count) = with_ui(|ui| ui.snapshot.rows.iter().filter(|r| r.folder.as_deref() == Some(name.as_str())).count())
+    else {
+        return;
+    };
     let what = match count {
         0 => "It has no recordings in it.".to_string(),
         1 => "Its recording will move back to the output folder, shown as Not in a folder.".to_string(),
@@ -1585,7 +1575,7 @@ fn delete_folder(dialog: HWND) {
         unsafe { MessageBoxW(Some(dialog), PCWSTR(text.as_ptr()), w!("Delete folder"), MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON1) };
     with_ui(|ui| {
         if answer == IDYES {
-            start(ui, Command::DeleteFolder(name), "Deleting a folder");
+            change(ui, Command::DeleteFolder(name));
         } else {
             log(ui, &format!("The folder \"{name}\" was not deleted."));
         }
@@ -1721,6 +1711,8 @@ mod tests {
             state,
             location: None,
             incomplete,
+            has_transcript: true,
+            has_summary: true,
         }
     }
 
@@ -1800,6 +1792,16 @@ mod tests {
         assert_eq!(default_command(&new), IDM_DOWNLOAD);
         let gone = row(State::Deleted, "Old", None, false);
         assert_eq!(ids(&gone, false), [IDM_DOWNLOAD]);
+    }
+
+    #[test]
+    fn open_transcript_and_summary_are_unavailable_when_there_is_none() {
+        let enabled = |r: &Row, id| recording_menu(r, false).iter().any(|i| i.id == id && i.enabled);
+        let mut audio_only = row(State::Downloaded, "Lecture", None, true);
+        assert!(enabled(&audio_only, IDM_TRANSCRIPT) && enabled(&audio_only, IDM_SUMMARY));
+        audio_only.has_transcript = false;
+        audio_only.has_summary = false;
+        assert!(!enabled(&audio_only, IDM_TRANSCRIPT) && !enabled(&audio_only, IDM_SUMMARY));
     }
 
     #[test]

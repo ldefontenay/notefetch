@@ -27,6 +27,9 @@ pub struct Config {
     /// they wait in "Not yet downloaded" (Laurent, milestone 3 round 3).
     pub sync_downloads_new: bool,
     pub confirm_delete: bool,
+    /// Delete on a recording never downloaded marks it Don't download. Off,
+    /// Delete does nothing to it (Laurent, milestone 4).
+    pub delete_marks_dont_download: bool,
     pub download_audio: bool,
     pub download_transcript: bool,
     pub download_summary: bool,
@@ -48,6 +51,7 @@ impl Default for Config {
             sync_on_start: true,
             sync_downloads_new: true,
             confirm_delete: true,
+            delete_marks_dont_download: true,
             download_audio: true,
             download_transcript: true,
             download_summary: true,
@@ -86,6 +90,7 @@ impl Config {
                 "sync_on_start" => set_bool(&mut c.sync_on_start, value),
                 "sync_downloads_new" => set_bool(&mut c.sync_downloads_new, value),
                 "confirm_delete" => set_bool(&mut c.confirm_delete, value),
+                "delete_marks_dont_download" => set_bool(&mut c.delete_marks_dont_download, value),
                 "download_audio" => set_bool(&mut c.download_audio, value),
                 "download_transcript" => set_bool(&mut c.download_transcript, value),
                 "download_summary" => set_bool(&mut c.download_summary, value),
@@ -141,6 +146,10 @@ impl Config {
              # Ask before moving a recording to the Recycle Bin.\n\
              confirm_delete = {}\n\
              \n\
+             # Delete on a recording that was never downloaded marks it\n\
+             # Don't download. With no, Delete leaves it alone.\n\
+             delete_marks_dont_download = {}\n\
+             \n\
              # Which parts to download. \"Other\" means the cleaned transcript,\n\
              # the outline and the highlights.\n\
              download_audio = {}\n\
@@ -168,6 +177,7 @@ impl Config {
             yn(self.sync_on_start),
             yn(self.sync_downloads_new),
             yn(self.confirm_delete),
+            yn(self.delete_marks_dont_download),
             yn(self.download_audio),
             yn(self.download_transcript),
             yn(self.download_summary),
@@ -285,6 +295,7 @@ mod tests {
             output_folder: PathBuf::from(r"D:\Lectures"),
             download_other: false,
             sync_downloads_new: false,
+            delete_marks_dont_download: false,
             notes_as_txt: true,
             retry_days: 30,
             announcements: Announcements::ErrorsAndCompletion,

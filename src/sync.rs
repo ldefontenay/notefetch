@@ -9,7 +9,8 @@
 //! Progress and results come out as [`Event`]s. The interface turns them into
 //! Log lines and announcements; the `--sync` developer flag prints them.
 
-use std::sync::{Arc, Mutex};
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
@@ -51,6 +52,48 @@ pub struct Engine {
     pub store: Mutex<Store>,
     pub library: Library,
     pub config: Config,
+    pub guard: Arc<Guard>,
+}
+
+/// Keeps the user's own changes apart from fetching, so a sync can run while
+/// the user renames, moves or deletes other recordings (Laurent, milestone 4).
+/// A change holds the disk lock while it runs. A fetch claims its recording
+/// under the same lock, so a change never starts on a recording being
+/// fetched, and a fetch never starts in the middle of a change.
+#[derive(Default)]
+pub struct Guard {
+    disk: Mutex<()>,
+    fetching: Mutex<HashSet<String>>,
+}
+
+impl Guard {
+    /// Held by each change, and by reconciling, which reads the whole disk.
+    pub fn lock(&self) -> MutexGuard<'_, ()> {
+        self.disk.lock().unwrap_or_else(|p| p.into_inner())
+    }
+
+    /// The recordings being fetched right now, by Plaud ID.
+    pub fn fetching(&self) -> HashSet<String> {
+        self.fetching.lock().unwrap_or_else(|p| p.into_inner()).clone()
+    }
+
+    fn claim(self: &Arc<Self>, id: &str) -> Claim {
+        let _disk = self.lock();
+        self.fetching.lock().unwrap_or_else(|p| p.into_inner()).insert(id.to_string());
+        Claim { guard: self.clone(), id: id.to_string() }
+    }
+}
+
+/// A recording being fetched, released when dropped.
+struct Claim {
+    guard: Arc<Guard>,
+    id: String,
+}
+
+impl Drop for Claim {
+    fn drop(&mut self) {
+        self.guard.fetching.lock().unwrap_or_else(|p| p.into_inner()).remove(&self.id);
+    }
 }
 
 #[derive(Debug, Default, PartialEq)]
@@ -105,6 +148,8 @@ impl Engine {
 
     /// Bring the database into line with the output folder.
     pub fn reconcile(&self, emit: &Emit) -> Result<()> {
+        // A rename half way through the scan could look like a deletion.
+        let _disk = self.guard.lock();
         match self.library.scan()? {
             Some(scan) => {
                 for line in self.library.reconcile(&self.store(), &scan)? {
@@ -212,25 +257,38 @@ impl Engine {
         emit: Emit,
     ) -> Result<(usize, usize, usize)> {
         let total = ids.len();
+        // As each recording stood when asked for, to tell a deletion made
+        // while it waited from a Download again.
+        let before: HashMap<String, State> = {
+            let store = self.store();
+            ids.iter().filter_map(|id| Some((id.clone(), store.get(id).ok().flatten()?.state))).collect()
+        };
         let gate = Arc::new(Semaphore::new(AT_ONCE));
         let mut tasks = JoinSet::new();
         for id in ids {
             let (engine, gate, cancel, emit) = (self.clone(), gate.clone(), cancel.clone(), emit.clone());
+            let was = before.get(&id).copied();
             tasks.spawn(async move {
                 let _permit = gate.acquire_owned().await;
                 if cancel.is_cancelled() {
                     return Err(Error::Cancelled);
                 }
+                let _claim = engine.guard.claim(&id);
+                if engine.left_out(&id, was, &emit) {
+                    return Ok(None);
+                }
                 let result = engine.fetch_one(&id, &cancel).await;
                 engine.after_fetch(&id, &result, fold_checks, &emit);
-                result
+                result.map(Some)
             });
         }
         let (mut fetched, mut checked, mut failed, mut done, mut cancelled) = (0, 0, 0, 0, false);
         emit(Event::Progress { done: 0, total });
         while let Some(joined) = tasks.join_next().await {
             match joined {
-                Ok(Ok(new)) => {
+                // Deleted while it waited: nothing to count but progress.
+                Ok(Ok(None)) => done += 1,
+                Ok(Ok(Some(new))) => {
                     if new.is_empty() {
                         checked += 1;
                     } else {
@@ -255,6 +313,23 @@ impl Engine {
             return Err(Error::Cancelled);
         }
         Ok((fetched, checked, failed))
+    }
+
+    /// True if the user deleted the recording, or chose Don't download, while
+    /// it waited to be fetched. It is left alone, and the Log says so.
+    fn left_out(&self, id: &str, was: Option<State>, emit: &Emit) -> bool {
+        let gone = |s: State| matches!(s, State::Deleted | State::Skipped);
+        let store = self.store();
+        let Ok(Some(r)) = store.get(id) else { return false };
+        if !gone(r.state) || was.is_some_and(gone) {
+            return false;
+        }
+        emit(Event::Log(format!(
+            "Did not download \"{}\", because it was deleted or marked Don't download while it waited.",
+            library::display_name(&r)
+        )));
+        emit(Event::Changed(id.to_string()));
+        true
     }
 
     fn after_fetch(&self, id: &str, result: &Result<Vec<String>>, fold_checks: bool, emit: &Emit) {
@@ -461,6 +536,15 @@ fn plural(n: usize, unit: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_claim_lasts_as_long_as_the_fetch() {
+        let guard = Arc::new(Guard::default());
+        let claim = guard.claim("a");
+        assert!(guard.fetching().contains("a"), "a change on it is refused meanwhile");
+        drop(claim);
+        assert!(guard.fetching().is_empty(), "and allowed again afterwards");
+    }
 
     #[test]
     fn the_plan_says_why_each_recording_is_fetched() {

@@ -76,6 +76,7 @@ async fn engine() -> Result<Arc<Engine>> {
         store: Mutex::new(store),
         library: library::Library::new(config.output_folder.clone()),
         config,
+        guard: Default::default(),
     }))
 }
 

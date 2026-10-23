@@ -2,6 +2,93 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-10-23: Milestone 4 finished, and your three ideas are in the plan
+
+### The short version
+
+- **Round 2 passed.** Everything you could test worked. Thank you. Your words are in PLAN.md.
+- **Milestone 4 is committed,** with round 2's work.
+- **Your three ideas are planned:**
+  - the Uncategorised folder, in milestone 5;
+  - a sound palette in StableSound's style, in milestone 6;
+  - a user guide with little tutorials, like your Clipman and Photo Scribe guides, in milestone 6.
+- **Next is milestone 5:** settings, the first-sync question, sync on start, and the Uncategorised folder.
+- **One small question below,** about recordings put straight into the output folder.
+- 76 tests pass and clippy is clean.
+
+### Round 2
+
+- The menus: Open transcript and Open summary unavailable when there is none, and available when there is one. Confirmed.
+- A recording being downloaded is refused, and finishes normally. Confirmed by your longer download.
+- Changes to a recording waiting its turn were too quick to catch. As you said, that stays as it is. The unit tests cover it.
+- The new Delete setting worked both ways.
+
+### The sound palette
+
+I looked at StableSound's tones: short notes with soft ends so they never click, rising for on and falling for off. NoteFetch would build its sounds the same way, in code, and play them through Windows itself, so no new library is needed.
+
+- **A first draft of four sounds:** done (a rename, move or delete worked), finished (a download or sync you started), refused (something could not be done), and attention (a question, or a sign-in is needed).
+- **Pitches of their own,** so NoteFetch cannot be mistaken for StableSound or TweakSound when they run together.
+- **Only for what you did,** the rule StableSound taught: the sync on start stays silent unless something goes wrong.
+- **You hear them before they go in.** A hidden command will play each one, so you can judge them in one sitting, as you did StableSound's.
+- A setting for sounds on or off, and the volume.
+
+### The user guide
+
+I read your Getting Started with Clipman guide (on the getting-started-guide branch of your fork) and Photo Scribe's help. NoteFetch's guide will follow the same shape:
+
+- About this guide, Why use NoteFetch, What NoteFetch does, and Words you will meet.
+- Parts as level 2 headings, tutorials as level 3, each with "What you will learn", a worked example, numbered steps saying what to press and what you will hear, and "What just happened".
+- The sounds NoteFetch makes, troubleshooting, a quick reference of keys, the files it keeps, and credits.
+- Example tutorials: sign in and fetch your first recordings; play a lecture and open its summary; rename a recording; sort a term's lectures into a category folder; delete one and bring it back.
+
+It is written in milestone 6, once everything it describes is built, so the steps are exactly what you will hear.
+
+### Question: a recording put straight into the output folder
+
+With the Uncategorised folder, the output folder should hold only folders of folders. But you could still move a recording folder straight into the output folder in File Explorer. My plan is that the next refresh moves it into Uncategorised, and the Log says so, so the app and File Explorer always agree. The other way would be to leave it there and show it as Uncategorised in NoteFetch, which means the two disagree. Is moving it into Uncategorised what you would expect?
+
+ANSWER:
+
+## 2026-10-19: Milestone 4 passed, and your requests are done
+
+### The short version
+
+- **Milestone 4 passed in full.** All 29 steps worked. It is committed.
+- **Your three requests are built:** changes during a sync, Open transcript and Open summary shown as unavailable when there is none, and a setting for what Delete does on recordings never downloaded.
+- **Please run test-milestone-4-round-2.txt.** 11 steps, about 15 minutes. Section 2 needs quick hands during a download.
+- **One question below,** about telling recording folders from category folders in File Explorer, with my ideas.
+- 76 tests pass and clippy is clean. The new work is not committed yet; I will commit it with your round 2 results.
+
+### What changed
+
+- **Renaming, moving and deleting now work during a sync or download.** The only things refused are a recording being downloaded at that moment, and a folder holding one. The Log names the recording and says to try again when the download finishes. A recording only waiting its turn is not refused: if you delete it, or choose Don't download, the download leaves it out, and the Log says so.
+- **Open transcript and Open summary** are unavailable in the context menu and the Recording menu when the recording has none. Ctrl+T and Ctrl+M still give the message you liked.
+- **New setting, delete_marks_dont_download,** on by default. Off, Delete on a recording never downloaded does nothing and says to use Don't download instead. It goes into the Settings window in milestone 5; round 2 changes it by hand in the settings file.
+- **The F2 edit box** stays as it is. JAWS reading the rest of the row after the edit box is JAWS reading the list behind it, and I know of no way to stop that from inside NoteFetch.
+- **Your findings are in the accessibility skill:** Enter in a list, the context menu, the greyed items, in-place editing and focus after delete, each with your words, so the next project starts from them.
+
+### What I checked
+
+- The unit tests cover the new guard that keeps changes away from downloads.
+- On a separate copy of the test data with no sign-in, I renamed a recording with F2 through the rebuilt background worker, and pressed Delete on a recording never downloaded with the new setting off. Both behaved as described. I then deleted that copy.
+- What I could not check: a real download alongside a change, because that needs your sign-in. That is section 2 of round 2.
+
+### Question: recording folders and category folders
+
+You asked how File Explorer could tell a folder holding one recording from a category folder like Neuroscience. Here are the options I see.
+
+- **Option 1, your idea: an "Uncategorised" folder.** Recordings not in a category go into a real folder called Uncategorised, so the output folder holds only category folders, and each of those holds only recordings. In NoteFetch, "Not in a folder" would become "Uncategorised" everywhere, so the app and File Explorer use the same word. The cost: one more level for everyone, a one-off move of your existing recordings into it (done safely, one recording at a time, the same way as Move to folder), and "Uncategorised" becomes a reserved name you cannot give a category.
+- **Option 2: leave it as it is.** Every recording folder ends with a date and time, and a category folder never does. No work, but you have to listen to the end of each name to know.
+- **Option 3: a marker in category names,** for example "Neuroscience (folder)". Easy to build, but it adds noise to every category name, and anything renamed in File Explorer would lose it.
+- I would not use icons or colours: they tell a screen reader nothing.
+
+My recommendation is option 1, always on rather than a setting, because the layout is then the same for everyone and the help can describe it simply. If you agree, I would build it in milestone 5, since it changes how the output folder is laid out and needs a careful one-off move.
+
+Which option would you like? If option 1, is "Uncategorised" the right name?
+
+ANSWER:
+Yes, go with option 1, and "uncategorised" is the right name.
 ## 2026-10-18: Milestone 4 built, ready for you to test
 
 ### The short version

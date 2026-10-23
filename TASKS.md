@@ -100,25 +100,29 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 - [x] Move to folder (Ctrl+Shift+M) with its small dialog, and the Folder menu (new, rename, delete).
 - [x] After each of these actions, focus stays on or near the same row, and the Log says what happened.
 - [x] Test script `test-milestone-4.txt` written. Built and checked on the machine first (see PLAN.md).
-- [ ] Laurent's results in `test-milestone-4.txt`. Check in particular:
-  - [ ] how JAWS reads the context menu and its default item;
-  - [ ] in-place rename;
-  - [ ] focus after delete;
-  - [ ] rows kept in the list during a download (from milestone 3, round 3).
+- [x] Laurent's results in `test-milestone-4.txt`. All 29 steps worked. Checked in particular:
+  - [x] how JAWS reads the context menu and its default item ("Play Enter", read as perfect);
+  - [x] in-place rename (kept; JAWS also reads the rest of the row, "not a biggy");
+  - [x] focus after delete;
+  - [x] rows kept in the list during a download (from milestone 3, round 3).
+- [x] After the test, from his answers: renaming, moving and deleting during a sync, except on what it is fetching; Open transcript and Open summary unavailable when there is none; the `delete_marks_dont_download` setting (in the Settings dialog in milestone 5).
+- [x] Laurent's results in `test-milestone-4-round-2.txt`: changes during a sync, and the menu items. All he could test worked; downloads were too quick to catch a change to a recording waiting its turn, and he is happy to leave that as it is.
+- [x] His answer on telling recording folders from category folders in File Explorer: an "Uncategorised" folder (log.md, 19 October 2026), built in milestone 5.
 
 ## Milestone 5: sign-in, first sync and settings
 
 - [ ] Sign in and sign out from the settings dialog. (From the File menu, with Escape and the five-minute timeout, done in milestone 3.)
 - [ ] The first-sync question (whole history, last N days, or start from now).
-- [ ] Settings dialog as described in SPEC.md, with the Windows folder picker. Include "Download new recordings when syncing" (`sync_downloads_new`).
+- [ ] Settings dialog as described in SPEC.md, with the Windows folder picker. Include "Download new recordings when syncing" (`sync_downloads_new`) and "Delete marks a recording never downloaded as Don't download" (`delete_marks_dont_download`).
 - [ ] Sync on start.
+- [ ] The "Uncategorised" folder (PLAN.md, 23 October 2026): new downloads go into it, "Not in a folder" becomes "Uncategorised" everywhere, the name is reserved, and existing recordings move into it once, safely, one at a time.
 - [ ] Test script and `test-milestone-5.txt`.
 
 ## Milestone 6: announcements, help and polish
 
 - [ ] UI Automation notification events for start, progress (throttled), completion and errors, with the three announcement levels.
-- [ ] Optional completion tone.
-- [ ] `help.html` compiled into the exe and written out on F1. Semantic headings, a keyboard reference as a list, and no tables unless they have proper headers.
+- [ ] A sound palette in StableSound's style (PLAN.md, 23 October 2026): a first draft Laurent can hear through a developer flag, then wired in for what he did only, with a setting for sounds and volume.
+- [ ] `help.html` compiled into the exe and written out on F1: a humanised user guide with little tutorials, along the lines of Laurent's Clipman and Photo Scribe guides (PLAN.md, 23 October 2026). Semantic headings, a keyboard reference as a list, and no tables unless they have proper headers.
 - [ ] Error messages reviewed so that every one says what happened and what to do next.
 - [ ] Test script and `test-milestone-6.txt`, run with JAWS and NVDA.
 
