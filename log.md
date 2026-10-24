@@ -2,6 +2,31 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-10-24: The sounds passed, and the missing ones are fixed
+
+### The short version
+
+- **The four sounds passed as they are.** Thank you. Your words are in PLAN.md.
+- **The missing sounds were a bug,** now fixed: renames, moves, deletes and folder changes report back to the window in a different way from a sync, and that way never reached the sounds.
+- **Your changes are made:** Quiet is the starting volume; a rename that works is silent; Attention plays only before a question NoteFetch asks by itself (signing in, the first sync), not before Delete or the others you ask for.
+- **Please run test-milestone-6-sounds-round-2.txt.** 7 steps, about 10 minutes.
+- 88 tests pass and clippy is clean. All committed.
+
+### When the sounds play now
+
+- **Done:** a move, delete, skip, new folder, folder rename or folder delete that worked. Not a rename of a recording.
+- **Finished:** a sync, download, sign-in or move to a new output folder that you started, and that went well.
+- **Refused:** straight away when something you pressed is refused, including a change. During a sync, if the sync itself hits a problem, Refused plays once at its end in place of Finished.
+- **Attention:** before "Sign in now?" and before the first-sync question. Nothing else.
+
+### One more fix found on the way
+
+- A refusal you pressed during a sync, such as starting a second sync, would have turned that sync's Finished into Refused at the end. Now the refusal sounds at once, and the sync still ends with Finished.
+
+### What I could not check
+
+- I cannot hear the sounds, so whether each now plays when it should is for round 2. I did not play any sound on your machine.
+
 ## 2026-10-24: Milestone 5 signed off, and the first draft of the sounds
 
 ### The short version

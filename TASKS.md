@@ -126,7 +126,8 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 
 - [ ] UI Automation notification events for start, progress (throttled), completion and errors, with the three announcement levels.
 - [x] A sound palette in StableSound's style (PLAN.md, 23 October 2026): a first draft Laurent can hear through a developer flag, then wired in for what he did only, with a setting for sounds and volume.
-- [ ] Laurent's verdict on the sounds in `test-milestone-6-sounds.txt`.
+- [x] Laurent's verdict on the sounds in `test-milestone-6-sounds.txt`: the sounds pass; four changes to when they play.
+- [ ] Laurent's results in `test-milestone-6-sounds-round-2.txt`.
 - [ ] `help.html` compiled into the exe and written out on F1: a humanised user guide with little tutorials, along the lines of Laurent's Clipman and Photo Scribe guides (PLAN.md, 23 October 2026). Semantic headings, a keyboard reference as a list, and no tables unless they have proper headers.
 - [ ] Error messages reviewed so that every one says what happened and what to do next.
 - [ ] Test script and `test-milestone-6.txt`, run with JAWS and NVDA.

@@ -724,7 +724,6 @@ fn close(hwnd: HWND) {
     .flatten();
     if let Some(question) = question {
         let text = wide(question);
-        attention();
         // A question the user must answer, which is what a message box is for.
         // SAFETY: a modal box owned by this window.
         let answer = unsafe { MessageBoxW(Some(hwnd), PCWSTR(text.as_ptr()), w!("NoteFetch"), MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) };
@@ -749,7 +748,20 @@ fn drain() {
         for e in events {
             match e {
                 UiEvent::Log(line) => log(ui, &line),
-                UiEvent::Announce(line, importance) => say(ui, &line, importance),
+                UiEvent::Announce(line, importance) => {
+                    log(ui, &line);
+                    speak(ui, &line, importance);
+                    // Something went wrong in the running command: Refused
+                    // once at its end, however many things did, in place of
+                    // Finished.
+                    if importance == Importance::Error {
+                        if ui.busy {
+                            ui.sound = Some(Sound::Refused);
+                        } else {
+                            play(ui, Sound::Refused);
+                        }
+                    }
+                }
                 UiEvent::Speak(line, importance) => speak(ui, &line, importance),
                 UiEvent::Progress { done, total } => {
                     let due = ui.last_progress.is_none_or(|t| t.elapsed() >= PROGRESS_EVERY);
@@ -780,6 +792,7 @@ fn drain() {
                     }
                 }
                 UiEvent::FirstSyncNeeded(waiting) => ui.first_sync = Some(waiting),
+                UiEvent::Sound(s) => play(ui, s),
                 UiEvent::Finished => {
                     ui.busy = false;
                     ui.cancel = None;
@@ -806,14 +819,10 @@ fn drain() {
 fn say(ui: &mut Ui, text: &str, importance: Importance) {
     log(ui, text);
     speak(ui, text, importance);
+    // Called on this thread only for what the user just pressed, so a
+    // refusal sounds at once, and leaves a running command's sound alone.
     if importance == Importance::Error {
-        // Once at the end of a running command, however many went wrong;
-        // straight away for a refusal of something just pressed.
-        if ui.busy {
-            ui.sound = Some(Sound::Refused);
-        } else {
-            play(ui, Sound::Refused);
-        }
+        play(ui, Sound::Refused);
     }
 }
 
@@ -824,7 +833,10 @@ fn play(ui: &Ui, s: Sound) {
     }
 }
 
-/// The Attention sound, just before a question the user must answer.
+/// The Attention sound, just before a question NoteFetch raises by itself:
+/// the sign-in and the first sync. Not before one the user has just asked
+/// for, such as Delete: "A bit too much, not necessary" (Laurent, milestone 6
+/// sounds round).
 fn attention() {
     with_ui(|ui| play(ui, Sound::Attention));
 }
@@ -1467,7 +1479,6 @@ fn delete_selected(dialog: HWND) {
     let Some((ids, question)) = plan else { return };
     if let Some(q) = question {
         let text = wide(&q);
-        attention();
         // A question the user must answer. Yes is the default, as in File
         // Explorer: the Recycle Bin can undo it.
         // SAFETY: a modal box owned by this window.
@@ -1751,7 +1762,6 @@ fn delete_folder(dialog: HWND) {
         n => format!("Its {n} recordings will move into Uncategorised."),
     };
     let text = wide(&format!("Delete the folder \"{name}\"?\r\n\r\n{what} Nothing goes to the Recycle Bin."));
-    attention();
     // A question the user must answer. Nothing is lost either way, but No
     // is the default, for caution (Laurent, milestone 5 round 2).
     // SAFETY: a modal box owned by this window.

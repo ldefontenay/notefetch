@@ -36,16 +36,16 @@ SECTION 1: HEARING THEM ON THEIR OWN
    click?
 
 ANSWER:
-
+Yes
 2. Does each one suit what it means? Can you tell all four apart without
    thinking, and tell them from StableSound's and TweakSound's sounds?
    Anything you would change about any of them (higher, lower, shorter,
    longer, a different shape)?
 
 ANSWER:
-
+Yes
 ANYTHING ODD:
-
+No.
 
 SECTION 2: IN THE APP
 
@@ -54,7 +54,7 @@ SECTION 2: IN THE APP
    Was it silent?
 
 ANSWER:
-
+It needed to sign in, and an appropriate sound pplayed. The finnished sound played once syncing was done, which is nice.
 4. Press Ctrl+Comma for Settings. Press Alt+P: "Play sounds for what you
    do", ticked. Press Alt+V for "Sound volume", Normal, and arrow down to
    Loud, then up to Quiet and back to Normal.
@@ -62,7 +62,7 @@ ANSWER:
    Which volume do you prefer? Choose it and press Enter.
 
 ANSWER:
-
+I chose the quiet volume. There, but subtle.
 5. Press Alt+C for the list and arrow to a downloaded recording in
    Neuroscience. Press F2, type a new name, such as sound test, and press
    Enter.
@@ -71,18 +71,18 @@ ANSWER:
    Did Done play, and did it sit well with JAWS speaking at the same time?
 
 ANSWER:
-
+No sound was played, but that's atually ok for a rename.
 6. Press Ctrl+S to sync.
    Expected: "Sync finished." and the Finished sound.
    Was it so?
-
 ANSWER:
-
+Yes
 7. Press Alt+L, then N for New folder. Type uncategorised and press Enter.
    Expected: the refusal is spoken, and you hear Refused.
    Was it so?
 
 ANSWER:
+No sound played. On this ocasion the refusal sound would have been good.
 
 8. In the list, on a downloaded recording, press Delete.
    Expected: the Attention sound, then the question "Move ... to the
@@ -90,7 +90,7 @@ ANSWER:
    Was it so? Is a sound before a question helpful, or too much?
 
 ANSWER:
-
+A bit too much, not necessary.
 9. Press Ctrl+Comma, Alt+P to untick "Play sounds for what you do", and
    Enter. Rename a recording with F2 as in step 5, and put it back.
    Expected: no sound. Then press Ctrl+Comma, Alt+P to tick it again, and
@@ -98,8 +98,9 @@ ANSWER:
    Was it silent while unticked?
 
 ANSWER:
-
+Yes
 ANYTHING ODD:
+No sound played at times when expected, see above.
 
 
 ANYTHING ELSE
@@ -107,3 +108,4 @@ Anything you noticed that is not covered above, including events you would
 like a sound for, or would rather were silent.
 
 ANSWER:
+None for now.

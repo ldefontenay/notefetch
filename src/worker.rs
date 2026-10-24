@@ -139,6 +139,10 @@ pub enum UiEvent {
     FirstSyncNeeded(Vec<(i64, u64)>),
     /// The command that was running has finished, one way or another.
     Finished,
+    /// A change the user made has worked or been refused, so the window
+    /// plays this sound at once: changes run alongside a sync, and do not
+    /// end with `Finished`.
+    Sound(crate::sound::Sound),
 }
 
 #[derive(Clone)]
@@ -586,10 +590,12 @@ async fn run_command(shared: &Shared, command: Command, cancel: Cancel, sink: &S
 /// on the recordings it is fetching at that moment.
 fn local_command(shared: &Shared, store: &Store, library: &Library, command: Command, sink: &Sink) {
     if shared.guard.moving.load(std::sync::atomic::Ordering::SeqCst) {
-        sink.announce(
-            "NoteFetch is moving your recordings to the new output folder, so nothing can be changed yet. Try again when it finishes.",
-            Importance::Error,
-        );
+        // Spoken rather than announced, so the refusal sounds now and the
+        // move still ends with Finished.
+        let line = "NoteFetch is moving your recordings to the new output folder, so nothing can be changed yet. Try again when it finishes.";
+        sink.log(line);
+        sink.send(UiEvent::Speak(line.into(), Importance::Error));
+        sink.send(UiEvent::Sound(crate::sound::Sound::Refused));
         return;
     }
     let _disk = shared.guard.lock();
@@ -615,6 +621,9 @@ fn local_command(shared: &Shared, store: &Store, library: &Library, command: Com
     };
     let mut results: Vec<Result<String, Error>> = Vec::new();
     // What a group of results adds up to, when there is more than one.
+    // A rename is heard in JAWS' own words, and needs no sound (Laurent,
+    // milestone 6 sounds round): only its refusal sounds.
+    let rename = matches!(command, Command::Rename(..));
     let summary: Option<(&str, usize)> = match command {
         Command::Rename(id, name) => {
             results.push(match wait(&id, "renamed") {
@@ -711,11 +720,17 @@ fn local_command(shared: &Shared, store: &Store, library: &Library, command: Com
                 sink.send(UiEvent::Speak(line.clone(), Importance::Completion));
             }
         }
-        (Some((verb, n)), bad) if n > 1 => sink.announce(
-            format!("{bad} of {n} recordings could not be {verb}. The Log says why for each."),
-            Importance::Error,
-        ),
+        (Some((verb, n)), bad) if n > 1 => {
+            let line = format!("{bad} of {n} recordings could not be {verb}. The Log says why for each.");
+            sink.log(line.clone());
+            sink.send(UiEvent::Speak(line, Importance::Error));
+        }
         (_, _) => sink.send(UiEvent::Speak(failed[0].clone(), Importance::Error)),
+    }
+    if !failed.is_empty() {
+        sink.send(UiEvent::Sound(crate::sound::Sound::Refused));
+    } else if !rename && !done.is_empty() {
+        sink.send(UiEvent::Sound(crate::sound::Sound::Done));
     }
 }
 

@@ -247,9 +247,6 @@ fn accept(dialog: HWND, s: &mut SettingsState, sign_in: bool) -> bool {
                 config.output_folder.display()
             );
             let text = wide(&question);
-            if s.original.sounds {
-                sound::play(Sound::Attention, s.original.sound_volume);
-            }
             // A question the user must answer, which is what a message box is for.
             // SAFETY: a modal box owned by this window.
             let answer = unsafe {

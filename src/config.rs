@@ -70,7 +70,7 @@ impl Default for Config {
             retry_days: 14,
             announcements: Announcements::All,
             sounds: true,
-            sound_volume: Volume::Normal,
+            sound_volume: Volume::Quiet,
             log_to_file: false,
         }
     }
@@ -340,11 +340,11 @@ mod tests {
 
     #[test]
     fn hand_edits_are_forgiving() {
-        let (c, problems) = Config::parse("  SYNC_ON_START = No \n# comment\nretry_days=7\ncompletion_tone = TRUE\nSound_Volume = Quiet\n");
+        let (c, problems) = Config::parse("  SYNC_ON_START = No \n# comment\nretry_days=7\ncompletion_tone = TRUE\nSound_Volume = Loud\n");
         assert!(problems.is_empty(), "an old completion_tone line is quietly accepted");
         assert!(!c.sync_on_start);
         assert_eq!(c.retry_days, 7);
-        assert_eq!(c.sound_volume, Volume::Quiet);
+        assert_eq!(c.sound_volume, Volume::Loud);
     }
 
     #[test]

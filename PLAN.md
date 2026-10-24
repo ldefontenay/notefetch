@@ -400,6 +400,16 @@ Built in `src/sound.rs`, wired in, and waiting for Laurent's ears (`test-milesto
 - **Settings:** "Play sounds for what you do" (Alt+P, on at first) and "Sound volume" (Alt+V: Quiet 0.07, Normal 0.15, Loud 0.3). Choosing a volume plays Done at it, so it can be judged before OK. `[proven]` by the probe: names and Alt letters correct. The old `completion_tone` line in a settings file is accepted and ignored.
 - **Developer flag** `--sounds` plays all four in turn, and `--sounds done` (or finished, refused, attention) one. `test-data\Play NoteFetch sounds.cmd` runs it.
 
+### The sound palette, round 1 results (24 October 2026)
+
+Laurent ran `test-milestone-6-sounds.txt`. The four sounds themselves passed as they are: each complete, no clipped start or click, each suits its meaning and is told apart from the others and from StableSound's and TweakSound's ("Yes" to both). The sign-in question's Attention was "an appropriate sound", and Finished after the sync that followed the sign-in "is nice". `[proven]`
+
+- **Quiet is now the default volume.** "I chose the quiet volume. There, but subtle."
+- **A rename makes no sound.** None played, which was a bug (below), but his verdict: "No sound was played, but that's atually ok for a rename." JAWS already says the new name. Its refusal still sounds.
+- **Refused for a change was missing:** "No sound played. On this ocasion the refusal sound would have been good." The cause: changes (rename, move, delete, skip, folders) run alongside a sync and report through their own events, never through the path that played sounds. They now send the window a sound of their own (`UiEvent::Sound`): Done when everything worked (except a rename), Refused when anything was refused. `[reasoned]` until round 2.
+- **No Attention before a question he has just asked for.** On the Delete question: "A bit too much, not necessary." Attention now plays only before the questions NoteFetch raises by itself, the sign-in and the first sync. Delete, Delete folder, closing while busy and moving to a new output folder are silent.
+- **Found while fixing it:** a refusal pressed during a sync (say, starting a second sync) would have replaced that sync's Finished with Refused. Now a refusal of a key press sounds at once and leaves the running command's sound alone; only errors in the running command itself turn its ending into Refused.
+
 ### Name: NoteFetch
 
 - Rejected names:
