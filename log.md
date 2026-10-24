@@ -36,6 +36,7 @@ What changed, for example:
 ### The release work
 
 - **The automatic build:** every time I push, GitHub builds NoteFetch, runs the tests and clippy on a fresh Windows machine. When we tag a version, it also makes a draft release with the exe and the zip, for you to check and publish by hand. Nothing is published by itself.
+- **Its first run found a real bug in the tests,** now fixed: they assumed the computer was on UK time, and GitHub's machines are on UTC, so every expected folder name was an hour out. NoteFetch itself was fine; the tests now always use UK time. The second run passed.
 - **The README** is in README.md, in StableSound's style, without its em dashes. Section 6 of the test asks you to read it.
 - **Still yours to decide, later:** writing to Plaud about the app and the name, checking the trademark registers, and making the repository public. I have not contacted anyone.
 

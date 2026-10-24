@@ -429,6 +429,7 @@ Built straight after the sounds sign-off, as Laurent asked: "Please plan to do a
 - **History scanned with gitleaks:** 15 commits, no leaks. Every file ever committed was listed: no test data, audio, databases or sign-in files. Run again just before the repository goes public.
 - **SignPath Foundation** (signpath.org/terms, read 24 October 2026, marked draft there): free signing for projects under an OSI licence with no proprietary parts, actively maintained, already released in the form to sign, built automatically from the repository (the new workflow), with MFA for everyone in the team, a "Code signing policy" section on the home page naming SignPath and the team roles, and a privacy statement. NoteFetch looks eligible once it is public and has a first release. It sends data only to Plaud, at the user's request, which fits the privacy rule. `[reasoned]`; their acceptance is at their discretion.
 - **Release exe:** 2.7 MB.
+- **The workflow's first run failed, usefully.** Ten tests expected UK folder names such as "Lecture, 24 Sep 2026, 1430", and the runner is on UTC, so it made "1330". `[proven]` by the run. The code was right; the tests depended on the machine's zone. Under test, `clock::to_local` now always uses Windows' rules for "GMT Standard Time", so the tests pass in any zone. The second run passed on the runner. `[proven]`
 
 ### Name: NoteFetch
 
