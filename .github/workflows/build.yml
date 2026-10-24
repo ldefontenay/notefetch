@@ -1,5 +1,5 @@
 # Build, test and clippy on every push and pull request. On a version tag
-# such as v0.1.0, also attach notefetch.exe and notefetch.zip to a draft
+# such as v1.0.0, also attach notefetch.exe and notefetch.zip to a draft
 # release, to be checked and published by hand. TASKS.md milestone 7.
 #
 # Output stays plain text: no colour codes (CLAUDE.md).

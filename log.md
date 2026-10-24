@@ -27,7 +27,7 @@ Newest entry first. Each entry starts with a level 2 heading holding the date an
 Shall I rewrite the author address to your GitHub noreply address before the repository goes public?
 
 ANSWER:
-
+No, ok to use laurentd@gmail.com, same as for PhotoScribe.
 ### Draft letter to Plaud
 
 Subject: NoteFetch, a free accessible Windows app for the Plaud MCP server
@@ -51,17 +51,17 @@ Laurent Cadet de Fontenay
 Is the letter right, and shall it go through Plaud's developer contact page under your name? (You would send it yourself, or tell me to fill in the form.)
 
 ANSWER:
-
+I'm not going to proactively contact Plaud. I'll react if approached.
 ### Going public
 
 When the letter is answered, or before? Shall I make the repository public once you say so, and then tag v0.1.0 for the first draft release?
 
 ANSWER:
-
+Make it public now. Would it be appropriate to change the version number to v1?
 Do you want to check the UK IPO and EUIPO registers yourself, or shall I try again another way?
 
 ANSWER:
-
+I'll approach any concerns reactively.
 ## 2026-10-24: NVDA now speaks, and About is a window
 
 ### The short version

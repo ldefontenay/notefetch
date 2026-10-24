@@ -141,7 +141,10 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 - [x] GitHub Actions workflow on a Windows runner: build, test, clippy, and on a version tag attach `notefetch.exe` and `notefetch.zip` to a draft release. (`.github/workflows/build.yml`.)
 - [x] Version resource and application manifest in the `.rc` file. (Since milestone 2; a test now keeps the version in step with Cargo.toml.)
 - [x] First draft of the README in StableSound's style: the download links first, then the problem, how to use it, accessibility, antivirus and SmartScreen, what has actually been tested, files written, building, known issues, and the licence.
-- [ ] Write to Plaud through their developer contact page: describe the app, check it is within their terms, and ask about use of the name.
+- [x] Write to Plaud through their developer contact page. (Decided against: Laurent will respond if Plaud gets in touch. Draft kept in `log.md`.)
 - [x] Check SignPath's eligibility for free open-source code signing. (Likely eligible once public and released; see PLAN.md, 24 October 2026.)
-- [ ] Scan the whole git history for secrets and test data before making the repository public. (First scan 24 October 2026: clean. Run again just before.)
+- [x] Scan the whole git history for secrets and test data before making the repository public. (Clean on 24 October 2026, twice: no secrets, test data or recording names.)
+- [x] Version 1.0.0 (Laurent, 24 October 2026).
 - [ ] Make the repository public.
+- [ ] Tag v1.0.0, check the draft release, and Laurent publishes it.
+- [ ] Apply to SignPath Foundation for code signing, once released (needs Laurent's account, with MFA).

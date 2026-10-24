@@ -462,6 +462,15 @@ Laurent ran `test-milestone-6-round-2.txt`, JAWS first, then NVDA. Every step as
 - **"Test a spoken announcement" is removed** from the Help menu, the guide and SPEC.md: "Yes. There are other ways of testing spoken announcements during development." The guide's troubleshooting now suggests Ctrl+S and listening for "Syncing with Plaud." instead.
 - Anything odd: "No, very good." Anything else: "No." Milestone 6 is signed off.
 
+### Release decisions (24 October 2026)
+
+Laurent's answers in `log.md`:
+
+- **No letter to Plaud.** "I'm not going to proactively contact Plaud. I'll react if approached." The draft stays in `log.md` should it be needed. The README and guide already say NoteFetch is not made, endorsed or supported by Plaud.
+- **Trademark registers not searched.** "I'll approach any concerns reactively." Web searches on 24 October 2026 found no product called NoteFetch.
+- **His Gmail address stays as the commit author:** "No, ok to use laurentd@gmail.com, same as for PhotoScribe." The history is not rewritten.
+- **Public now:** "Make it public now. Would it be appropriate to change the version number to v1?" Yes: the spec is built, every window has been tested over more than ten rounds with JAWS and two with NVDA, and a 0.x number would say it was not ready. The version is 1.0.0, and the tag v1.0.0 makes the first draft release, published by Laurent.
+
 ### Name: NoteFetch
 
 - Rejected names:
