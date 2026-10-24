@@ -1,0 +1,109 @@
+NoteFetch milestone 6 test: the sound palette, first draft
+
+About 20 minutes. NoteFetch now has four little sounds of its own, made the
+same way as TweakSound's: the same lead-in of a twelfth of a second you
+chose there, and its volume as "Normal". The notes are new, and none of
+them is a note StableSound or TweakSound plays.
+
+- Done: two quick notes rising. A change you made worked: a rename, move,
+  delete, skip or folder.
+- Finished: Done's two notes and then a higher one, like Done's bigger
+  sibling. Something you started has finished: a sync, a download, a
+  sign-in, or moving your recordings to a new output folder.
+- Refused: two notes falling, to an unsettled-sounding note. Something
+  could not be done, or went wrong.
+- Attention: one note, a short gap, then the same note higher, like a
+  call. NoteFetch has a question for you.
+
+They play only for what you did. The sync when NoteFetch starts is silent,
+unless something goes wrong.
+
+Nothing is fixed yet: pitches, lengths, volume and which events get a sound
+can all change. Describe anything in your own words.
+
+Please write your answers after each ANSWER line. Leave any you cannot do
+blank, and say so. Save the file when you are done.
+
+
+SECTION 1: HEARING THEM ON THEIR OWN
+
+1. In File Explorer, go to C:\Users\ldefo\dev\NoteFetch\test-data and press
+   Enter on "Play NoteFetch sounds.cmd". A console window says the four
+   names, and plays Done, Finished, Refused and Attention in that order,
+   with a pause between them. Press any key at the end to close it.
+   Run it two or three times if you like.
+   Did you hear all four, each one complete, with no clipped start and no
+   click?
+
+ANSWER:
+
+2. Does each one suit what it means? Can you tell all four apart without
+   thinking, and tell them from StableSound's and TweakSound's sounds?
+   Anything you would change about any of them (higher, lower, shorter,
+   longer, a different shape)?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 2: IN THE APP
+
+3. Press Enter on "Start NoteFetch test.cmd" and wait for "Sync finished."
+   Expected: no sound, since you did not start that sync.
+   Was it silent?
+
+ANSWER:
+
+4. Press Ctrl+Comma for Settings. Press Alt+P: "Play sounds for what you
+   do", ticked. Press Alt+V for "Sound volume", Normal, and arrow down to
+   Loud, then up to Quiet and back to Normal.
+   Expected: Done plays at each volume as you arrive on it.
+   Which volume do you prefer? Choose it and press Enter.
+
+ANSWER:
+
+5. Press Alt+C for the list and arrow to a downloaded recording in
+   Neuroscience. Press F2, type a new name, such as sound test, and press
+   Enter.
+   Expected: JAWS says it was renamed, and you hear Done.
+   Then press F2 again and put the old name back.
+   Did Done play, and did it sit well with JAWS speaking at the same time?
+
+ANSWER:
+
+6. Press Ctrl+S to sync.
+   Expected: "Sync finished." and the Finished sound.
+   Was it so?
+
+ANSWER:
+
+7. Press Alt+L, then N for New folder. Type uncategorised and press Enter.
+   Expected: the refusal is spoken, and you hear Refused.
+   Was it so?
+
+ANSWER:
+
+8. In the list, on a downloaded recording, press Delete.
+   Expected: the Attention sound, then the question "Move ... to the
+   Recycle Bin?". Press N for No.
+   Was it so? Is a sound before a question helpful, or too much?
+
+ANSWER:
+
+9. Press Ctrl+Comma, Alt+P to untick "Play sounds for what you do", and
+   Enter. Rename a recording with F2 as in step 5, and put it back.
+   Expected: no sound. Then press Ctrl+Comma, Alt+P to tick it again, and
+   Enter.
+   Was it silent while unticked?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+ANYTHING ELSE
+Anything you noticed that is not covered above, including events you would
+like a sound for, or would rather were silent.
+
+ANSWER:

@@ -120,12 +120,13 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 - [x] Accessibility probe run on Settings and the first-sync question: no defects.
 - [x] Test script `test-milestone-5.txt` written.
 - [x] Laurent's results in `test-milestone-5.txt`, and his changes (PLAN.md, 24 October 2026).
-- [ ] Laurent's results in `test-milestone-5-round-2.txt`.
+- [x] Laurent's results in `test-milestone-5-round-2.txt`, and his last three changes. Signed off (PLAN.md, 24 October 2026).
 
 ## Milestone 6: announcements, help and polish
 
 - [ ] UI Automation notification events for start, progress (throttled), completion and errors, with the three announcement levels.
-- [ ] A sound palette in StableSound's style (PLAN.md, 23 October 2026): a first draft Laurent can hear through a developer flag, then wired in for what he did only, with a setting for sounds and volume.
+- [x] A sound palette in StableSound's style (PLAN.md, 23 October 2026): a first draft Laurent can hear through a developer flag, then wired in for what he did only, with a setting for sounds and volume.
+- [ ] Laurent's verdict on the sounds in `test-milestone-6-sounds.txt`.
 - [ ] `help.html` compiled into the exe and written out on F1: a humanised user guide with little tutorials, along the lines of Laurent's Clipman and Photo Scribe guides (PLAN.md, 23 October 2026). Semantic headings, a keyboard reference as a list, and no tables unless they have proper headers.
 - [ ] Error messages reviewed so that every one says what happened and what to do next.
 - [ ] Test script and `test-milestone-6.txt`, run with JAWS and NVDA.

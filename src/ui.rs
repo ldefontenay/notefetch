@@ -41,6 +41,7 @@ use crate::cancel::Cancel;
 use crate::config::{Announcements, Config};
 use crate::library;
 use crate::naming;
+use crate::sound::{self, Sound};
 use crate::store::State;
 use crate::worker::{Activity, Command, Importance, Row, Snapshot, UiEvent, WM_APP_EVENTS, Worker};
 
@@ -88,6 +89,7 @@ const IDD_NAME: u16 = 120;
 const IDC_NAME_EDIT: i32 = 1202;
 
 /// Menu bar positions, for setting up a menu as it opens.
+const MENU_FILE: i32 = 0;
 const MENU_RECORDING: i32 = 1;
 const MENU_FOLDER: i32 = 2;
 /// Every command in the Recording menu that depends on the focused recording.
@@ -149,6 +151,13 @@ struct Ui {
     pending_select: Option<String>,
     /// A sign-in question is already showing or on its way.
     asking: bool,
+    /// When the sign-in Plaud refused was saved. A sign-in saved since
+    /// replaces it, so the File menu offers Sign in again only until then.
+    expired: Option<std::time::SystemTime>,
+    /// The sound for when the running command finishes: Done or Finished for
+    /// one the user started, Refused once anything has gone wrong, and none
+    /// for the sync on start that went well or a command cancelled.
+    sound: Option<Sound>,
     /// Recordings in the list when the running command started, by Plaud ID.
     /// They stay in the list until it finishes, even if they no longer match
     /// the Show choice, so "Not yet downloaded" does not shrink under the
@@ -412,6 +421,8 @@ fn init(dialog: HWND) {
             cancel: Some(startup),
             pending_select: None,
             asking: false,
+            expired: None,
+            sound: None,
             kept: Vec::new(),
             config,
             last_progress: None,
@@ -568,6 +579,7 @@ fn start(ui: &mut Ui, command: Command, what: &str) {
     let cancel = Cancel::new();
     ui.cancel = Some(cancel.clone());
     ui.busy = true;
+    ui.sound = Some(if command.is_local() { Sound::Done } else { Sound::Finished });
     ui.last_progress = None;
     ui.kept = ui.visible.iter().map(|&r| ui.snapshot.rows[r].id.clone()).collect();
     ui.worker.send(command, cancel);
@@ -582,6 +594,7 @@ fn cancel(ui: &mut Ui) {
         ),
         (Some(c), true) => {
             c.cancel();
+            ui.sound = None;
             say(ui, "Cancelling.", Importance::Completion);
         }
         _ => say(ui, "Nothing is running, so there is nothing to cancel.", Importance::Completion),
@@ -594,6 +607,7 @@ fn ask_first_sync(hwnd: HWND) {
     let say_error = Box::new(|text: &str| {
         with_ui(|ui| say(ui, text, Importance::Error));
     });
+    attention();
     let choice = crate::dialogs::first_sync(hwnd, &waiting, say_error);
     with_ui(|ui| match choice {
         Some(c) => start(ui, Command::FirstSync(c), "The first sync"),
@@ -627,7 +641,7 @@ fn open_settings(hwnd: HWND) {
             with_ui(|ui| say(ui, text, Importance::Error));
         }),
     };
-    let saved = crate::dialogs::settings(hwnd, &config, crate::auth::has_sign_in(), downloaded, hooks);
+    let saved = crate::dialogs::settings(hwnd, &config, with_ui(signed_in).unwrap_or(false), downloaded, hooks);
     with_ui(|ui| {
         let Some(saved) = saved else {
             log(ui, "Settings were not changed.");
@@ -668,6 +682,7 @@ fn ask_sign_in(hwnd: HWND, expired: bool) {
         "You are not signed in to Plaud. Sign in now?\r\n\r\nNoteFetch will open Plaud's sign-in page in your web browser."
     };
     let text = wide(question);
+    attention();
     // A question the user must answer, which is what a message box is for.
     // SAFETY: a modal box owned by this window.
     let answer = unsafe { MessageBoxW(Some(hwnd), PCWSTR(text.as_ptr()), w!("NoteFetch"), MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON1) };
@@ -709,6 +724,7 @@ fn close(hwnd: HWND) {
     .flatten();
     if let Some(question) = question {
         let text = wide(question);
+        attention();
         // A question the user must answer, which is what a message box is for.
         // SAFETY: a modal box owned by this window.
         let answer = unsafe { MessageBoxW(Some(hwnd), PCWSTR(text.as_ptr()), w!("NoteFetch"), MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) };
@@ -752,6 +768,9 @@ fn drain() {
                 UiEvent::Snapshot(s) => take_snapshot(ui, s),
                 UiEvent::Activity(a) => ui.activity = a,
                 UiEvent::SignInNeeded(expired) => {
+                    if expired {
+                        ui.expired = crate::auth::saved_at();
+                    }
                     if !ui.asking {
                         ui.asking = true;
                         // SAFETY: posting to this thread's own window.
@@ -764,6 +783,9 @@ fn drain() {
                 UiEvent::Finished => {
                     ui.busy = false;
                     ui.cancel = None;
+                    if let Some(s) = ui.sound.take() {
+                        play(ui, s);
+                    }
                     if !ui.kept.is_empty() {
                         ui.kept.clear();
                         apply_filter(ui);
@@ -784,6 +806,27 @@ fn drain() {
 fn say(ui: &mut Ui, text: &str, importance: Importance) {
     log(ui, text);
     speak(ui, text, importance);
+    if importance == Importance::Error {
+        // Once at the end of a running command, however many went wrong;
+        // straight away for a refusal of something just pressed.
+        if ui.busy {
+            ui.sound = Some(Sound::Refused);
+        } else {
+            play(ui, Sound::Refused);
+        }
+    }
+}
+
+/// Play one of NoteFetch's sounds, if the setting allows.
+fn play(ui: &Ui, s: Sound) {
+    if ui.config.sounds {
+        sound::play(s, ui.config.sound_volume);
+    }
+}
+
+/// The Attention sound, just before a question the user must answer.
+fn attention() {
+    with_ui(|ui| play(ui, Sound::Attention));
 }
 
 /// Speak a line already in the Log, if the announcement setting allows.
@@ -1121,14 +1164,21 @@ fn context_menu(dialog: HWND, coords: isize) {
     }
 }
 
-/// Set up a menu bar menu as it opens: the Recording menu from the focused
-/// recording, as its context menu would be, and the Folder menu from the
-/// Folder box.
+/// Set up a menu bar menu as it opens: the File menu from the sign-in, the
+/// Recording menu from the focused recording, as its context menu would be,
+/// and the Folder menu from the Folder box.
 fn init_menu(dialog: HWND, menu: HMENU) {
     // SAFETY: menu queries and changes on this window's own menu bar.
     unsafe {
         let bar = GetMenu(dialog);
-        if menu == GetSubMenu(bar, MENU_RECORDING) {
+        if menu == GetSubMenu(bar, MENU_FILE) {
+            // Sign in only when there is none, or Plaud refused it; Sign out
+            // whenever one is stored, even a refused one.
+            let Some(signed_in) = with_ui(signed_in) else { return };
+            let stored = crate::auth::has_sign_in();
+            let _ = EnableMenuItem(menu, IDM_SIGN_IN as u32, if signed_in { MF_GRAYED } else { MF_ENABLED });
+            let _ = EnableMenuItem(menu, IDM_SIGN_OUT as u32, if stored { MF_ENABLED } else { MF_GRAYED });
+        } else if menu == GetSubMenu(bar, MENU_RECORDING) {
             let state = with_ui(|ui| {
                 let several = selected_indices(ui.list).len() > 1;
                 let row = focused(ui);
@@ -1164,6 +1214,11 @@ fn init_menu(dialog: HWND, menu: HMENU) {
             }
         }
     }
+}
+
+/// Whether a sign-in is stored that Plaud has not refused.
+fn signed_in(ui: &mut Ui) -> bool {
+    crate::auth::has_sign_in() && (ui.expired.is_none() || ui.expired != crate::auth::saved_at())
 }
 
 /// The folder chosen in the Folder box, if it is one of the user's folders.
@@ -1412,6 +1467,7 @@ fn delete_selected(dialog: HWND) {
     let Some((ids, question)) = plan else { return };
     if let Some(q) = question {
         let text = wide(&q);
+        attention();
         // A question the user must answer. Yes is the default, as in File
         // Explorer: the Recycle Bin can undo it.
         // SAFETY: a modal box owned by this window.
@@ -1695,10 +1751,12 @@ fn delete_folder(dialog: HWND) {
         n => format!("Its {n} recordings will move into Uncategorised."),
     };
     let text = wide(&format!("Delete the folder \"{name}\"?\r\n\r\n{what} Nothing goes to the Recycle Bin."));
-    // A question the user must answer. Nothing is lost either way.
+    attention();
+    // A question the user must answer. Nothing is lost either way, but No
+    // is the default, for caution (Laurent, milestone 5 round 2).
     // SAFETY: a modal box owned by this window.
     let answer =
-        unsafe { MessageBoxW(Some(dialog), PCWSTR(text.as_ptr()), w!("Delete folder"), MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON1) };
+        unsafe { MessageBoxW(Some(dialog), PCWSTR(text.as_ptr()), w!("Delete folder"), MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) };
     with_ui(|ui| {
         if answer == IDYES {
             change(ui, Command::DeleteFolder(name));

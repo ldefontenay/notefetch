@@ -20,7 +20,8 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::{HSTRING, PCWSTR, w};
 
 use crate::clock;
-use crate::config::{Announcements, Config};
+use crate::config::{Announcements, Config, Volume};
+use crate::sound::{self, Sound};
 use crate::sync::FirstSync;
 use crate::ui::{dialog_text, item, resource, send, wide};
 
@@ -41,6 +42,8 @@ const IDC_SET_DAYS: i32 = 1312;
 const IDC_SET_ANNOUNCE: i32 = 1313;
 const IDC_SET_LOG_FILE: i32 = 1314;
 const IDC_SET_ACCOUNT: i32 = 1315;
+const IDC_SET_SOUNDS: i32 = 1316;
+const IDC_SET_VOLUME: i32 = 1317;
 const IDD_FIRST: u16 = 140;
 const IDC_FIRST_INTRO: i32 = 1401;
 const IDC_FIRST_ALL: i32 = 1402;
@@ -58,6 +61,10 @@ const ANNOUNCE_CHOICES: [(&str, Announcements); 3] = [
     ("Errors and completion only", Announcements::ErrorsAndCompletion),
     ("Off", Announcements::Off),
 ];
+
+const VOLUME_CHOICES: [(&str, Volume); 3] = [("Quiet", Volume::Quiet), ("Normal", Volume::Normal), ("Loud", Volume::Loud)];
+
+const CBN_SELCHANGE: u32 = 1;
 
 /// What a first sync offers to go back by default.
 const FIRST_SYNC_DAYS: u32 = 30;
@@ -164,8 +171,22 @@ fn fill_settings(dialog: HWND, s: &SettingsState) {
             send(combo, CB_SETCURSEL, i, 0);
         }
     }
+    set_check(dialog, IDC_SET_SOUNDS, c.sounds);
+    let combo = item(dialog, IDC_SET_VOLUME);
+    for (i, (label, v)) in VOLUME_CHOICES.iter().enumerate() {
+        let t = wide(label);
+        send(combo, CB_ADDSTRING, 0, t.as_ptr() as isize);
+        if *v == c.sound_volume {
+            send(combo, CB_SETCURSEL, i, 0);
+        }
+    }
     set_check(dialog, IDC_SET_LOG_FILE, c.log_to_file);
     set_text(dialog, IDC_SET_ACCOUNT, if s.signed_in { SIGN_OUT } else { SIGN_IN });
+}
+
+fn chosen_volume(dialog: HWND) -> Volume {
+    let i = send(item(dialog, IDC_SET_VOLUME), CB_GETCURSEL, 0, 0).max(0) as usize;
+    VOLUME_CHOICES.get(i).map_or(Volume::Normal, |c| c.1)
 }
 
 /// The settings as the controls have them, or the reason they cannot be used.
@@ -177,6 +198,7 @@ fn read_settings(dialog: HWND, s: &SettingsState) -> Result<Config, (&'static st
         .filter(|d| *d <= 3650)
         .ok_or(("Type the number of days to keep checking, such as 14, then choose OK again.", IDC_SET_DAYS))?;
     let chosen = send(item(dialog, IDC_SET_ANNOUNCE), CB_GETCURSEL, 0, 0).max(0) as usize;
+    let volume = chosen_volume(dialog);
     Ok(Config {
         output_folder: s.folder.clone(),
         sync_on_start: checked(dialog, IDC_SET_SYNC_START),
@@ -190,8 +212,9 @@ fn read_settings(dialog: HWND, s: &SettingsState) -> Result<Config, (&'static st
         notes_as_txt: checked(dialog, IDC_SET_TXT),
         retry_days,
         announcements: ANNOUNCE_CHOICES.get(chosen).map_or(Announcements::All, |c| c.1),
+        sounds: checked(dialog, IDC_SET_SOUNDS),
+        sound_volume: volume,
         log_to_file: checked(dialog, IDC_SET_LOG_FILE),
-        ..s.original.clone()
     })
 }
 
@@ -224,6 +247,9 @@ fn accept(dialog: HWND, s: &mut SettingsState, sign_in: bool) -> bool {
                 config.output_folder.display()
             );
             let text = wide(&question);
+            if s.original.sounds {
+                sound::play(Sound::Attention, s.original.sound_volume);
+            }
             // A question the user must answer, which is what a message box is for.
             // SAFETY: a modal box owned by this window.
             let answer = unsafe {
@@ -271,7 +297,15 @@ unsafe extern "system" fn settings_proc(hwnd: HWND, message: u32, wparam: WPARAM
         WM_COMMAND => {
             let id = (wparam.0 & 0xFFFF) as i32;
             let Some(s) = state() else { return 0 };
+            let code = ((wparam.0 >> 16) & 0xFFFF) as u32;
             match id {
+                // A choice of volume plays Done at that volume, so it can be
+                // judged before OK. Something the user did, so it may sound.
+                IDC_SET_VOLUME if code == CBN_SELCHANGE => {
+                    if checked(hwnd, IDC_SET_SOUNDS) {
+                        sound::play(Sound::Done, chosen_volume(hwnd));
+                    }
+                }
                 IDC_SET_BROWSE => {
                     if let Some(folder) = pick_folder(hwnd, &s.folder) {
                         s.folder = folder;

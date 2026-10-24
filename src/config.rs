@@ -19,6 +19,14 @@ pub enum Announcements {
     Off,
 }
 
+/// How loud NoteFetch's sounds are.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Volume {
+    Quiet,
+    Normal,
+    Loud,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Config {
     pub output_folder: PathBuf,
@@ -40,7 +48,9 @@ pub struct Config {
     /// Days after a recording's start during which missing parts are retried.
     pub retry_days: u32,
     pub announcements: Announcements,
-    pub completion_tone: bool,
+    /// Sounds for what the user did (PLAN.md, "A sound palette").
+    pub sounds: bool,
+    pub sound_volume: Volume,
     pub log_to_file: bool,
 }
 
@@ -59,7 +69,8 @@ impl Default for Config {
             notes_as_txt: false,
             retry_days: 14,
             announcements: Announcements::All,
-            completion_tone: false,
+            sounds: true,
+            sound_volume: Volume::Normal,
             log_to_file: false,
         }
     }
@@ -72,6 +83,9 @@ impl Config {
     pub fn parse(text: &str) -> (Config, Vec<String>) {
         let mut c = Config::default();
         let mut problems = Vec::new();
+        // Notepad and PowerShell can save a byte order mark at the start,
+        // which would otherwise hide the first setting's name.
+        let text = text.strip_prefix('\u{feff}').unwrap_or(text);
         for (number, raw) in text.lines().enumerate() {
             let line = raw.trim();
             if line.is_empty() || line.starts_with('#') {
@@ -105,7 +119,17 @@ impl Config {
                 }
                 .map(|a| c.announcements = a)
                 .is_some(),
-                "completion_tone" => set_bool(&mut c.completion_tone, value),
+                "sounds" => set_bool(&mut c.sounds, value),
+                "sound_volume" => match value.to_ascii_lowercase().as_str() {
+                    "quiet" => Some(Volume::Quiet),
+                    "normal" => Some(Volume::Normal),
+                    "loud" => Some(Volume::Loud),
+                    _ => None,
+                }
+                .map(|v| c.sound_volume = v)
+                .is_some(),
+                // Before milestone 6, which replaced it with the sounds.
+                "completion_tone" => true,
                 "log_to_file" => set_bool(&mut c.log_to_file, value),
                 _ => {
                     problems.push(format!("Line {}: \"{key}\" is not a NoteFetch setting, so it was ignored.", number + 1));
@@ -128,6 +152,11 @@ impl Config {
             Announcements::All => "all",
             Announcements::ErrorsAndCompletion => "errors and completion",
             Announcements::Off => "off",
+        };
+        let volume = match self.sound_volume {
+            Volume::Quiet => "quiet",
+            Volume::Normal => "normal",
+            Volume::Loud => "loud",
         };
         format!(
             "# NoteFetch settings. Safe to edit while NoteFetch is closed.\n\
@@ -168,8 +197,9 @@ impl Config {
              # What is spoken: all, errors and completion, or off.\n\
              announcements = {announcements}\n\
              \n\
-             # A short tone when a sync finishes.\n\
-             completion_tone = {}\n\
+             # Sounds for what you do, and how loud: quiet, normal or loud.\n\
+             sounds = {}\n\
+             sound_volume = {volume}\n\
              \n\
              # Also write the Log to notefetch.log.\n\
              log_to_file = {}\n",
@@ -184,7 +214,7 @@ impl Config {
             yn(self.download_other),
             yn(self.notes_as_txt),
             self.retry_days,
-            yn(self.completion_tone),
+            yn(self.sounds),
             yn(self.log_to_file),
         )
     }
@@ -299,6 +329,8 @@ mod tests {
             notes_as_txt: true,
             retry_days: 30,
             announcements: Announcements::ErrorsAndCompletion,
+            sounds: false,
+            sound_volume: Volume::Loud,
             ..Config::default()
         };
         let (back, problems) = Config::parse(&c.to_text());
@@ -308,11 +340,18 @@ mod tests {
 
     #[test]
     fn hand_edits_are_forgiving() {
-        let (c, problems) = Config::parse("  SYNC_ON_START = No \n# comment\nretry_days=7\ncompletion_tone = TRUE\n");
-        assert!(problems.is_empty());
+        let (c, problems) = Config::parse("  SYNC_ON_START = No \n# comment\nretry_days=7\ncompletion_tone = TRUE\nSound_Volume = Quiet\n");
+        assert!(problems.is_empty(), "an old completion_tone line is quietly accepted");
         assert!(!c.sync_on_start);
         assert_eq!(c.retry_days, 7);
-        assert!(c.completion_tone);
+        assert_eq!(c.sound_volume, Volume::Quiet);
+    }
+
+    #[test]
+    fn a_byte_order_mark_does_not_hide_the_first_setting() {
+        let (c, problems) = Config::parse("\u{feff}retry_days = 9\n");
+        assert!(problems.is_empty(), "{problems:?}");
+        assert_eq!(c.retry_days, 9);
     }
 
     #[test]

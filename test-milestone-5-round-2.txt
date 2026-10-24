@@ -18,7 +18,7 @@ SECTION 1: THE CHANGES
    Was it refused?
 
 ANSWER:
-
+Yes
 2. Press Ctrl+Comma for Settings, then Tab down to the download boxes.
    Expected: "Download audio", "Download transcripts", "Download
    summaries", and "Download other parts: cleaned transcript, outline and
@@ -26,7 +26,7 @@ ANSWER:
    Do they read better now?
 
 ANSWER:
-
+Yes
 3. Press Alt+B for Browse.
    Expected: the folder picker opens in the test-data folder, so the list
    holds "output" beside the other folders there, not Neuroscience and
@@ -35,7 +35,7 @@ ANSWER:
    Was it so?
 
 ANSWER:
-
+Yes, perfect.
 4. In File Explorer, in test-data, make the folder "output 2" again with
    Ctrl+Shift+N. In NoteFetch, press Ctrl+Comma, then Alt+B, choose
    "output 2", and press Enter on "Select Folder". Then press Enter for
@@ -47,13 +47,14 @@ ANSWER:
    Was No the default?
 
 ANSWER:
-
+Yes
 5. Press Alt+F, then O to sign out. Listen to the message.
    Expected: it ends "choose Sign in from the File menu or from Settings."
    Then sign in again from the File menu, with Alt+F, I.
    Was it so?
 
 ANSWER:
+Yes. Note: The sign in option is available in the file menu even when already signed in. This does no real harm, but can be confusing. Please have this option grayed out when already signed in, unless there is a good reason to leave it as is.
 
 6. Close NoteFetch. In test-data, press Enter on "Start NoteFetch first sync
    test.cmd" and sign in when asked. When the "First sync" window opens,
@@ -67,11 +68,13 @@ ANSWER:
    Is it now clear that the number of days can be changed?
 
 ANSWER:
+Yes, much better. Also brilliant how, if the dialogue is exited, the options are presented again on the next sync until a choice is made. Nice work.
 
 ANYTHING ODD:
-
+No.
 ANYTHING ELSE
 Anything you noticed that is not covered above, including wording you would
 change.
 
 ANSWER:
+No, happy to sign off this milestone.

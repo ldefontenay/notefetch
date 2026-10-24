@@ -359,7 +359,7 @@ Built and checked on the machine by tests (81), clippy, the probe and posted mes
 - **The first-sync question** replaces the "arrives in a later version" message. It is asked once the sync that found it has finished, so OK can start the sync at once. Three radio buttons, then the number of days: "Everything: 79 recordings, about 112 hours", "Only the last 30 days: 12 recordings, about 9 hours" (chosen at first), and "Nothing old: start from now, and download only new recordings". Typing a number of days chooses that option and its text follows the number. `[proven]` by the probe and a posted number: "Only the last 200 days: 24 recordings, about 10 hours". Cancel downloads nothing, and the next sync asks again. Whether JAWS reads the explanation at the top by itself is `[untested]`.
 - **The days box comes after the radio buttons,** because a box between two radio buttons would split their group, and the arrow keys would stop at it. `[reasoned]`
 - **Sync on start** was already in place since milestone 3; it is now in Settings.
-- **The completion tone setting** stays out of Settings, because milestone 6 replaces it with the sound palette.
+- **The completion tone setting** stays out of Settings, because milestone 6 replaces it with the sound palette (done: see The sound palette, first draft).
 - **New developer flag** `--first-sync-question` shows the question on its own, so it can be probed without signing in afresh. **New test launcher** `test-data\Start NoteFetch first sync test.cmd` starts an empty copy in `test-data\fresh`, for a real first sync.
 
 ### Milestone 5 results (24 October 2026)
@@ -376,6 +376,29 @@ His changes, all made the same day:
 - **The first-sync text says what is downloaded:** "instead of "recording history", say "audio, transcripts and summaries"."
 - **The days choice says it can be changed:** "for a new screenreader user going down the radio buttons, it may not be clear that the 30 days is customisable. Maybe change the lable to "specified duration: {number} days"." Now "Specified duration, the last 30 days: 12 recordings, about 9 hours", Alt+S, and the box below is "Specified duration, number of days:", so the two read as a pair. `[proven]` by the probe: names and Alt letters correct.
 - JAWS read the first-sync explanation by itself (step 19, "Yes"), so that is now `[proven]`.
+
+### Milestone 5 round 2, and sign-off (24 October 2026)
+
+Laurent ran `test-milestone-5-round-2.txt`: every change worked. "No, happy to sign off this milestone." On the first-sync question asking again until answered: "Also brilliant how, if the dialogue is exited, the options are presented again on the next sync until a choice is made."
+
+- **UK spelling throughout, both accepted when typed.** He agreed with the steer: "Yes."
+- **Delete folder now defaults to No; deleting recordings keeps Yes.** "Deleting folders should default to no. Deleting recordings to yes, as it could get frustrated when deleting multiple recordings and there is a good safeguard." (The safeguard is the Recycle Bin.)
+- **Sign in is unavailable in the File menu while signed in,** and Sign out while signed out. "The sign in option is available in the file menu even when already signed in. This does no real harm, but can be confusing. Please have this option grayed out when already signed in, unless there is a good reason to leave it as is." The one good reason is an expired sign-in: the file is still there but Plaud refuses it. So the window remembers when the refused sign-in was saved (`auth::saved_at`), and offers Sign in again until a newer one is saved. Settings' account button follows the same rule. `[proven]` on a scratch copy by reading the menu's state: with no sign-in, Sign in available and Sign out not; with one, the reverse. The expired case is `[reasoned]`.
+- **A settings file saved with a byte order mark** (as Notepad or PowerShell can) lost its first setting, found while probing. The mark is now ignored, with a test.
+
+### The sound palette, first draft (24 October 2026)
+
+Built in `src/sound.rs`, wired in, and waiting for Laurent's ears (`test-milestone-6-sounds.txt`).
+
+- **TweakSound's method, unchanged where it was proven:** sine notes rendered into a WAV in memory and played with `PlaySoundW`, which needs only the `Win32_Media_Audio` feature of the `windows` crate already used, no new dependency. Its lead-in of a twelfth of a second (Laurent's own choice in TweakSound round 3, against Bluetooth clipping), its volume of 0.15 ("Yes, right volume") as Normal, and its fades.
+- **NoteFetch's own notes:** only C sharp, D, F sharp and G, each at least a whole tone from StableSound's E, B and A and TweakSound's B and E. A test holds it.
+  - **Done:** D then F sharp, quickly rising. A rename, move, delete, skip or folder change worked.
+  - **Finished:** Done's two notes then the D an octave up, so it sounds like Done's bigger sibling. A sync, download, sign-in or output-folder move he started has finished.
+  - **Refused:** G falling to C sharp, a tritone, the most unresolved interval. Something could not be done, or went wrong.
+  - **Attention:** F sharp, a short gap, then the F sharp an octave up, like a call. Just before a question: sign in, delete, delete folder, closing while busy, moving recordings, and the first sync.
+- **When they play,** in the interface only: Done or Finished when a command he started ends well; Refused at once for a refusal of something just pressed, or once at the end of a running command, however many things went wrong; nothing for a command he cancelled; nothing for the sync on start unless something went wrong, the plan's one exception to "only for what the user did". `[reasoned]`
+- **Settings:** "Play sounds for what you do" (Alt+P, on at first) and "Sound volume" (Alt+V: Quiet 0.07, Normal 0.15, Loud 0.3). Choosing a volume plays Done at it, so it can be judged before OK. `[proven]` by the probe: names and Alt letters correct. The old `completion_tone` line in a settings file is accepted and ignored.
+- **Developer flag** `--sounds` plays all four in turn, and `--sounds done` (or finished, refused, attention) one. `test-data\Play NoteFetch sounds.cmd` runs it.
 
 ### Name: NoteFetch
 

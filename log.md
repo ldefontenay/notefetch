@@ -2,6 +2,46 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-10-24: Milestone 5 signed off, and the first draft of the sounds
+
+### The short version
+
+- **Milestone 5 is signed off.** Thank you. Your words are in PLAN.md.
+- **Your last three changes are made:** Delete folder now defaults to No (deleting recordings stays Yes); Sign in is unavailable in the File menu while you are signed in, and Sign out while you are not; and UK spelling stays throughout, as you agreed.
+- **Milestone 6 has begun with the sound palette.** NoteFetch now has four little sounds, wired in. Please hear them with test-milestone-6-sounds.txt: 9 steps, about 20 minutes.
+- I also fixed a bug I found while checking: a settings file saved by Notepad or PowerShell could lose its first setting.
+- 88 tests pass, clippy is clean, and the probe found no defects in Settings. All committed.
+
+### Sign in in the File menu
+
+- With no sign-in, Sign in is available and Sign out is not. Signed in, the reverse. I checked both by reading the menu on a scratch copy.
+- The one case where Sign in stays available while a sign-in is stored: when Plaud has refused it as expired. Then you need Sign in to get going again, so NoteFetch offers it until a new sign-in is saved. The Settings button follows the same rule.
+
+### The four sounds
+
+Made exactly as TweakSound's are, keeping what you settled there: the lead-in of a twelfth of a second against Bluetooth clipping, and its volume as "Normal". The notes are new: only C sharp, D, F sharp and G, none of which StableSound or TweakSound plays, and a test makes sure it stays so.
+
+- **Done:** two quick notes rising. A rename, move, delete, skip or folder change worked.
+- **Finished:** Done's two notes and then a higher one. A sync, download, sign-in or move of your recordings that you started has finished.
+- **Refused:** two notes falling to an unsettled note. Something could not be done, or went wrong.
+- **Attention:** a note, a short gap, then the same note higher, like a call. Just before a question.
+
+When they play:
+
+- Only for what you did. The sync on start is silent unless something goes wrong.
+- A refusal of something you just pressed sounds at once. During a sync, Refused plays once at the end, however many things went wrong, so a bad network does not make it beep over and over.
+- Nothing plays for something you cancelled with Escape.
+
+### Settings
+
+- **Play sounds for what you do** (Alt+P), on to begin with.
+- **Sound volume** (Alt+V): Quiet, Normal or Loud. Arrowing to a volume plays Done at it, so you can choose by ear.
+
+### What I did on your desktop
+
+- A scratch copy of NoteFetch opened a few times for the checks, with its sounds and announcements off, so nothing played or spoke. I closed it each time and deleted the copy. No keys were pressed on your behalf.
+- I made a new file, "Play NoteFetch sounds.cmd", in test-data.
+
 ## 2026-10-24: Milestone 5 passed, your changes are made
 
 ### The short version
@@ -38,13 +78,13 @@ The one place Windows itself is American, such as "Select Folder" in the folder 
 Do you agree: UK spelling throughout, both spellings accepted when typed?
 
 ANSWER:
-
+Yes.
 ### Question: should the Delete questions also default to No?
 
 Your change makes No the default for moving recordings. The question before deleting a recording, and the one before deleting a folder, still have Yes as the default. A deleted recording goes to the Recycle Bin and can be brought back, so it is less risky than a move, but the same caution could apply. Should those two default to No as well?
 
 ANSWER:
-
+Deleting folders should default to no. Deleting recordings to yes, as it could get frustrated when deleting multiple recordings and there is a good safeguard.
 ## 2026-10-23: Milestone 5 built, ready for you to test
 
 ### The short version

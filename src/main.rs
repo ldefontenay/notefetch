@@ -21,6 +21,8 @@
 //! - `--write-settings` writes the settings file with every setting in it.
 //! - `--first-sync-question` shows the first-sync question on its own, with
 //!   the recordings in the database, and prints the choice. Nothing is saved.
+//! - `--sounds` plays each of NoteFetch's sounds in turn at the volume in the
+//!   settings, and `--sounds done` (or finished, refused, attention) just one.
 //!
 //! Set `NOTEFETCH_DATA` to a folder such as `test-data\dev` to keep the
 //! settings, sign-in and database there instead of in the user's profile.
@@ -38,6 +40,7 @@ mod library;
 mod mcp;
 mod naming;
 mod plaud;
+mod sound;
 mod store;
 mod sync;
 mod ui;
@@ -172,6 +175,20 @@ async fn run(args: Vec<String>) -> Result<()> {
                 .collect();
             let choice = dialogs::first_sync(windows::Win32::Foundation::HWND::default(), &waiting, Box::new(|t| println!("{t}")));
             println!("Chosen: {choice:?}");
+        }
+        "--sounds" => {
+            // Each sound in turn, named first, with time to think between them.
+            let volume = load_config().sound_volume;
+            let only = args.get(1).map(|a| a.to_ascii_lowercase());
+            for s in sound::ALL {
+                let name = format!("{s:?}").to_ascii_lowercase();
+                if only.as_ref().is_some_and(|o| *o != name) {
+                    continue;
+                }
+                println!("{name}");
+                sound::play_and_wait(s, volume);
+                std::thread::sleep(std::time::Duration::from_millis(1500));
+            }
         }
         "--list" => {
             let store = store::Store::open(&config::local_dir().join("notefetch.db"))?;

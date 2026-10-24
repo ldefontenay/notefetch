@@ -55,7 +55,7 @@ pub enum Command {
 
 impl Command {
     /// Work on the disk and the database alone, with no need for Plaud.
-    fn is_local(&self) -> bool {
+    pub(crate) fn is_local(&self) -> bool {
         matches!(
             self,
             Command::Rename(..)

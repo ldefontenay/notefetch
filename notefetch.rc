@@ -85,6 +85,8 @@
 #define IDC_SET_ANNOUNCE   1313
 #define IDC_SET_LOG_FILE   1314
 #define IDC_SET_ACCOUNT    1315
+#define IDC_SET_SOUNDS     1316
+#define IDC_SET_VOLUME     1317
 #define IDD_FIRST           140
 #define IDC_FIRST_INTRO    1401
 #define IDC_FIRST_ALL      1402
@@ -150,10 +152,10 @@ END
 
 // Settings (Ctrl+Comma). SPEC.md "Settings", in its order. Rules 1 and 3
 // above apply. Alt letters, unique within this window: O B S N K L A T M R X
-// D E W, and I or U on the account button, whose text says Sign in or Sign
+// D E P V W, and I or U on the account button, whose text says Sign in or Sign
 // out. OK and Cancel have none: they are Enter and Escape. The output folder
 // is a single-line read-only box, which a screen reader reads in full.
-IDD_SETTINGS DIALOGEX 0, 0, 280, 286
+IDD_SETTINGS DIALOGEX 0, 0, 280, 330
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Settings"
 FONT 9, "Segoe UI", 400, 0, 0x1
@@ -174,10 +176,13 @@ BEGIN
     EDITTEXT        IDC_SET_DAYS, 7, 180, 40, 12, ES_NUMBER | ES_AUTOHSCROLL | WS_GROUP | WS_TABSTOP
     LTEXT           "Spoken announcem&ents:", -1, 7, 198, 266, 8
     COMBOBOX        IDC_SET_ANNOUNCE, 7, 208, 150, 60, CBS_DROPDOWNLIST | WS_VSCROLL | WS_GROUP | WS_TABSTOP
-    AUTOCHECKBOX    "Also &write the Log to the file notefetch.log", IDC_SET_LOG_FILE, 7, 228, 266, 10, WS_GROUP | WS_TABSTOP
-    PUSHBUTTON      "Sign &in to Plaud", IDC_SET_ACCOUNT, 7, 244, 100, 14, WS_GROUP | WS_TABSTOP
-    DEFPUSHBUTTON   "OK", IDOK, 169, 265, 50, 14, WS_GROUP | WS_TABSTOP
-    PUSHBUTTON      "Cancel", IDCANCEL, 223, 265, 50, 14, WS_TABSTOP
+    AUTOCHECKBOX    "&Play sounds for what you do", IDC_SET_SOUNDS, 7, 228, 266, 10, WS_GROUP | WS_TABSTOP
+    LTEXT           "Sound &volume:", -1, 7, 242, 266, 8
+    COMBOBOX        IDC_SET_VOLUME, 7, 252, 150, 60, CBS_DROPDOWNLIST | WS_VSCROLL | WS_GROUP | WS_TABSTOP
+    AUTOCHECKBOX    "Also &write the Log to the file notefetch.log", IDC_SET_LOG_FILE, 7, 272, 266, 10, WS_GROUP | WS_TABSTOP
+    PUSHBUTTON      "Sign &in to Plaud", IDC_SET_ACCOUNT, 7, 288, 100, 14, WS_GROUP | WS_TABSTOP
+    DEFPUSHBUTTON   "OK", IDOK, 169, 309, 50, 14, WS_GROUP | WS_TABSTOP
+    PUSHBUTTON      "Cancel", IDCANCEL, 223, 309, 50, 14, WS_TABSTOP
 END
 
 // The first-sync question. SPEC.md "Sync". The three choices are one group

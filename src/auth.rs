@@ -86,6 +86,12 @@ pub fn has_sign_in() -> bool {
     auth_path().is_file()
 }
 
+/// When the stored sign-in was last written, so the interface can tell an
+/// expired sign-in from a new one saved since, without reading either.
+pub fn saved_at() -> Option<std::time::SystemTime> {
+    std::fs::metadata(auth_path()).and_then(|m| m.modified()).ok()
+}
+
 /// The stored sign-in, if any.
 pub fn load() -> Result<Option<Tokens>> {
     let path = auth_path();
