@@ -145,8 +145,32 @@ pub fn now_utc() -> Stamp {
 
 /// Convert UTC to this computer's local time, using Windows' rules for the
 /// date in question.
+///
+/// Under test it is always UK time, which the tests' expected names are
+/// written in, so they pass on a computer in any zone, such as GitHub's
+/// build machines, which run on UTC.
 pub fn to_local(utc: &Stamp) -> Stamp {
+    #[cfg(test)]
+    return to_local_in(utc, Some(&zone("GMT Standard Time")));
+    #[cfg(not(test))]
     to_local_in(utc, None)
+}
+
+/// Windows' rules for one zone, by its key name, such as "GMT Standard Time".
+#[cfg(test)]
+pub fn zone(key: &str) -> DYNAMIC_TIME_ZONE_INFORMATION {
+    for i in 0.. {
+        let mut z = DYNAMIC_TIME_ZONE_INFORMATION::default();
+        // SAFETY: z is a live structure of the right size.
+        if unsafe { windows::Win32::System::Time::EnumDynamicTimeZoneInformation(i, &mut z) } != 0 {
+            break;
+        }
+        let name = String::from_utf16_lossy(&z.TimeZoneKeyName);
+        if name.trim_end_matches('\0') == key {
+            return z;
+        }
+    }
+    panic!("time zone {key} not found");
 }
 
 /// Convert UTC to local time in a given zone, or this computer's when `None`.
@@ -241,22 +265,6 @@ fn civil_from_days(z: i64) -> (i32, u32, u32) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use windows::Win32::System::Time::EnumDynamicTimeZoneInformation;
-
-    fn zone(key: &str) -> DYNAMIC_TIME_ZONE_INFORMATION {
-        for i in 0.. {
-            let mut z = DYNAMIC_TIME_ZONE_INFORMATION::default();
-            // SAFETY: z is a live structure of the right size.
-            if unsafe { EnumDynamicTimeZoneInformation(i, &mut z) } != 0 {
-                break;
-            }
-            let name = String::from_utf16_lossy(&z.TimeZoneKeyName);
-            if name.trim_end_matches('\0') == key {
-                return z;
-            }
-        }
-        panic!("time zone {key} not found");
-    }
 
     fn uk(text: &str) -> Stamp {
         to_local_in(&Stamp::parse(text).unwrap(), Some(&zone("GMT Standard Time")))
