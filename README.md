@@ -121,6 +121,33 @@ still happens once.
 
 Download NoteFetch only from [this repository's releases page][releases].
 
+## Code signing policy
+
+NoteFetch releases are not yet signed. NoteFetch is applying to
+[SignPath Foundation](https://signpath.org) for free code signing for
+open-source projects. If it is accepted, this section will read: free code
+signing provided by [SignPath.io](https://about.signpath.io), certificate by
+[SignPath Foundation](https://signpath.org).
+
+How releases are made, and will be signed:
+
+- Every release is built by the [build workflow](.github/workflows/build.yml)
+  on GitHub's own Windows runners, from the tagged source in this repository.
+  Nothing is built or signed on a personal computer.
+- Only `notefetch.exe`, built from this repository, is signed. No third-party
+  program is signed.
+- Each signing request is approved by hand before it is signed.
+
+Team roles:
+
+- Committer and reviewer: [Laurent Cadet de Fontenay](https://github.com/ldefontenay)
+- Approver: [Laurent Cadet de Fontenay](https://github.com/ldefontenay)
+
+Privacy: this program will not transfer any information to other networked
+systems unless specifically requested by the user or the person installing or
+operating it. NoteFetch talks only to Plaud, to fetch your own recordings, when
+you sign in or sync. See [Privacy](#privacy).
+
 ## What has actually been tested
 
 - **Screen reader:** JAWS on Windows 11, through ten rounds of testing by its

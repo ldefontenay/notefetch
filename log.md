@@ -2,6 +2,97 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-10-24: Version 1.0.0 is published, and a crash course on code signing
+
+### The short version
+
+- **The release is published.** github.com/ldefontenay/notefetch/releases/tag/v1.0.0 is marked Latest, and the README's download links work (I checked that the exe link answers).
+- **The README now has a "Code signing policy" section**, which SignPath requires. It says honestly that releases are not signed yet and that NoteFetch is applying. Once you are accepted, I change one sentence.
+- **The crash course is below**: what SignPath Foundation is, cost, time, how much trust it really brings, and the steps, with which ones are yours and which are mine.
+- **In brief:** it is free, it takes weeks rather than days, it is respected, and it makes NoteFetch's publisher show as "SignPath Foundation" instead of "Unknown publisher". It does not make the SmartScreen warning disappear on day one.
+- Three questions at the end.
+
+### What code signing is
+
+- A signature is a seal stamped into the exe. It says two things: who vouches for this file, and that not one byte has changed since it was sealed. If anyone tampers with the exe, the seal breaks and Windows says so.
+- The seal is made with a secret key that belongs to a certificate. A certificate is like a passport for software: a certificate authority (a company Windows trusts) has checked who the holder is before issuing it.
+- Without a signature, Windows shows "Unknown publisher", and SmartScreen and Edge are much more suspicious. That is the "Windows protected your PC" screen and Edge's two-step Keep.
+
+### What SignPath Foundation is
+
+- SignPath is a company in Austria that sells code signing services to businesses (SignPath.io). SignPath Foundation is its non-profit side, which signs open-source projects for free.
+- How it works: the Foundation holds a real code signing certificate, issued to "SignPath Foundation" by a certificate authority. Its secret key never leaves a hardware security module (a locked hardware box on their side), so nobody, including you or me, can ever copy it.
+- You never hold a certificate or a key. Instead, when GitHub builds a release, the build hands the unsigned exe to SignPath. You approve it on their website. SignPath checks that the file really came from your repository's build on GitHub's own computers, signs it, and hands it back to the build.
+- That check is the point. The Foundation is vouching that "this exe was built, untouched, from the public source code at github.com/ldefontenay/notefetch". Anyone can read that source code. It is not vouching for you personally.
+- Projects using it include Stellarium (the planetarium), Flameshot (a screenshot tool) and Git Extensions.
+
+### Cost
+
+- Free. Their words: "For OSS projects, our services are free of charge." No certificate to buy, no subscription.
+- For comparison, buying your own certificate costs very roughly 200 to 500 pounds a year, and the key must now live on a hardware token or a paid cloud service.
+
+### What they ask of you
+
+From their terms (signpath.org/terms, read today; the page is marked as a draft, so details may change):
+
+- An open-source licence (MIT is fine) and no proprietary parts. NoteFetch qualifies.
+- Already released, and actively maintained. Now true.
+- What the program does is documented. The README and guide cover it.
+- You only ask them to sign your own project, and nothing that is a hacking tool or that disrespects users' privacy.
+- Two-factor sign-in on your GitHub account and your SignPath account.
+- A "Code signing policy" section on the home page (now in the README), naming SignPath, the people involved, and a privacy statement.
+- Builds on GitHub's own runners, through their GitHub step. NoteFetch's build already runs on GitHub's Windows runners, so only one step needs adding.
+- Every signing request approved by hand, by you.
+- They can refuse an application, or stop signing, at their discretion. If something went badly wrong (for example a malware report), they can revoke the certificate.
+
+### How long it takes
+
+- They publish no timeframe. One project (DB Browser for SQLite) wrote that it waited "a few weeks" to be taken on, when SignPath's open-source programme was newer, and that problems were then fixed "within a few days".
+- My guess: two to six weeks from applying to the first signed release. After that, each release costs you a few minutes: an email, a click to approve, then publishing as before.
+
+### Does it really mean the app is trusted?
+
+The honest answer has three parts.
+
+- **What it does give:** Properties, Digital Signatures in Explorer shows a valid signature. "Unknown publisher" becomes "SignPath Foundation". Tampering is detectable. Antivirus programs are generally less suspicious of signed files. And it is well respected among developers: a shared certificate whose key is locked in hardware, and which only signs builds from public source, is arguably a stronger promise than a lone developer's certificate, which can sign anything on that developer's computer.
+- **What it does not give:** the publisher name is SignPath Foundation, not your name or NoteFetch. Users who look will see that, and the README explains it.
+- **SmartScreen:** this is the part people get wrong. Since 2024, no kind of certificate, not even the expensive "EV" ones, makes SmartScreen trust a new file straight away. Microsoft's own page says reputation is built up as people download and run the file. So signed NoteFetch may still show "Windows protected your PC" to the first people after each release. The difference is that the warning names a publisher instead of "Unknown publisher", which reassures people, and it should fade as downloads build up. SignPath Foundation's certificate is shared by many projects and may already carry some reputation, but I could not confirm from Microsoft how much that helps, so I do not promise it.
+
+### The steps
+
+What you do is marked "You". What I do is marked "Me". Nothing costs money.
+
+1. **You: check two-factor sign-in is on for GitHub.** On github.com, open Settings, then "Password and authentication". If "Two-factor authentication" says Enabled, this is done. If not, I will write a separate guide for it.
+2. **Me: done today.** The code signing policy section is in the README, and the build already runs on GitHub's runners.
+3. **You: apply at signpath.org/apply.** I could not read the form itself (it does not load for me), so I do not know its exact fields or how it reads with JAWS. If it fights you, tell me what you hear and I will help. Likely answers:
+   - Project name: NoteFetch
+   - Repository and home page: https://github.com/ldefontenay/notefetch
+   - Licence: MIT
+   - Description: A free, accessible Windows app for blind and partially sighted people that downloads their own Plaud recordings, transcripts and AI summaries to their computer, through Plaud's official MCP server. Built in Rust with native Win32 controls, tested with JAWS and NVDA.
+   - What will be signed: notefetch.exe, one file, built by GitHub Actions on GitHub-hosted Windows runners.
+   - Your name and email.
+4. **You: wait for their email.** Weeks, probably. They may ask questions; paste them into this log and I will help answer.
+5. **You: when accepted, sign in to SignPath** at app.signpath.io with the account they invite you to, and turn on two-factor sign-in there. For open-source projects they usually set up the project and its signing rules themselves.
+6. **You: tell me three names from SignPath**, which are not secret and can go in this log: the organisation ID (a long code of letters and numbers), the project slug, and the signing policy slug (probably "release-signing"). If you cannot find them, I will guide you through the pages.
+7. **You: create an API token in SignPath and store it in GitHub.** This one is a secret. Never put it in this log, which is public on GitHub. In GitHub: the repository's Settings, "Secrets and variables", Actions, "New repository secret", name it SIGNPATH_API_TOKEN, paste the token, and save. GitHub then hides it even from me.
+8. **Me: add the signing step to the build.** On a version tag, the build will upload the unsigned exe, send it to SignPath, wait for your approval, and attach the signed exe and zip to the draft release, as now.
+9. **You: approve each release.** When a release is tagged, SignPath emails you. Open the link, check it says NoteFetch and the right version, and choose Approve. Then publish the draft release on GitHub, as before (or ask me).
+10. **Both: check the signature.** You: in Explorer, on the downloaded notefetch.exe, press Alt+Enter for Properties, Ctrl+Tab to "Digital Signatures", and the list should say SignPath Foundation. Me: I check it with PowerShell as well.
+
+### Questions
+
+Is two-factor sign-in already on for your GitHub account?
+
+ANSWER:
+
+Shall I leave the application to you, using the answers above, or would you like me to try filling in the form through Chrome while you listen?
+
+ANSWER:
+
+One small thing I noticed: the exe's Properties give the company as "Laurent de Fontenay", while About and the README say "Laurent Cadet de Fontenay". Shall I make the exe say "Laurent Cadet de Fontenay" too, in the next release?
+
+ANSWER:
+
 ## 2026-10-24: NoteFetch is public, and version 1.0.0 is ready for you to publish
 
 ### The short version
@@ -21,7 +112,7 @@ Newest entry first. Each entry starts with a level 2 heading holding the date an
 Shall I publish it for you, or will you?
 
 ANSWER:
-
+Publish it please.
 ### What is left
 
 - **Code signing with SignPath Foundation**, which would stop the SmartScreen warning. They want a released, public project, which NoteFetch now is once you publish. The application needs your own account with two-factor sign-in, so it is yours to do; I can draft the "Code signing policy" section they ask for in the README when you are ready.
@@ -29,6 +120,8 @@ ANSWER:
 Would you like me to draft the SignPath code signing policy section now?
 
 ANSWER:
+Yes, and please write up a crash course for me on code signing with SignPath foundation. This is new to me, so I need a bit of education / hand-holding please.
+What is Signpath Foundation? Are there any costs involved? What are the timeframes? How well-respected is their service, i.e. does it really mean the app is trusted? Step by step instructions for me to get set up with them and get the app signed.
 
 ## 2026-10-24: Milestone 6 is signed off; the release is waiting on your decisions
 

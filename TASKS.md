@@ -147,5 +147,7 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 - [x] Version 1.0.0 (Laurent, 24 October 2026).
 - [x] Make the repository public. (24 October 2026, with a description and topics.)
 - [x] Tag v1.0.0 and check the draft release: both files attached, version 1.0.0 in the exe, release notes written.
-- [ ] Laurent publishes the draft release.
-- [ ] Apply to SignPath Foundation for code signing, once released (needs Laurent's account, with MFA).
+- [x] Laurent publishes the draft release. (Published at his request, 24 October 2026: "Publish it please.")
+- [x] Draft the "Code signing policy" section in the README.
+- [ ] Apply to SignPath Foundation for code signing, once released (needs Laurent's account, with MFA). Steps in `log.md`, 24 October 2026.
+- [ ] Once accepted: add the SignPath signing step to the build workflow, and change the README section to "Free code signing provided by SignPath.io, certificate by SignPath Foundation".

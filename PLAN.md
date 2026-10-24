@@ -470,6 +470,11 @@ Laurent's answers in `log.md`:
 - **Trademark registers not searched.** "I'll approach any concerns reactively." Web searches on 24 October 2026 found no product called NoteFetch.
 - **His Gmail address stays as the commit author:** "No, ok to use laurentd@gmail.com, same as for PhotoScribe." The history is not rewritten.
 - **Public now:** "Make it public now. Would it be appropriate to change the version number to v1?" Yes: the spec is built, every window has been tested over more than ten rounds with JAWS and two with NVDA, and a 0.x number would say it was not ready. The version is 1.0.0, and the tag v1.0.0 makes the first draft release, published by Laurent.
+- **Release published** on 24 October 2026 at his request: "Publish it please."
+- **Code signing:** "Yes, and please write up a crash course for me on code signing with SignPath foundation." The crash course is in `log.md`. The README has a "Code signing policy" section saying releases are not yet signed. Findings, from docs.signpath.io and Microsoft Learn on 24 October 2026:
+  - Signing uses `signpath/github-action-submit-signing-request@v3`, given the artifact ID from `actions/upload-artifact`, an API token secret, the organisation ID, project slug and signing policy slug. For open-source projects every job before the request must run on GitHub-hosted runners, which `build.yml` already does. Each request is approved by hand, so the wait timeout (default 600 seconds) needs raising.
+  - The publisher shown is "SignPath Foundation", not the project.
+  - EV certificates no longer bypass SmartScreen, and reputation builds per file as it is downloaded, so a signed release can still warn at first. `[reasoned]` from Microsoft's page; not observed with NoteFetch.
 
 ### Name: NoteFetch
 
