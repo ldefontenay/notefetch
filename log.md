@@ -2,6 +2,66 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-10-24: Milestone 6 is signed off; the release is waiting on your decisions
+
+### The short version
+
+- **Round 2 passed, every step, with JAWS and NVDA.** Thank you. Milestone 6 is signed off, with your words in PLAN.md. Good news that Narrator speaks too.
+- **"Test a spoken announcement" is gone** from the Help menu, the guide and SPEC.md, as you asked. The guide's troubleshooting now says to press Ctrl+S and listen for "Syncing with Plaud." instead.
+- **The skill is updated:** JAWS and Narrator do hear the new announcement method, so other apps can use it for every screen reader, with the live region added for NVDA.
+- **The README** now says NVDA was tested in two rounds and Narrator speaks announcements.
+- **The history scan is done again:** 19 commits, no secrets, no test data, no recording names. One thing to decide about your email, below.
+- **No test this time.** What is left of milestone 7 is yours to decide: four questions below.
+- 94 tests pass, clippy is clean. All committed.
+
+### What is left before the release
+
+- Writing to Plaud. A draft is below. I have not sent anything or contacted anyone.
+- The trademark registers. Web searches find no product called NoteFetch (only Fetchnotes, a notes app from 2012 to 2013, already known). The UK IPO and EUIPO search pages do not work for me, so the registers themselves are still unchecked. A search for "NoteFetch" at trademarks.ipo.gov.uk and at the EUIPO's eSearch takes a couple of minutes.
+- Making the repository public, then the first release (tag v0.1.0; the build attaches the exe and zip to a draft release for you to publish).
+
+### Your email in the history
+
+- Your Gmail address is not in any file, but it is the author address on all 19 commits, and it becomes visible once the repository is public. That is normal on GitHub, and your public projects may already show it. If you would rather not, GitHub can give you a private "noreply" address, and I can rewrite the history to use it before going public. Rewriting is safe now, while nobody else has a copy.
+
+Shall I rewrite the author address to your GitHub noreply address before the repository goes public?
+
+ANSWER:
+
+### Draft letter to Plaud
+
+Subject: NoteFetch, a free accessible Windows app for the Plaud MCP server
+
+Hello,
+
+I am a blind developer and a Plaud Note Pro user. I have written NoteFetch, a free, open-source Windows app (MIT licence) that lets screen reader users download their own Plaud recordings, transcripts and summaries to their computer, through your hosted MCP server at mcp.plaud.ai. Plaud's app and website are hard to use with a screen reader, and NoteFetch makes the recordings fully usable by keyboard with JAWS and NVDA.
+
+It signs each user in with their own Plaud account through your OAuth flow, using a fresh client registration and a loopback redirect, the same way as the open-source plaud-cli. It only reads: it uses list_files, get_file and get_transcript, never changes anything in Plaud, and sends nothing anywhere else. Sign-in tokens are encrypted on the user's computer.
+
+Before I publish it on GitHub, I would like to check two things:
+
+1. Is this use of the MCP server within your terms, including for other people who download the app?
+2. The app's name, NoteFetch, does not use the Plaud name, and its documentation says it is not made, endorsed or supported by Plaud. Is it all right to say that it works with Plaud, and to name Plaud in its description?
+
+I would be glad to share the code or answer any questions.
+
+Kind regards,
+Laurent Cadet de Fontenay
+
+Is the letter right, and shall it go through Plaud's developer contact page under your name? (You would send it yourself, or tell me to fill in the form.)
+
+ANSWER:
+
+### Going public
+
+When the letter is answered, or before? Shall I make the repository public once you say so, and then tag v0.1.0 for the first draft release?
+
+ANSWER:
+
+Do you want to check the UK IPO and EUIPO registers yourself, or shall I try again another way?
+
+ANSWER:
+
 ## 2026-10-24: NVDA now speaks, and About is a window
 
 ### The short version

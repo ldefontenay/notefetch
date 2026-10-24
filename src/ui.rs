@@ -69,7 +69,6 @@ const IDM_REFRESH: i32 = 2021;
 const IDM_CANCEL: i32 = 2022;
 const IDM_FIND: i32 = 2023;
 const IDM_OPEN_OUTPUT: i32 = 2024;
-const IDM_TEST_SPEECH: i32 = 2030;
 const IDM_HELP: i32 = 2031;
 const IDM_ABOUT: i32 = 2032;
 /// Enter in the list: the focused recording's default action.
@@ -630,11 +629,6 @@ fn command(hwnd: HWND, id: i32, code: u32) {
         IDM_EXIT => close(hwnd),
         IDM_HELP => open_help(hwnd),
         IDM_ABOUT => crate::dialogs::about(hwnd),
-        IDM_TEST_SPEECH => {
-            with_ui(|ui| {
-                say(ui, "This is a test announcement from NoteFetch. If you heard this, announcements work.", Importance::Completion)
-            });
-        }
         _ => {}
     }
 }

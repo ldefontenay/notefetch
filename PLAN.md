@@ -451,6 +451,17 @@ Laurent ran `test-milestone-6.txt` with JAWS, then sections 5 with NVDA 2026.2.
 - **Tab in the rename box** "moves to an edit field allowing the next item to be renamed. This might work visually, but could be confusing for a screenreader user." Tab and Shift+Tab now finish the edit as Enter does and leave focus on the same recording. A subclass of the edit box never saw the key, because the list handles it first; the message loop changes Tab to Enter while a name is being edited. `[proven]` with NVDA.
 - Laurent: "Please see if you can fix the NVDA issues without breaking the excellent Jaws functionality and we'll note the learning in the skill for creating accessible apps used here." The findings are in the skill's `references/announcements.md` and `references/dialogs.md`.
 
+### Milestone 6 round 2, and sign-off (24 October 2026)
+
+Laurent ran `test-milestone-6-round-2.txt`, JAWS first, then NVDA. Every step as expected. `[proven]`
+
+- **JAWS hears notifications raised on NoteFetch's own provider**, at start-up, after Ctrl+S, from the Help menu and from inside Settings, and the start-up row was read once. The `[untested]` above is now `[proven]`.
+- **NVDA** spoke every announcement through the live region: start-up, Ctrl+S, the Help menu test ("Yes, perfect."), Ctrl+A, the Settings refusal, and "Errors and completion only". The row was read once on start-up, on Tab and after a sync. About and Tab in the rename box behaved as with JAWS ("Yes, perfect.").
+- **About**: the whole text read by JAWS, and the wording right.
+- **Narrator** speaks the announcements too: "Incidentally, it works with Narrator too. I don't want to do extensive testing with Narrrator now, but it should already be workable." `[proven]` for announcements only.
+- **"Test a spoken announcement" is removed** from the Help menu, the guide and SPEC.md: "Yes. There are other ways of testing spoken announcements during development." The guide's troubleshooting now suggests Ctrl+S and listening for "Syncing with Plaud." instead.
+- Anything odd: "No, very good." Anything else: "No." Milestone 6 is signed off.
+
 ### Name: NoteFetch
 
 - Rejected names:

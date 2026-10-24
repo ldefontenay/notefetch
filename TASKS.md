@@ -133,8 +133,8 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 - [x] Test script `test-milestone-6.txt` written.
 - [x] Laurent's results in `test-milestone-6.txt`, with JAWS and NVDA: the guide and error messages signed off; About to become a window; NVDA heard no announcements and re-read the list row.
 - [x] NVDA fixes: a live region for NVDA's announcements, the list updated in place, the list filled before the window shows, Tab confirming a rename, and About as a window with the credit (PLAN.md, "Milestone 6 results, and NVDA").
-- [ ] Laurent's results in `test-milestone-6-round-2.txt`: JAWS still speaks everything, and NVDA now does.
-- [ ] Remove "Test a spoken announcement" from the Help menu once NVDA is signed off (Laurent's wish), with the guide and SPEC.md.
+- [x] Laurent's results in `test-milestone-6-round-2.txt`: JAWS still speaks everything, and NVDA now does. Narrator speaks the announcements too. Milestone 6 signed off.
+- [x] Remove "Test a spoken announcement" from the Help menu once NVDA is signed off (Laurent's wish), with the guide and SPEC.md.
 
 ## Milestone 7: release
 

@@ -104,7 +104,7 @@ The keys listed under "In the recordings list" work only when the list has focus
 - Escape: cancel the running operation. It does not close the app.
 - Alt+F4: exit. If a download is running, the app asks first.
 
-The app also has a menu bar (File, Recording, Folder, Actions, Help) that lists every command with its shortcut, so commands can be discovered without the help file. The Recording menu holds the same commands as the context menu. The Help menu holds "NoteFetch guide" (F1), "Test a spoken announcement", and "About NoteFetch". About is a small window: a single-line read-only box, labelled "Details", holding the version, what NoteFetch does, the credit "By Laurent Cadet de Fontenay, with assistance from Claude", the licence and "Press F1 for the guide", and an OK button. Enter or Escape closes it. Laurent asked for this in milestone 6, since an announcement was easily missed.
+The app also has a menu bar (File, Recording, Folder, Actions, Help) that lists every command with its shortcut, so commands can be discovered without the help file. The Recording menu holds the same commands as the context menu. The Help menu holds "NoteFetch guide" (F1) and "About NoteFetch". A "Test a spoken announcement" item served testing in milestones 3 to 6 and was removed at Laurent's request once NVDA spoke. About is a small window: a single-line read-only box, labelled "Details", holding the version, what NoteFetch does, the credit "By Laurent Cadet de Fontenay, with assistance from Claude", the licence and "Press F1 for the guide", and an OK button. Enter or Escape closes it. Laurent asked for this in milestone 6, since an announcement was easily missed.
 
 ## Sync
 

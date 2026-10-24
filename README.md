@@ -79,7 +79,8 @@ guide, with tutorials, in your browser.
 ## Accessibility
 
 This is the point of the project, not a feature of it. NoteFetch was built with
-and for a JAWS user, and every window has been tested by one.
+and for a JAWS user, and every window has been tested by one, and checked with
+NVDA.
 
 - **Real Win32 controls** from resource templates: a genuine list view, combo
   boxes, edit boxes and buttons that a screen reader already knows. No
@@ -127,8 +128,11 @@ Download NoteFetch only from [this repository's releases page][releases].
 - **Plaud:** one account on the free Starter plan, with about 80 recordings
   from a Plaud Note Pro.
 - **Uploading the audio** (Ogg Opus, `.ogg`) to Heidi Health worked.
-- **Not yet tested:** NVDA and Narrator, Windows 10, and an account with more
-  than 500 recordings.
+- **NVDA** (2026.2): every announcement, the list, menus, the rename box, About
+  and the guide, in two rounds.
+- **Narrator:** announcements are spoken, in a brief check only.
+- **Not yet tested:** Windows 10, and an account with more than 500
+  recordings.
 
 ## Files
 
