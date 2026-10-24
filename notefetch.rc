@@ -305,7 +305,7 @@ BEGIN
     BEGIN
         BLOCK "080904B0"   // UK English, Unicode
         BEGIN
-            VALUE "CompanyName",      "Laurent de Fontenay"
+            VALUE "CompanyName",      "Laurent Cadet de Fontenay"
             VALUE "FileDescription",  "Download your Plaud recordings, transcripts and summaries"
             VALUE "FileVersion",      "1.0.0.0"
             VALUE "InternalName",     "notefetch"

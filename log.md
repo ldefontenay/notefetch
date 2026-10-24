@@ -2,6 +2,17 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-10-24: Release drafts are ready, in release-drafts.txt
+
+### The short version
+
+- **The release drafts are in `release-drafts.txt`** in the NoteFetch folder, in the same plain-text layout as Photo Scribe's: decisions first, then a note to Lee Gonzales (who wrote plaud-cli), the long announcement for AppleVis and the mailing lists, a Mastodon post (409 characters), and a short email for Double Tap, Blind Bargains and ACB BITS.
+- **Five questions are in Part 1 of that file**, each with its ANSWER: line. Nothing has been posted or sent.
+- **That file is kept out of git**, since the repository is public. Question 5 there asks if that is what you want.
+- **Your full name** is now in the exe's version details (I checked the built exe: Laurent Cadet de Fontenay) and in the LICENSE file, which said only "Laurent". Users get it with the next release.
+- Thank you for the SignPath answers: you have two-factor sign-in, and you will fill in the form yourself.
+- 94 tests pass. Committed and pushed.
+
 ## 2026-10-24: Version 1.0.0 is published, and a crash course on code signing
 
 ### The short version
@@ -84,15 +95,16 @@ What you do is marked "You". What I do is marked "Me". Nothing costs money.
 Is two-factor sign-in already on for your GitHub account?
 
 ANSWER:
-
+Yes
 Shall I leave the application to you, using the answers above, or would you like me to try filling in the form through Chrome while you listen?
 
 ANSWER:
+I'll fill it in.
 
 One small thing I noticed: the exe's Properties give the company as "Laurent de Fontenay", while About and the README say "Laurent Cadet de Fontenay". Shall I make the exe say "Laurent Cadet de Fontenay" too, in the next release?
 
 ANSWER:
-
+Yes please.
 ## 2026-10-24: NoteFetch is public, and version 1.0.0 is ready for you to publish
 
 ### The short version

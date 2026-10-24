@@ -28,3 +28,6 @@ notefetch.log
 .idea/
 Thumbs.db
 desktop.ini
+
+# Release announcement drafts, private to Laurent
+release-drafts.txt
