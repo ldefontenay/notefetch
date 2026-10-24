@@ -2,6 +2,27 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-10-25: The guide is online
+
+### The short version
+
+- **The guide is online at https://ldefontenay.github.io/notefetch/userguide/**. I checked it opens, with the right title and version 1.0.0. Typing it without the final slash works too.
+- **Linked from the GitHub page** in two places: the repository's website link, at the top of the page beside the description, and a line near the top of the README, "Read the NoteFetch guide online". The README's paragraph about F1 also says the guide is online.
+- **It is always the program's own guide.** The web page is built from the same file F1 opens, so there is only one guide to keep up to date. When the guide changes, the web page updates by itself within a couple of minutes.
+- **The long announcement** gives the guide link too, under "Releases and source code" in `release-drafts.txt`.
+
+### Why not github.com/ldefontenay/notefetch/userguide
+
+- GitHub decides every address under github.com, and does not let a project add pages of its own there. That address can never work.
+- The usual practice is what I did: GitHub Pages, GitHub's free web space for projects, at ldefontenay.github.io/notefetch. Adding /userguide gives the address you asked for, as close as GitHub allows. So it is good practice, with that one difference.
+- The plain address ldefontenay.github.io/notefetch sends people on to the GitHub page, with a link to the guide for anyone whose browser does not follow it.
+
+### One question
+
+Would you like a short link for the guide too, tinyurl.com/notefetch-guide, for podcasts? It is free, and made the same way as the other one.
+
+ANSWER:
+
 ## 2026-10-25: The short link works; the note to Lee needs you
 
 ### The short version
