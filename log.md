@@ -2,6 +2,25 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-10-25: The short link works; the note to Lee needs you
+
+### The short version
+
+- **tinyurl.com/notefetch is live.** I made it and checked it: it goes straight to github.com/ldefontenay/notefetch, with no page in between. Said aloud: "tiny URL dot com slash notefetch". It is now in the podcast email (Part 5 of `release-drafts.txt`) and at the end of the long announcement.
+- **The note to Lee Gonzales is not sent.** Claude Code's safety check stopped me posting on GitHub in your name, which is fair: it is a message from you to someone else. Two easy ways to send it are below.
+- I saw your change in Part 3 ("made by a blind screenreader user") and kept it.
+
+### The note to Lee
+
+His plaud-cli repository has GitHub issues turned on, no discussions, and no issues yet. His GitHub profile shows a public email address: lee.gonzales@gmail.com.
+
+- **Way 1, by email (my suggestion):** copy Part 2 of `release-drafts.txt` into an email to lee.gonzales@gmail.com, with its subject line. A thank-you sits more naturally in an inbox than in an issue tracker.
+- **Way 2, as a GitHub issue:** type the line below into Claude Code's prompt, starting with the exclamation mark. It runs in your name and posts the note as an issue titled "Thank you: NoteFetch, an accessible Windows app built on plaud-cli's sign-in". The text ends by inviting him to close it, since there is nothing to fix. The text is in a file in my scratchpad, so it is the version you approved, word for word, plus that last sentence.
+
+! gh issue create -R leegonzales/plaud-cli --title "Thank you: NoteFetch, an accessible Windows app built on plaud-cli's sign-in" --body-file "C:/Users/ldefo/AppData/Local/Temp/claude/C--Users-ldefo-dev-NoteFetch/960017a4-772b-4843-8440-caa3bb224085/scratchpad/lee.md"
+
+Nothing else is waiting on you from me. After the note, the posting in Part 6 of `release-drafts.txt` is yours whenever you are ready, and the SignPath application.
+
 ## 2026-10-25: Punchier announcement, and a short link waiting for your yes
 
 ### The short version
@@ -22,7 +41,7 @@ All of these are free to take today: bit.ly/notefetch, tinyurl.com/notefetch and
 Shall I create tinyurl.com/notefetch, pointing at github.com/ldefontenay/notefetch, which means accepting TinyURL's terms of service for it?
 
 ANSWER:
-
+Yes
 ## 2026-10-24: Release drafts are ready, in release-drafts.txt
 
 ### The short version
