@@ -2,6 +2,27 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-10-25: Punchier announcement, and a short link waiting for your yes
+
+### The short version
+
+- **The long announcement is rewritten** in `release-drafts.txt`, Part 3: shorter sentences, and it now speaks to blind students and professionals first, each with a line of its own. The Mastodon post and the podcast email lead with them too.
+- **Your other answers are in the drafts:** no story, the note to Lee sent whenever suits you, blind community first with wider distribution later (Part 6, step 3), and the file stays out of git.
+- **The short link is not made yet.** I stopped one click short, because making it means agreeing to the short-link service's terms on your behalf, and because the choice of service is yours. Details and a question below.
+
+### The short link
+
+All of these are free to take today: bit.ly/notefetch, tinyurl.com/notefetch and is.gd/notefetch.
+
+- **TinyURL (my recommendation):** tinyurl.com/notefetch. I can make it now, with no account: I had it filled in, pointing at github.com/ldefontenay/notefetch. It sends people straight to the page. Said aloud: "tiny URL dot com slash notefetch". The catch: a link made without an account can never be changed, and has no click counts. That matters little, because the GitHub page it points to will not move.
+- **Bitly:** bit.ly/notefetch needs an account of your own; the free plan allows three custom names a month. But according to review sites (not Bitly's own page), free Bitly links have shown an advert page before the destination since February 2025. That is a poor first step for a screen reader user, so I would avoid it.
+- **is.gd:** no account, no adverts, but "is dot g d" is awkward to say on a podcast.
+- **Later:** if you ever buy a domain of your own, such as notefetch.app, it could point to the GitHub page and be the neatest of all. Not needed now.
+
+Shall I create tinyurl.com/notefetch, pointing at github.com/ldefontenay/notefetch, which means accepting TinyURL's terms of service for it?
+
+ANSWER:
+
 ## 2026-10-24: Release drafts are ready, in release-drafts.txt
 
 ### The short version
