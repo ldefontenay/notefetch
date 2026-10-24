@@ -6,6 +6,11 @@ with a window built for screen reader users first.
 A single Windows program. No installer, no runtime to install, no Node.js, and
 no administrator rights.
 
+**[Read the NoteFetch guide][guide]** online: the same guide, with tutorials,
+that `F1` opens in the program.
+
+[guide]: https://ldefontenay.github.io/notefetch/userguide/
+
 ## Download
 
 Two files, always the newest version, direct. They contain exactly the same
@@ -74,7 +79,8 @@ words. In the list:
 - The Applications key opens a menu of everything else.
 
 `Ctrl+S` syncs, `Escape` cancels whatever is running, and `F1` opens the full
-guide, with tutorials, in your browser.
+guide, with tutorials, in your browser. The guide is also
+[online][guide].
 
 ## Accessibility
 
