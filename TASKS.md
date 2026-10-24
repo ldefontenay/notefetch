@@ -145,6 +145,7 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 - [x] Check SignPath's eligibility for free open-source code signing. (Likely eligible once public and released; see PLAN.md, 24 October 2026.)
 - [x] Scan the whole git history for secrets and test data before making the repository public. (Clean on 24 October 2026, twice: no secrets, test data or recording names.)
 - [x] Version 1.0.0 (Laurent, 24 October 2026).
-- [ ] Make the repository public.
-- [ ] Tag v1.0.0, check the draft release, and Laurent publishes it.
+- [x] Make the repository public. (24 October 2026, with a description and topics.)
+- [x] Tag v1.0.0 and check the draft release: both files attached, version 1.0.0 in the exe, release notes written.
+- [ ] Laurent publishes the draft release.
 - [ ] Apply to SignPath Foundation for code signing, once released (needs Laurent's account, with MFA).

@@ -2,6 +2,34 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-10-24: NoteFetch is public, and version 1.0.0 is ready for you to publish
+
+### The short version
+
+- **The repository is public** at github.com/ldefontenay/notefetch, with a description and topics (accessibility, screen-reader, jaws, nvda, plaud, windows, rust, win32) so people can find it.
+- **Version 1.0.0:** yes, I think a 1 is right. Everything in the spec is built and tested over more than ten rounds with JAWS and two with NVDA, and 0.1 would suggest it was not ready yet. The version is changed everywhere, and the exe's Properties page says 1.0.0.
+- **A draft release, v1.0.0, is waiting for you** with notefetch.exe and notefetch.zip attached and release notes written. I downloaded the exe from it and checked its version. Only you can see a draft; it goes live when you publish it.
+- **Your decisions are in PLAN.md:** no letter to Plaud, trademarks dealt with if anyone raises them, and your Gmail address kept as the author.
+- The last scan of the whole history before going public was clean. The build on GitHub passed.
+
+### To publish the release
+
+- Open github.com/ldefontenay/notefetch/releases, find "NoteFetch v1.0.0", marked Draft, and choose Edit. Read the notes, change anything you like, and choose "Publish release".
+- Once it is published, the README's download links start working: they always point at the newest release.
+- If you would rather I published it, say so here and I will.
+
+Shall I publish it for you, or will you?
+
+ANSWER:
+
+### What is left
+
+- **Code signing with SignPath Foundation**, which would stop the SmartScreen warning. They want a released, public project, which NoteFetch now is once you publish. The application needs your own account with two-factor sign-in, so it is yours to do; I can draft the "Code signing policy" section they ask for in the README when you are ready.
+
+Would you like me to draft the SignPath code signing policy section now?
+
+ANSWER:
+
 ## 2026-10-24: Milestone 6 is signed off; the release is waiting on your decisions
 
 ### The short version
