@@ -19,6 +19,9 @@ pub enum Error {
     Network(String),
     /// Plaud answered, but with an error. The text says which.
     Plaud(String),
+    /// Plaud answered with something NoteFetch could not read, which is most
+    /// likely a change on Plaud's side.
+    Unreadable,
     /// Reading or writing a file or folder failed.
     Disk(String),
     /// The local database could not be read or written.
@@ -43,6 +46,10 @@ impl fmt::Display for Error {
                 "Could not reach Plaud: {why} Check your internet connection, then try again."
             ),
             Error::Plaud(why) => write!(f, "Plaud reported a problem: {why} Try again later."),
+            Error::Unreadable => write!(
+                f,
+                "NoteFetch could not understand Plaud's reply. Try again later. If it keeps happening, Plaud may have changed how it answers, and a newer version of NoteFetch may be needed."
+            ),
             Error::Disk(why) => write!(f, "{why}"),
             Error::Database(why) => write!(
                 f,

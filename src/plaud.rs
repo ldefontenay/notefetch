@@ -96,7 +96,7 @@ pub async fn list_all(client: &Client) -> Result<Vec<Listed>> {
 /// Everything about one recording, fetching any block `get_file` left empty.
 pub async fn detail(client: &Client, id: &str) -> Result<Detail> {
     let reply = client.call_tool("get_file", json!({ "file_id": id })).await?;
-    let mut d = parse_detail(&reply).ok_or_else(|| Error::Plaud("its details for a recording could not be read.".into()))?;
+    let mut d = parse_detail(&reply).ok_or(Error::Unreadable)?;
     for block in std::mem::take(&mut d.missing_blocks) {
         let content = fetch_block(client, id, &block).await?;
         apply_block(&mut d, &block, &content);

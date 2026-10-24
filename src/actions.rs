@@ -19,14 +19,14 @@ pub struct Local<'a> {
 
 impl Local<'_> {
     fn record(&self, id: &str) -> Result<Record> {
-        self.store.get(id)?.ok_or_else(|| Error::Database("that recording is not in the list any more.".into()))
+        self.store.get(id)?.ok_or_else(|| Error::Disk("That recording is not in the list any more. Press F5 to refresh the list, then try again.".into()))
     }
 
     fn on_disk(&self, r: &Record) -> Result<String> {
         r.location
             .clone()
             .filter(|l| self.library.path_of(l).is_dir())
-            .ok_or_else(|| Error::Disk(format!("\"{}\" is not downloaded, so there is nothing on disk to change.", library::display_name(r))))
+            .ok_or_else(|| Error::Disk(format!("\"{}\" is not downloaded, so there is nothing on disk to change. Download it first: press Enter on it.", library::display_name(r))))
     }
 
     /// Rename locally: folder, files, database and `metadata.json`.

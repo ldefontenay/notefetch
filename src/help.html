@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NoteFetch guide</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      line-height: 1.55;
+      margin: 2rem;
+      max-width: 56rem;
+      color: #111;
+      background: #fff;
+    }
+    h1, h2, h3, h4 {
+      line-height: 1.25;
+    }
+    h2 {
+      margin-top: 2.5rem;
+      border-top: 1px solid #ccc;
+      padding-top: 1rem;
+    }
+    h3 {
+      margin-top: 1.75rem;
+    }
+    code, kbd {
+      font-family: Consolas, "Courier New", monospace;
+    }
+    kbd {
+      border: 1px solid #999;
+      border-radius: 0.2rem;
+      padding: 0 0.25rem;
+      background: #f7f7f7;
+    }
+    dt {
+      font-weight: bold;
+      margin-top: 0.8rem;
+    }
+    dd {
+      margin-left: 1.5rem;
+    }
+    .skip-link {
+      position: absolute;
+      left: -999px;
+    }
+    .skip-link:focus {
+      position: static;
+    }
+    a {
+      color: #0645ad;
+    }
+    li {
+      margin-bottom: 0.3rem;
+    }
+    @media (prefers-color-scheme: dark) {
+      body { color: #eee; background: #161616; }
+      h2 { border-top-color: #444; }
+      kbd { background: #222; border-color: #666; }
+      a { color: #8cf; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the guide</a>
+
+  <header>
+    <h1>NoteFetch guide</h1>
+    <p>A friendly, step-by-step guide to keeping your Plaud recordings, transcripts and summaries on your own computer, for screen reader users and everyone else.</p>
+    <p>By Laurent Cadet de Fontenay, with assistance from Claude.</p>
+  </header>
+
+  <nav aria-labelledby="contents-heading">
+    <h2 id="contents-heading">Contents</h2>
+    <ul>
+      <li><a href="#about-this-guide">About this guide</a></li>
+      <li><a href="#why">Why use NoteFetch?</a></li>
+      <li><a href="#what-it-does">What NoteFetch does</a></li>
+      <li><a href="#words">Words you will meet</a></li>
+      <li><a href="#part-1">Part 1: Getting started</a>
+        <ul>
+          <li><a href="#tutorial-sign-in">Tutorial 1: Start NoteFetch and sign in to Plaud</a></li>
+          <li><a href="#tutorial-first-sync">Tutorial 2: Your first sync</a></li>
+          <li><a href="#window">Finding your way around the main window</a></li>
+        </ul>
+      </li>
+      <li><a href="#part-2">Part 2: Everyday use</a>
+        <ul>
+          <li><a href="#tutorial-sync">Tutorial 3: Fetch this week's lectures</a></li>
+          <li><a href="#tutorial-find">Tutorial 4: Find a recording, read its summary and listen to it</a></li>
+          <li><a href="#tutorial-rename">Tutorial 5: Give a recording a name that means something</a></li>
+          <li><a href="#tutorial-hand-over">Tutorial 6: Hand a recording to another program</a></li>
+        </ul>
+      </li>
+      <li><a href="#part-3">Part 3: Keeping organised with folders</a>
+        <ul>
+          <li><a href="#how-folders-work">How folders work</a></li>
+          <li><a href="#tutorial-folder">Tutorial 7: Make a folder for a course and move recordings into it</a></li>
+          <li><a href="#tutorial-folder-change">Tutorial 8: Rename or delete a folder</a></li>
+        </ul>
+      </li>
+      <li><a href="#part-4">Part 4: Clearing out</a>
+        <ul>
+          <li><a href="#tutorial-delete">Tutorial 9: Delete a recording, and bring it back</a></li>
+          <li><a href="#tutorial-skip">Tutorial 10: Leave a recording out of every sync</a></li>
+        </ul>
+      </li>
+      <li><a href="#part-5">Part 5: Making NoteFetch your own</a>
+        <ul>
+          <li><a href="#settings">Everything in Settings</a></li>
+          <li><a href="#announcements">What NoteFetch says, and the Log</a></li>
+          <li><a href="#sounds">The sounds NoteFetch makes</a></li>
+          <li><a href="#tutorial-output-folder">Tutorial 11: Keep your recordings somewhere else</a></li>
+        </ul>
+      </li>
+      <li><a href="#what-is-saved">What is saved, and how it is named</a></li>
+      <li><a href="#privacy">Privacy and your Plaud account</a></li>
+      <li><a href="#troubleshooting">Troubleshooting</a></li>
+      <li><a href="#quick-reference">Quick reference: the keys</a></li>
+      <li><a href="#files">Files NoteFetch keeps</a></li>
+      <li><a href="#credits">Credits and licence</a></li>
+    </ul>
+  </nav>
+
+  <main id="main">
+
+  <section aria-labelledby="about-this-guide">
+    <h2 id="about-this-guide">About this guide</h2>
+    <p>This guide is for anyone new to NoteFetch, and especially for people who use a screen reader such as JAWS, NVDA or Narrator. It walks you through what most people need, one task at a time, with worked examples you can follow at your own pace.</p>
+    <p>Some things to know before you begin:</p>
+    <ul>
+      <li><strong>You do not need to read it all.</strong> Parts 1 and 2 cover everyday use, and they are where you will get the most benefit for your time. Part 3, on folders, is where your recordings start to feel organised. Everything after that is optional, so come back to it whenever you are ready.</li>
+      <li><strong>Every tutorial stands on its own.</strong> If a tutorial relies on something from an earlier one, it links back to it, so you can jump straight to the one you need.</li>
+      <li><strong>Headings are your friend.</strong> Each part is a level 2 heading and each tutorial is a level 3 heading, so you can move through the guide using your screen reader's heading navigation.</li>
+      <li><strong>Names on screen are in quotation marks.</strong> When the guide mentions something you will find in NoteFetch, such as the “Sync new” button, its name is in quotation marks, exactly as your screen reader will say it.</li>
+      <li><strong>Menus are written with a comma.</strong> “Recording menu, Rename” means: open the Recording menu (<kbd>Alt+R</kbd>), then choose “Rename”. Most commands also have a shortcut, which the guide gives too and the menu says beside each item. There is a list of them all in the <a href="#quick-reference">Quick reference</a>.</li>
+      <li><strong>Screen reader commands are not included.</strong> Where a step depends on your screen reader, the guide says so and leaves the keystroke to you, because it differs between screen readers.</li>
+      <li><strong>Press F1 when you are unsure.</strong> <kbd>F1</kbd> anywhere in NoteFetch opens this guide in your web browser.</li>
+    </ul>
+    <p>This guide was written for NoteFetch version {{VERSION}}. Later versions may add features or change some wording.</p>
+  </section>
+
+  <section aria-labelledby="why">
+    <h2 id="why">Why use NoteFetch?</h2>
+    <p>A Plaud recorder is a wonderful thing to have in a lecture or a meeting. You press a button, and later Plaud gives you the audio, a transcript and a summary. But all of it lives in Plaud's app and website, which are not always easy to use with a screen reader, and getting a recording out of them one at a time, to keep it, search it or send it to another service, is slow work.</p>
+    <p>NoteFetch fetches everything for you, in one go, into ordinary folders on your computer. Each recording gets a folder named after it, holding the audio, the transcript and the summary as ordinary files, which you can open in the programs you already use, copy, back up, or upload elsewhere. Next time, NoteFetch fetches only what is new.</p>
+    <p>It is built for the keyboard and the screen reader from the start. Every control is a real Windows control with a proper label, everything NoteFetch does is written in a Log you can read back, and what you do is answered with a few words and a small sound.</p>
+    <p>Work through Tutorials 1 and 2 in <a href="#part-1">Part 1</a>, and in a few minutes you will have your recent recordings on your own computer. The rest of this guide will be here when you want to go further.</p>
+  </section>
+
+  <section aria-labelledby="what-it-does">
+    <h2 id="what-it-does">What NoteFetch does</h2>
+    <p>NoteFetch signs in to your Plaud account, with your permission, and lists your recordings. When you sync, it downloads each new recording's audio, transcript and summary into a folder of its own, in your output folder, which starts as a folder called NoteFetch in your Documents.</p>
+    <p>On top of that, NoteFetch can:</p>
+    <ul>
+      <li>play a recording, or open its transcript or summary, in the program you normally use for them;</li>
+      <li>let you rename a recording, so “Untitled” becomes “Cognitive neuroscience week 3”;</li>
+      <li>sort your recordings into folders, such as one for each course, which File Explorer shows in exactly the same way;</li>
+      <li>delete a recording you do not need, to the Recycle Bin, and remember not to download it again;</li>
+      <li>keep checking for a transcript or summary that Plaud has not finished making yet, and fetch it when it appears.</li>
+    </ul>
+    <p>NoteFetch never changes anything in your Plaud account. Renaming, moving and deleting happen on your computer only. Plaud does not allow apps to change recordings, so a recording you rename in NoteFetch keeps its old name in the Plaud app.</p>
+  </section>
+
+  <section aria-labelledby="words">
+    <h2 id="words">Words you will meet</h2>
+    <p>NoteFetch uses some words in particular ways. You may wish to learn these now, which will help everything make more sense. Come back here whenever a word in a tutorial is unfamiliar.</p>
+    <dl>
+      <dt>Recording</dt>
+      <dd>One recording made on your Plaud recorder, with everything that belongs to it: the audio, and the transcript and summary if Plaud has made them.</dd>
+      <dt>Transcript</dt>
+      <dd>The words of the recording written out, a line at a time, with the time and the speaker. Plaud also makes a cleaned transcript, tidied up by its AI.</dd>
+      <dt>Summary</dt>
+      <dd>The notes Plaud's AI writes about the recording. In the Plaud app these are on the Summary tab. If you have added other tabs there, such as meeting minutes, NoteFetch saves each of those too.</dd>
+      <dt>Sync</dt>
+      <dd>Asking Plaud what is new, and downloading it. “Sync new” does this, and NoteFetch does it by itself when it starts.</dd>
+      <dt>Refresh</dt>
+      <dd>Asking Plaud for the list of recordings without downloading anything (<kbd>F5</kbd>). It also notices anything you have changed in File Explorer.</dd>
+      <dt>Output folder</dt>
+      <dd>The folder where NoteFetch keeps everything it downloads. At first it is a folder called NoteFetch in your Documents. You can change it in Settings.</dd>
+      <dt>Folder</dt>
+      <dd>A category you make for your recordings, such as one per course. Each is a real folder inside the output folder. See <a href="#how-folders-work">How folders work</a>.</dd>
+      <dt>Uncategorised</dt>
+      <dd>NoteFetch's own folder for recordings not in any category. New recordings start there.</dd>
+      <dt>Status</dt>
+      <dd>What NoteFetch has of a recording, in words: “Downloaded”, “Not downloaded”, “No transcript”, “No summary”, “Audio only” (neither yet), “Failed”, “Skipped” or “Deleted”.</dd>
+      <dt>Don't download</dt>
+      <dd>A mark you can put on a recording you never want, such as a test recording, so that no sync downloads it. Its status says “Skipped”.</dd>
+      <dt>The Deleted view</dt>
+      <dd>The recordings you have deleted or marked Don't download, listed together when you choose “Deleted” in the “Show” box. From there you can download any of them again.</dd>
+      <dt>The Log</dt>
+      <dd>A box at the bottom of the main window holding everything NoteFetch has said and done, newest first, which you can read with the arrow keys.</dd>
+    </dl>
+  </section>
+
+  <section aria-labelledby="part-1">
+    <h2 id="part-1">Part 1: Getting started</h2>
+    <p>NoteFetch needs no installing. It is a single program, <code>notefetch.exe</code>. Put it in a folder of its own, such as a NoteFetch folder in your Documents or on your desktop, and start it from there. Its settings are kept beside it.</p>
+
+    <h3 id="tutorial-sign-in">Tutorial 1: Start NoteFetch and sign in to Plaud</h3>
+    <h4>What you will learn</h4>
+    <p>How to start NoteFetch for the first time, and how to give it permission to read your Plaud account.</p>
+    <h4>Worked example</h4>
+    <p>You have just downloaded NoteFetch, and you have a few weeks of lecture recordings in Plaud.</p>
+    <ol>
+      <li>Start <code>notefetch.exe</code>. If Windows says it protected your PC, see <a href="#trouble-smartscreen">Windows says it protected your PC</a>.</li>
+      <li>NoteFetch opens with focus on the “Recordings” list, which is empty, and you hear a small call, the Attention sound. A question appears: “You are not signed in to Plaud. Sign in now?”, with “Yes” chosen. Press <kbd>Enter</kbd>.</li>
+      <li>Your web browser opens at Plaud's sign-in page. Sign in with your Plaud account as you normally would, and allow NoteFetch to see your recordings when Plaud asks.</li>
+      <li>The browser shows a short page headed “Signed in to Plaud”, telling you to go back to NoteFetch. Close the tab, or switch back to NoteFetch with <kbd>Alt+Tab</kbd>.</li>
+      <li>NoteFetch says “Signed in to Plaud.” and plays the Finished sound.</li>
+    </ol>
+    <h4>What just happened</h4>
+    <p>Plaud gave NoteFetch a key to your account, which NoteFetch keeps on this computer, encrypted by Windows so that only you can use it. You do not need to sign in again each time. If you do not use NoteFetch for a couple of weeks, Plaud may ask you to sign in again; NoteFetch will say so and offer to do it.</p>
+    <p>While NoteFetch waits for the browser, <kbd>Escape</kbd> stops waiting, and it gives up by itself after five minutes. You can sign in at any time from the File menu, “Sign in to Plaud”, or from Settings. “Sign out of Plaud”, in the same places, removes the key from this computer. Your downloaded recordings stay where they are.</p>
+
+    <h3 id="tutorial-first-sync">Tutorial 2: Your first sync</h3>
+    <h4>What you will learn</h4>
+    <p>How to choose how much of your Plaud history to download the first time, so you are not surprised by hundreds of hours of audio.</p>
+    <h4>Worked example</h4>
+    <p>You have just signed in, as in <a href="#tutorial-sign-in">Tutorial 1</a>. You want this term's lectures, but not last year's.</p>
+    <ol>
+      <li>Straight after signing in, NoteFetch asks Plaud for your list of recordings. You hear the Attention sound, and the “First sync” window opens. It begins: “This is NoteFetch's first sync. How much of your Plaud audio, transcripts and summaries should it download now?”</li>
+      <li>Focus is on the middle choice, which says something like “Specified duration, the last 30 days: 12 recordings, about 9 hours”. Use the up and down arrows to hear the others: “Everything”, with how many recordings and hours that would be, and “Nothing old: start from now, and download only new recordings”.</li>
+      <li>This term began 60 days ago, so press <kbd>Tab</kbd> to reach “Specified duration, number of days”, type <kbd>60</kbd>, and press <kbd>Shift+Tab</kbd> to hear the choice again. Its numbers have changed to match.</li>
+      <li>Press <kbd>Enter</kbd>. NoteFetch starts downloading, and says how it is getting on every few seconds, for example “Fetched 3 of 18.”</li>
+      <li>When it has finished, it says something like “Sync finished. 18 recordings downloaded.” and plays the Finished sound.</li>
+    </ol>
+    <h4>What just happened</h4>
+    <p>Every recording in Plaud is now in the list, but only those from the last 60 days were downloaded. The older ones say “Not downloaded”, and wait in the list until you want them: press <kbd>Enter</kbd> on any of them to download it. From now on, each sync downloads only what is new.</p>
+    <p>If you press <kbd>Escape</kbd> in the First sync window, nothing is downloaded, and NoteFetch asks again at the next sync.</p>
+
+    <h3 id="window">Finding your way around the main window</h3>
+    <p>The main window has these controls, in <kbd>Tab</kbd> order. Each has an Alt key, so you can jump straight to it from anywhere.</p>
+    <ul>
+      <li><strong>“Show”</strong> (<kbd>Alt+S</kbd>): which recordings to list. “All recordings”, “Downloaded”, “Not yet downloaded”, “Incomplete” (missing a transcript or summary) or “Deleted” (see <a href="#tutorial-delete">Tutorial 9</a>).</li>
+      <li><strong>“Folder”</strong> (<kbd>Alt+E</kbd>): “All folders”, “Uncategorised”, or one of your folders.</li>
+      <li><strong>“Filter by name”</strong> (<kbd>Alt+N</kbd>, or <kbd>Ctrl+F</kbd>): type part of a name, and the list shows only the recordings whose names contain it.</li>
+      <li><strong>“Recordings”</strong> (<kbd>Alt+C</kbd>): the list itself, newest first. Each row gives the name, then the folder, the date and time, how long it lasts, and its status, all in words.</li>
+      <li><strong>“Sync new”</strong> (<kbd>Alt+Y</kbd>, or <kbd>Ctrl+S</kbd> anywhere).</li>
+      <li><strong>“Download selected”</strong> (<kbd>Alt+D</kbd>, or <kbd>Ctrl+D</kbd> in the list).</li>
+      <li><strong>“Open output folder”</strong> (<kbd>Alt+O</kbd>, or <kbd>Ctrl+O</kbd> anywhere): the output folder in File Explorer.</li>
+      <li><strong>“Log”</strong> (<kbd>Alt+G</kbd>): everything NoteFetch has said and done, newest first. The first line is always the latest; arrow down to go back in time.</li>
+    </ul>
+    <p>The menu bar has five menus: File (<kbd>Alt+F</kbd>), Recording (<kbd>Alt+R</kbd>), Folder (<kbd>Alt+L</kbd>), Actions (<kbd>Alt+A</kbd>) and Help (<kbd>Alt+H</kbd>). Every command is in one of them, with its shortcut beside it, so you can always find a command there if you forget its key.</p>
+    <p>In the list, the Applications key or <kbd>Shift+F10</kbd> opens a menu for the recording you are on, holding the same commands as the Recording menu. Its first item, the default, is what <kbd>Enter</kbd> would do.</p>
+  </section>
+
+  <section aria-labelledby="part-2">
+    <h2 id="part-2">Part 2: Everyday use</h2>
+
+    <h3 id="tutorial-sync">Tutorial 3: Fetch this week's lectures</h3>
+    <h4>What you will learn</h4>
+    <p>How to bring NoteFetch up to date, follow its progress, and stop it if you need to.</p>
+    <h4>Worked example</h4>
+    <p>It is Friday. You recorded three lectures this week, and you want them on your computer before the weekend.</p>
+    <ol>
+      <li>Start NoteFetch. It syncs by itself as it starts, quietly: the Log says what it is doing, but you hear nothing unless something goes wrong. When it has finished, the Log's first line says something like “Sync finished. 3 recordings downloaded.”</li>
+      <li>NoteFetch was already open? Press <kbd>Ctrl+S</kbd> instead. NoteFetch says “Syncing with Plaud.”, then what it will fetch and why, such as “Fetching 3 recordings: 3 not yet downloaded.”, then how it is getting on every few seconds, and finally “Sync finished.” with the Finished sound.</li>
+      <li>To stop a sync part way, press <kbd>Escape</kbd>. NoteFetch says “Cancelled. Anything already downloaded has been kept.” The next sync carries on where it stopped.</li>
+    </ol>
+    <h4>What just happened</h4>
+    <p>NoteFetch asked Plaud for its list, compared it with what you already have, and fetched what was missing: new recordings, any download that was interrupted, and any transcript or summary that Plaud has finished since last time. Plaud often takes a while to make a summary after a recording, so a recording may say “No summary” at first. NoteFetch keeps checking at each sync for 14 days, which you can change in Settings, and the status changes to “Downloaded” when it arrives.</p>
+    <p>If you would rather choose which new recordings to download, turn off “Download new recordings when syncing” in Settings. A sync then only lists them, and they wait in the “Not yet downloaded” view.</p>
+
+    <h3 id="tutorial-find">Tutorial 4: Find a recording, read its summary and listen to it</h3>
+    <h4>What you will learn</h4>
+    <p>How to find one recording among many, and open its summary, transcript or audio.</p>
+    <h4>Worked example</h4>
+    <p>You want to revise last Tuesday's lecture on memory, but your recordings are all called “Untitled”: until you rename a recording in Plaud, its name there is only its date and time, which NoteFetch does not repeat.</p>
+    <ol>
+      <li>Press <kbd>Alt+C</kbd> to go to the list. The newest recording is first, so arrow down until you hear last Tuesday's date.</li>
+      <li>Press <kbd>Ctrl+M</kbd>. The summary opens in the program you use for text files. Read enough to be sure it is the lecture on memory, then close it, for example with <kbd>Alt+F4</kbd>, to come back to NoteFetch.</li>
+      <li>Press <kbd>Ctrl+T</kbd> for the transcript, in the same way.</li>
+      <li>Press <kbd>Enter</kbd> to play the audio in your usual media player. Switch back to NoteFetch with <kbd>Alt+Tab</kbd> when you are done.</li>
+    </ol>
+    <h4>What just happened</h4>
+    <p><kbd>Enter</kbd> always does the most useful thing for the recording you are on: it plays a downloaded recording, downloads one that is not yet downloaded, and in the Deleted view downloads it again. The Applications key menu shows which, as its first item.</p>
+    <p>If a recording has no transcript or summary yet, <kbd>Ctrl+T</kbd> or <kbd>Ctrl+M</kbd> says so, and the menu items are unavailable.</p>
+    <p>Once your recordings have names, finding them is quicker: type part of a name in “Filter by name” (<kbd>Ctrl+F</kbd>), such as <kbd>memory</kbd>, and the list shows only those that match. Clear the box to see them all again. Combine it with the “Show” and “Folder” boxes, for example to list only the recordings in one course that are missing a summary.</p>
+
+    <h3 id="tutorial-rename">Tutorial 5: Give a recording a name that means something</h3>
+    <h4>What you will learn</h4>
+    <p>How to rename a recording, and what that changes on your computer.</p>
+    <h4>Worked example</h4>
+    <p>You have found last Tuesday's lecture, as in <a href="#tutorial-find">Tutorial 4</a>. It is called “Untitled”, and you want it to be called “Memory, week 4”.</p>
+    <ol>
+      <li>With the recording focused in the list, press <kbd>F2</kbd>. An edit box opens holding the name only, without the date.</li>
+      <li>Type <kbd>Memory, week 4</kbd>. The old name is replaced as you type.</li>
+      <li>Press <kbd>Enter</kbd>. NoteFetch renames it, and the list now says “Memory, week 4”. To leave the name as it was, press <kbd>Escape</kbd> instead.</li>
+    </ol>
+    <h4>What just happened</h4>
+    <p>The recording's folder and every file in it were renamed together, so in File Explorer you now find “Memory, week 4, 22 Sep 2026, 1000”, holding “Audio, Memory, week 4, 22 Sep 2026, 1000.ogg”, “Transcript, Memory, week 4, ...” and so on. The date and time are kept at the end by themselves, so two lectures with the same name never clash.</p>
+    <p>If a file is open in another program, such as your media player, Windows may refuse the rename. NoteFetch then puts everything back as it was, and says to close the program and try again. Nothing is ever left half renamed.</p>
+    <p>The name in the Plaud app does not change. NoteFetch remembers Plaud's name too, and never overwrites your name with it.</p>
+
+    <h3 id="tutorial-hand-over">Tutorial 6: Hand a recording to another program</h3>
+    <h4>What you will learn</h4>
+    <p>How to give a recording's audio to another program or website, such as a transcription service.</p>
+    <h4>Worked example</h4>
+    <p>You want to upload the audio of “Memory, week 4” to a transcription service in your browser, which asks you to choose a file.</p>
+    <ol>
+      <li>In NoteFetch's list, on “Memory, week 4”, press <kbd>Ctrl+Shift+C</kbd>. NoteFetch says “Copied the path of the audio file of "Memory, week 4".”</li>
+      <li>On the website, choose its upload button. In the Windows file window that opens, the focus is in the “File name” box. Press <kbd>Ctrl+V</kbd> to paste the path, and <kbd>Enter</kbd>.</li>
+    </ol>
+    <h4>What just happened</h4>
+    <p>The full path of the audio file went to the clipboard, which saves finding the file in a long list. To work with the files yourself, <kbd>Ctrl+Shift+O</kbd> opens the recording's own folder in File Explorer instead.</p>
+    <p>The audio is in the Ogg Opus format, with the extension <code>.ogg</code>. It is small (about 15 MB an hour) and most players and upload forms accept it.</p>
+  </section>
+
+  <section aria-labelledby="part-3">
+    <h2 id="part-3">Part 3: Keeping organised with folders</h2>
+
+    <h3 id="how-folders-work">How folders work</h3>
+    <p>Plaud does not let apps see the folders you may have made in the Plaud app, so NoteFetch has folders of its own. They are real folders on your computer, inside the output folder, so what NoteFetch shows is always what File Explorer shows:</p>
+    <ul>
+      <li>The output folder holds only folders: your categories, such as “Cognitive neuroscience”, and “Uncategorised”.</li>
+      <li>Each of those holds recordings, one folder per recording.</li>
+      <li>New recordings go into “Uncategorised” until you move them.</li>
+    </ul>
+    <p>You can make changes in File Explorer too, if you prefer. Move a recording's folder from one category to another, rename a category, or make a new one, then press <kbd>F5</kbd> in NoteFetch, and the list matches what you did. Only one level of categories is used: NoteFetch does not look inside a folder within a category, and the Log says so if it finds one.</p>
+    <p>“Uncategorised” is NoteFetch's own folder, so it cannot be renamed or deleted, and no category can have that name, in either spelling.</p>
+
+    <h3 id="tutorial-folder">Tutorial 7: Make a folder for a course and move recordings into it</h3>
+    <h4>What you will learn</h4>
+    <p>How to make a folder, move several recordings into it at once, and list only that folder.</p>
+    <h4>Worked example</h4>
+    <p>This term you have lectures for two courses. You want the four Cognitive neuroscience lectures in a folder of their own.</p>
+    <ol>
+      <li>Press <kbd>Alt+L</kbd> for the Folder menu, and <kbd>N</kbd> for “New folder”. Type <kbd>Cognitive neuroscience</kbd> and press <kbd>Enter</kbd>. NoteFetch says “Created the folder "Cognitive neuroscience".”</li>
+      <li>Press <kbd>Alt+C</kbd> for the list. Arrow to the first lecture. Hold <kbd>Ctrl</kbd>, and use the arrows and <kbd>Space</kbd> to add the other three to the selection. Or, with the filter, type <kbd>neuro</kbd> in “Filter by name”, go back to the list and press <kbd>Ctrl+A</kbd> to select every recording shown.</li>
+      <li>Press <kbd>Ctrl+Shift+M</kbd>. The “Move to folder” window opens, on the “Folders” list. Arrow to “Cognitive neuroscience” and press <kbd>Enter</kbd>.</li>
+      <li>NoteFetch says it moved them, and you hear the Done sound. The Folder column now says “Cognitive neuroscience”.</li>
+      <li>To list only this course, press <kbd>Alt+E</kbd> for the “Folder” box and choose “Cognitive neuroscience”.</li>
+    </ol>
+    <h4>What just happened</h4>
+    <p>Each recording's folder was moved, whole, into the new folder on your disk. In “Move to folder”, you can also type a name in “New folder name” (<kbd>Alt+N</kbd>) to make a folder and move the recordings into it in one step.</p>
+
+    <h3 id="tutorial-folder-change">Tutorial 8: Rename or delete a folder</h3>
+    <h4>What you will learn</h4>
+    <p>How to change a folder's name, and how to remove a folder without losing any recordings.</p>
+    <h4>Worked example</h4>
+    <p>The course is called “Cognitive neuroscience 2” in your timetable, and at the end of term you no longer want a folder for it.</p>
+    <ol>
+      <li>Press <kbd>Alt+E</kbd> and choose “Cognitive neuroscience” in the “Folder” box. The Folder menu acts on the folder chosen there.</li>
+      <li>Press <kbd>Alt+L</kbd>. The second item now says “Rename the folder "Cognitive neuroscience"...”. Choose it, type the new name and press <kbd>Enter</kbd>.</li>
+      <li>At the end of term, choose the folder in the “Folder” box again, press <kbd>Alt+L</kbd> and choose “Delete the folder ...”. NoteFetch asks first, with “No” chosen, so an accidental <kbd>Enter</kbd> does nothing. Press <kbd>Y</kbd> for Yes.</li>
+    </ol>
+    <h4>What just happened</h4>
+    <p>Deleting a folder never deletes the recordings in it. They move into “Uncategorised”, and the empty folder is removed. If the folder still holds other files you put there yourself, it is left in place, and the Log says so.</p>
+  </section>
+
+  <section aria-labelledby="part-4">
+    <h2 id="part-4">Part 4: Clearing out</h2>
+
+    <h3 id="tutorial-delete">Tutorial 9: Delete a recording, and bring it back</h3>
+    <h4>What you will learn</h4>
+    <p>How to delete a recording you do not need, and how to get it back if you change your mind.</p>
+    <h4>Worked example</h4>
+    <p>A lecture was cancelled after five minutes, and you do not want the recording.</p>
+    <ol>
+      <li>In the list, on that recording, press <kbd>Delete</kbd>. NoteFetch asks whether to move it to the Recycle Bin, saying it will not be downloaded again unless you choose Download again. Press <kbd>Enter</kbd> for Yes.</li>
+      <li>NoteFetch says it was deleted, and you hear the Done sound. Focus moves to the next recording.</li>
+      <li>Changed your mind? Press <kbd>Alt+S</kbd> for the “Show” box and choose “Deleted”. Go to the list, find the recording, and press <kbd>Enter</kbd> to download it again.</li>
+    </ol>
+    <h4>What just happened</h4>
+    <p>The recording's folder went to the Windows Recycle Bin, so you could also restore it from there. NoteFetch remembers it as deleted, so no sync brings it back by itself. Nothing is deleted from your Plaud account.</p>
+    <p>If you delete a recording's folder in File Explorer, NoteFetch treats it in the same way at the next refresh. If you restore a folder from the Recycle Bin, NoteFetch notices that too, and marks it as downloaded again.</p>
+    <p>To delete without being asked each time, turn off “Ask before deleting” in Settings.</p>
+
+    <h3 id="tutorial-skip">Tutorial 10: Leave a recording out of every sync</h3>
+    <h4>What you will learn</h4>
+    <p>How to tell NoteFetch never to download a recording, such as a test recording.</p>
+    <h4>Worked example</h4>
+    <p>You made a ten-second test recording when you unpacked your recorder, and NoteFetch has listed it as “Not downloaded”.</p>
+    <ol>
+      <li>In the list, on the test recording, press the Applications key and choose “Don't download”. Or press <kbd>Delete</kbd>, which does the same for a recording that was never downloaded, without asking, since nothing on your disk is lost.</li>
+      <li>It leaves the list and appears in the Deleted view, with the status “Skipped”.</li>
+    </ol>
+    <h4>What just happened</h4>
+    <p>No sync will download it. As with a deleted recording, choose “Deleted” in the “Show” box and press <kbd>Enter</kbd> on it if you ever want it after all. If you would rather <kbd>Delete</kbd> did nothing on a recording never downloaded, turn off “Delete marks a recording never downloaded as Don't download” in Settings.</p>
+  </section>
+
+  <section aria-labelledby="part-5">
+    <h2 id="part-5">Part 5: Making NoteFetch your own</h2>
+
+    <h3 id="settings">Everything in Settings</h3>
+    <p>Open Settings with <kbd>Ctrl+Comma</kbd>, or File menu, Settings. Nothing changes until you choose OK, and <kbd>Escape</kbd> leaves everything as it was. The one exception is “Sign out of Plaud”, which works at once. The settings, in <kbd>Tab</kbd> order:</p>
+    <ul>
+      <li><strong>“Output folder”</strong> (<kbd>Alt+O</kbd>), with “Browse” (<kbd>Alt+B</kbd>) beside it: where everything is saved. See <a href="#tutorial-output-folder">Tutorial 11</a>.</li>
+      <li><strong>“Sync when NoteFetch starts”</strong> (<kbd>Alt+S</kbd>): on at first.</li>
+      <li><strong>“Download new recordings when syncing”</strong> (<kbd>Alt+N</kbd>): on at first. Off, a sync only lists new recordings, and you choose which to download.</li>
+      <li><strong>“Ask before deleting”</strong> (<kbd>Alt+K</kbd>): on at first.</li>
+      <li><strong>“Delete marks a recording never downloaded as Don't download”</strong> (<kbd>Alt+L</kbd>): on at first.</li>
+      <li><strong>“Download audio”</strong> (<kbd>Alt+A</kbd>), <strong>“Download transcripts”</strong> (<kbd>Alt+T</kbd>), <strong>“Download summaries”</strong> (<kbd>Alt+M</kbd>) and <strong>“Download other parts: cleaned transcript, outline and highlights”</strong> (<kbd>Alt+R</kbd>): which parts of each recording to keep. All on at first.</li>
+      <li><strong>“Save summaries as .txt files instead of .md”</strong> (<kbd>Alt+X</kbd>): off at first. Summaries are in Markdown, a plain text format with a few marks for headings and lists. Turn this on if your text program does not open <code>.md</code> files. The text inside is the same.</li>
+      <li><strong>“Days to keep checking for a transcript or summary Plaud has not made yet”</strong> (<kbd>Alt+D</kbd>): 14 at first.</li>
+      <li><strong>“Spoken announcements”</strong> (<kbd>Alt+E</kbd>): “All”, “Errors and completion only”, or “Off”. See <a href="#announcements">What NoteFetch says</a>.</li>
+      <li><strong>“Play sounds for what you do”</strong> (<kbd>Alt+P</kbd>) and <strong>“Sound volume”</strong> (<kbd>Alt+V</kbd>): see <a href="#sounds">The sounds NoteFetch makes</a>.</li>
+      <li><strong>“Also write the Log to the file notefetch.log”</strong> (<kbd>Alt+W</kbd>): off at first. Useful if you want to report a problem.</li>
+      <li><strong>“Sign in to Plaud”</strong> (<kbd>Alt+I</kbd>), or <strong>“Sign out of Plaud”</strong> (<kbd>Alt+U</kbd>) when you are signed in.</li>
+    </ul>
+    <p>The settings are kept in a plain text file, <code>notefetch.conf</code>, which you can also edit in Notepad. See <a href="#files">Files NoteFetch keeps</a>.</p>
+
+    <h3 id="announcements">What NoteFetch says, and the Log</h3>
+    <p>NoteFetch speaks through your screen reader without moving your focus, so you can carry on in the list while it works. Everything it says is also written in the Log, so nothing is heard once and then lost. Press <kbd>Alt+G</kbd> to read it; the newest line is at the top.</p>
+    <p>“Spoken announcements” in Settings chooses how much is spoken:</p>
+    <ul>
+      <li><strong>All</strong>: when something starts, how it is getting on (at most every few seconds), when it finishes, and anything that goes wrong.</li>
+      <li><strong>Errors and completion only</strong>: only when something finishes or goes wrong. Good if you find progress chatty.</li>
+      <li><strong>Off</strong>: nothing is spoken. The Log still has it all.</li>
+    </ul>
+    <p>To check that announcements reach your screen reader, choose Help menu, “Test a spoken announcement”.</p>
+
+    <h3 id="sounds">The sounds NoteFetch makes</h3>
+    <p>NoteFetch has four short sounds, made of a few gentle notes. They answer what you did, so you know at once how it went. Things NoteFetch does by itself, such as the sync when it starts, make no sound unless something goes wrong.</p>
+    <ul>
+      <li><strong>Done</strong>: two quick notes rising. A move, delete, Don't download or folder change worked. A rename is answered with words only, since your screen reader already reads the new name.</li>
+      <li><strong>Finished</strong>: Done's two notes and then a higher one. A sync, download, sign-in or move of your recordings that you started has finished.</li>
+      <li><strong>Refused</strong>: two notes falling to an unsettled one. Something could not be done, or went wrong. The Log says why. During a sync, it plays once at the end, however many things went wrong.</li>
+      <li><strong>Attention</strong>: a note, a short gap, then the same note higher, like a call. NoteFetch has a question for you that you did not ask for: signing in, or the first sync.</li>
+    </ul>
+    <p>Nothing plays for something you cancelled with <kbd>Escape</kbd>. Turn the sounds off, or change their volume between “Quiet”, “Normal” and “Loud”, in Settings. Arrowing through the volumes plays the Done sound at each, so you can choose by ear.</p>
+
+    <h3 id="tutorial-output-folder">Tutorial 11: Keep your recordings somewhere else</h3>
+    <h4>What you will learn</h4>
+    <p>How to change the output folder, and take your recordings with you.</p>
+    <h4>Worked example</h4>
+    <p>Your recordings are filling your Documents, and you would rather keep them on a second drive, in <code>D:\Lectures</code>.</p>
+    <ol>
+      <li>Press <kbd>Ctrl+Comma</kbd> for Settings, then <kbd>Alt+B</kbd> for “Browse”. The Windows folder window opens in the folder holding your current output folder.</li>
+      <li>Go to <code>D:\Lectures</code>, making it first in File Explorer if you need to, and choose “Select Folder”. Back in Settings, the focus is on “Output folder”, which reads the new folder in full.</li>
+      <li>Choose OK. NoteFetch asks whether to move your downloaded recordings to the new folder, with “No” chosen. Press <kbd>Y</kbd> for Yes.</li>
+      <li>NoteFetch moves them one at a time, keeping their folders, and says when it has finished, with the Finished sound.</li>
+    </ol>
+    <h4>What just happened</h4>
+    <p>Every recording, in its folder, moved to the new output folder. Moving to another drive copies each recording and then removes the original, so it can take a while; it cannot be stopped part way, so that nothing is left behind. A recording that cannot be moved, for example because a file in it is open, stays in the old folder, and the Log says so.</p>
+    <p>Choosing No takes you back to Settings with the old folder. The output folder cannot be changed while a sync or download is running.</p>
+  </section>
+
+  <section aria-labelledby="what-is-saved">
+    <h2 id="what-is-saved">What is saved, and how it is named</h2>
+    <p>Each recording has a folder of its own, named after it: the name first, then a comma, then the date and time it was recorded, with the month in letters so your screen reader reads it naturally. For example, “Memory, week 4, 22 Sep 2026, 1000”. A recording Plaud has not named is called “Untitled”, so those sit together and invite renaming.</p>
+    <p>Inside, every file begins with what it is, so first-letter navigation in File Explorer finds it at once, and a file still makes sense when you copy it elsewhere:</p>
+    <ul>
+      <li>“Audio, ... .ogg”: the recording.</li>
+      <li>“Transcript, ... .txt”: one line for each thing said, as the time, the speaker, then the words.</li>
+      <li>“Cleaned transcript, ... .txt”: the same, tidied by Plaud's AI.</li>
+      <li>“Outline, ... .txt”: the topics, each with the time it starts.</li>
+      <li>“Highlights, ... .txt”: the moments you marked with your recorder's button.</li>
+      <li>“Summary, ... .md”: the summary. Any other tabs you made in the Plaud app are saved too, each named after its tab, such as “Meeting minutes, ... .md”.</li>
+      <li><code>metadata.json</code>: NoteFetch's note of which recording this is. Leave it in place: it is how NoteFetch recognises the folder, even after you rename or move it.</li>
+    </ul>
+    <p>A file is only written when Plaud has something for it, so there are no empty files. The dates of the folder and files are set to when the recording was made, so sorting by “Date modified” in File Explorer puts them in the order you recorded them.</p>
+  </section>
+
+  <section aria-labelledby="privacy">
+    <h2 id="privacy">Privacy and your Plaud account</h2>
+    <ul>
+      <li>NoteFetch talks only to Plaud. It sends nothing anywhere else, and collects nothing about you.</li>
+      <li>Your sign-in is kept on this computer, encrypted by Windows for your Windows account only.</li>
+      <li>NoteFetch only reads your Plaud account. It cannot change or delete anything there, because Plaud does not allow it.</li>
+      <li>The Log, and the file notefetch.log if you turn it on, never hold the words of your transcripts or summaries, or your sign-in.</li>
+      <li>NoteFetch is not made by Plaud, and is not supported by them. If something in NoteFetch goes wrong, Plaud's support will not know about it.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="troubleshooting">
+    <h2 id="troubleshooting">Troubleshooting</h2>
+    <p>When something goes wrong, NoteFetch says what happened and what to do next, plays the Refused sound, and writes the same words in the Log (<kbd>Alt+G</kbd>). These are the problems you are most likely to meet.</p>
+
+    <h3 id="trouble-smartscreen">Windows says it protected your PC</h3>
+    <p>Windows shows this for new programs from the internet that are not signed with a paid certificate. If you downloaded NoteFetch from its GitHub page, activate “More info”, then press <kbd>Tab</kbd> to reach “Run anyway” and press <kbd>Enter</kbd>. Windows remembers the choice.</p>
+
+    <h3 id="trouble-expired">Your Plaud sign-in has expired</h3>
+    <p>Plaud lets a sign-in lapse when it has not been used for a while, a couple of weeks or so. NoteFetch asks whether to sign in again; press <kbd>Enter</kbd> for Yes, and sign in in your browser as in <a href="#tutorial-sign-in">Tutorial 1</a>. If you said No, choose File menu, “Sign in to Plaud”, when you are ready. Nothing you downloaded is affected.</p>
+
+    <h3 id="trouble-browser">Sign-in did not finish</h3>
+    <p>NoteFetch waits five minutes for the browser, then gives up. Choose File menu, “Sign in to Plaud”, to try again. If the browser did not open at all, check that you have a default web browser set in Windows Settings, Apps, Default apps.</p>
+
+    <h3 id="trouble-network">Could not reach Plaud</h3>
+    <p>Check your internet connection, then press <kbd>Ctrl+S</kbd> to try again. NoteFetch already tries again by itself a few times before it gives up. Anything already downloaded is kept, and the next sync carries on where it stopped.</p>
+
+    <h3 id="trouble-plaud">Plaud reported a problem, or NoteFetch could not understand Plaud's reply</h3>
+    <p>Plaud's service may be busy or having a problem. Wait a while and try again. If NoteFetch keeps saying it could not understand Plaud's reply, Plaud may have changed how it answers, and a newer version of NoteFetch may be needed.</p>
+
+    <h3 id="trouble-in-use">A file is open in another program</h3>
+    <p>Windows will not rename, move or delete a file that another program has open, such as your media player still holding the audio. Close that program, or stop the playback, and try again. NoteFetch never leaves a recording half renamed or half moved: everything is put back as it was.</p>
+
+    <h3 id="trouble-being-downloaded">A recording is being downloaded, so it was not changed</h3>
+    <p>You can rename, move and delete recordings while a sync runs, but not the one being downloaded at that moment, or a folder holding it. Try again when the download finishes.</p>
+
+    <h3 id="trouble-no-summary">A recording says “No transcript” or “No summary”</h3>
+    <p>Plaud has not made it yet, or you did not ask Plaud to. NoteFetch checks again at each sync for 14 days (a setting), and fetches it when it appears. To check one recording now, press <kbd>Ctrl+D</kbd> on it, or choose “Download missing parts” from its menu. To list every recording missing something, choose “Incomplete” in the “Show” box.</p>
+
+    <h3 id="trouble-deleted">A recording I did not delete says “Deleted”</h3>
+    <p>NoteFetch could not find its folder in the output folder, which usually means it was deleted or moved somewhere else in File Explorer. If you moved it, put it back inside the output folder, in a category or in “Uncategorised”, and press <kbd>F5</kbd>. Otherwise, choose “Deleted” in the “Show” box, and press <kbd>Enter</kbd> on it to download it again.</p>
+
+    <h3 id="trouble-missing-drive">The output folder is not there</h3>
+    <p>If the output folder is on a drive that is not plugged in, NoteFetch says so and does not check what is downloaded, so nothing is wrongly marked as deleted. Plug the drive in and press <kbd>F5</kbd>. To use another folder, see <a href="#tutorial-output-folder">Tutorial 11</a>.</p>
+
+    <h3 id="trouble-deep">The Log says a folder is more than one level inside the output folder</h3>
+    <p>NoteFetch looks only at the categories in the output folder and the recordings in each. A recording put in a folder within a category is not seen. In File Explorer, move it up a level, then press <kbd>F5</kbd>.</p>
+
+    <h3 id="trouble-silent">I hear nothing when NoteFetch works</h3>
+    <p>Check “Spoken announcements” in Settings: “Errors and completion only” leaves out progress, and “Off” says nothing. Choose Help menu, “Test a spoken announcement”, to check that your screen reader hears NoteFetch at all. The Log (<kbd>Alt+G</kbd>) has everything either way. For the sounds, check “Play sounds for what you do” and “Sound volume”.</p>
+
+    <h3 id="trouble-guide">The guide does not open</h3>
+    <p>NoteFetch opens this guide in your default web browser. If it cannot, the Log gives the place of the file, <code>notefetch-help.html</code>, which you can open from File Explorer.</p>
+  </section>
+
+  <section aria-labelledby="quick-reference">
+    <h2 id="quick-reference">Quick reference: the keys</h2>
+
+    <h3 id="keys-list">In the Recordings list</h3>
+    <ul>
+      <li><kbd>Enter</kbd>: play a downloaded recording, download one not yet downloaded, or download a deleted one again.</li>
+      <li>Applications key or <kbd>Shift+F10</kbd>: the menu for the focused recording.</li>
+      <li><kbd>Ctrl+D</kbd>: download the selected recordings, or their missing parts.</li>
+      <li><kbd>Ctrl+T</kbd>: open the transcript.</li>
+      <li><kbd>Ctrl+M</kbd>: open the summary.</li>
+      <li><kbd>F2</kbd>: rename.</li>
+      <li><kbd>Ctrl+Shift+M</kbd>: move the selected recordings to a folder.</li>
+      <li><kbd>Delete</kbd>: delete the selected recordings, to the Recycle Bin.</li>
+      <li><kbd>Ctrl+Shift+C</kbd>: copy the path of the audio file.</li>
+      <li><kbd>Ctrl+Shift+O</kbd>: open the recording's folder in File Explorer.</li>
+      <li><kbd>Ctrl+A</kbd>: select every recording shown.</li>
+    </ul>
+
+    <h3 id="keys-anywhere">Anywhere in the main window</h3>
+    <ul>
+      <li><kbd>Ctrl+S</kbd>: sync new recordings.</li>
+      <li><kbd>F5</kbd>: refresh the list from Plaud, without downloading.</li>
+      <li><kbd>Escape</kbd>: cancel what is running. It never closes NoteFetch.</li>
+      <li><kbd>Ctrl+F</kbd>: go to “Filter by name”.</li>
+      <li><kbd>Ctrl+O</kbd>: open the output folder in File Explorer.</li>
+      <li><kbd>Ctrl+Comma</kbd>: Settings.</li>
+      <li><kbd>F1</kbd>: this guide.</li>
+      <li><kbd>Alt+F4</kbd>: close NoteFetch. During a sync or download it asks first, with “No” chosen.</li>
+    </ul>
+
+    <h3 id="keys-controls">Going to each control</h3>
+    <ul>
+      <li><kbd>Alt+S</kbd>: Show.</li>
+      <li><kbd>Alt+E</kbd>: Folder.</li>
+      <li><kbd>Alt+N</kbd>: Filter by name.</li>
+      <li><kbd>Alt+C</kbd>: Recordings.</li>
+      <li><kbd>Alt+Y</kbd>: Sync new.</li>
+      <li><kbd>Alt+D</kbd>: Download selected.</li>
+      <li><kbd>Alt+O</kbd>: Open output folder.</li>
+      <li><kbd>Alt+G</kbd>: Log.</li>
+    </ul>
+
+    <h3 id="keys-menus">The menus</h3>
+    <ul>
+      <li><kbd>Alt+F</kbd>: File, with sign in, sign out, Settings and Exit.</li>
+      <li><kbd>Alt+R</kbd>: Recording, with everything you can do to the focused or selected recordings.</li>
+      <li><kbd>Alt+L</kbd>: Folder, with New folder, Rename folder, Delete folder and Open output folder.</li>
+      <li><kbd>Alt+A</kbd>: Actions, with Sync new, Refresh, Cancel and the filter box.</li>
+      <li><kbd>Alt+H</kbd>: Help, with this guide, the test announcement, and About NoteFetch, which says the version.</li>
+    </ul>
+
+    <h3 id="keys-windows">In NoteFetch's other windows</h3>
+    <ul>
+      <li><kbd>Enter</kbd> chooses OK, and <kbd>Escape</kbd> cancels, in every window.</li>
+      <li>In “Move to folder”: <kbd>Alt+F</kbd> for the “Folders” list, <kbd>Alt+N</kbd> for “New folder name”.</li>
+      <li>In “First sync”: <kbd>Alt+E</kbd> Everything, <kbd>Alt+S</kbd> Specified duration, <kbd>Alt+N</kbd> Nothing old, <kbd>Alt+D</kbd> the number of days.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="files">
+    <h2 id="files">Files NoteFetch keeps</h2>
+    <p>Apart from your recordings in the output folder, NoteFetch keeps a few files of its own:</p>
+    <ul>
+      <li><code>notefetch.conf</code>: your settings, as plain text you can edit in Notepad. It sits beside <code>notefetch.exe</code>, so a copy of NoteFetch on a USB stick carries its settings. If Windows will not let NoteFetch write there, it is in <code>%APPDATA%\NoteFetch</code> instead.</li>
+      <li><code>auth.bin</code>: your Plaud sign-in, encrypted by Windows, in <code>%APPDATA%\NoteFetch</code>. Signing out deletes it.</li>
+      <li><code>notefetch.db</code>: NoteFetch's list of your recordings and what it has of each, in <code>%LOCALAPPDATA%\NoteFetch</code>.</li>
+      <li><code>notefetch.log</code>: a copy of the Log, beside <code>notefetch.conf</code>, only if you turn it on in Settings.</li>
+      <li><code>notefetch-help.html</code>: this guide, written out afresh each time you press <kbd>F1</kbd>, in <code>%LOCALAPPDATA%\NoteFetch</code>.</li>
+    </ul>
+    <p>To remove NoteFetch completely, delete <code>notefetch.exe</code> and <code>notefetch.conf</code>, and the two NoteFetch folders above. Your recordings stay in the output folder until you delete them yourself.</p>
+  </section>
+
+  <section aria-labelledby="credits">
+    <h2 id="credits">Credits and licence</h2>
+    <p>NoteFetch is free, and open source under the MIT licence. It was made by Laurent Cadet de Fontenay, with assistance from Claude, and tested with JAWS from its first window.</p>
+    <p>Its sign-in and connection to Plaud were adapted from plaud-cli by Lee Gonzales, also under the MIT licence.</p>
+    <p>Plaud is a trademark of its owner. NoteFetch is an independent program, not made, endorsed or supported by Plaud, and uses the name only to say what it works with.</p>
+  </section>
+
+  </main>
+</body>
+</html>

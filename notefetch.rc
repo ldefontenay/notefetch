@@ -50,6 +50,8 @@
 #define IDM_FIND           2023
 #define IDM_OPEN_OUTPUT    2024
 #define IDM_TEST_SPEECH    2030
+#define IDM_HELP           2031
+#define IDM_ABOUT          2032
 #define IDM_DEFAULT        2040
 #define IDM_PLAY           2041
 #define IDM_TRANSCRIPT     2042
@@ -255,7 +257,10 @@ BEGIN
     END
     POPUP "&Help"
     BEGIN
+        MENUITEM "NoteFetch &guide	F1", IDM_HELP
+        MENUITEM SEPARATOR
         MENUITEM "&Test a spoken announcement", IDM_TEST_SPEECH
+        MENUITEM "&About NoteFetch", IDM_ABOUT
     END
 END
 
@@ -270,6 +275,7 @@ BEGIN
     "F", IDM_FIND, VIRTKEY, CONTROL
     "O", IDM_OPEN_OUTPUT, VIRTKEY, CONTROL
     0xBC, IDM_SETTINGS, VIRTKEY, CONTROL    // VK_OEM_COMMA
+    VK_F1, IDM_HELP, VIRTKEY
 END
 
 // Keep the numbers in step with the version in Cargo.toml.

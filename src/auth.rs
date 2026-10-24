@@ -112,8 +112,8 @@ pub fn save(tokens: &Tokens) -> Result<()> {
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir).map_err(|e| crate::error::disk("create the folder", dir, &e))?;
     }
-    let plain = serde_json::to_vec(tokens).map_err(|e| Error::Disk(format!("Could not prepare your sign-in for saving: {e}.")))?;
-    let secret = protect(&plain).ok_or_else(|| Error::Disk("Windows could not encrypt your sign-in, so it was not saved.".into()))?;
+    let plain = serde_json::to_vec(tokens).map_err(|e| Error::Disk(format!("Could not prepare your sign-in for saving: {e}. Try signing in again.")))?;
+    let secret = protect(&plain).ok_or_else(|| Error::Disk("Windows could not encrypt your sign-in, so it was not saved. Try signing in again, and if it keeps happening, restart Windows.".into()))?;
     crate::config::write_atomically(&path, &secret).map_err(|e| crate::error::disk("save your sign-in to", &path, &e))
 }
 

@@ -191,7 +191,7 @@ impl Client {
             return Ok(structured.clone());
         }
         let inner = unwrap_envelope(&text).unwrap_or(&text);
-        serde_json::from_str(inner).map_err(|_| Failure::Final(Error::Plaud(format!("its reply to {name} could not be read."))))
+        serde_json::from_str(inner).map_err(|_| Failure::Final(Error::Unreadable))
     }
 }
 
@@ -231,13 +231,13 @@ async fn read_reply(resp: reqwest::Response, id: i64) -> Result<Value> {
         match serde_json::from_str::<Value>(&text) {
             Ok(Value::Array(items)) => items,
             Ok(other) => vec![other],
-            Err(_) => return Err(Error::Plaud("its reply could not be read.".into())),
+            Err(_) => return Err(Error::Unreadable),
         }
     };
     messages
         .into_iter()
         .find(|m| m["id"] == json!(id))
-        .ok_or_else(|| Error::Plaud("its reply did not match the request.".into()))
+        .ok_or(Error::Unreadable)
 }
 
 fn parse_event_stream(text: &str) -> Vec<Value> {

@@ -1,0 +1,206 @@
+NoteFetch milestone 6: the guide, announcements and error messages
+
+About 40 minutes, plus 15 for NVDA in section 5 if you have it. Section 6
+is reading, at your own pace.
+
+What is new:
+
+- The user guide, opened with F1 from anywhere in NoteFetch, including from
+  Settings and the other small windows.
+- The Help menu: "NoteFetch guide", "Test a spoken announcement" and
+  "About NoteFetch".
+- Clearer error messages: every one now says what to do next.
+
+Before you start: a copy of NoteFetch from your last test was still open.
+Please close it first with Alt+F4. The new version only starts once that
+one is closed.
+
+Everything runs on the usual test copy. Please write your answers after
+each ANSWER line, and save the file when you are done.
+
+
+SECTION 1: OPENING THE GUIDE
+
+1. Press Enter on "Start NoteFetch test.cmd" and wait for "Sync finished."
+   Press F1.
+   Expected: your web browser opens "NoteFetch guide", with its heading
+   "NoteFetch guide" at the top. The NoteFetch Log says "Opening the
+   NoteFetch guide in your web browser."
+   Did the guide open, once, in your browser?
+
+ANSWER:
+
+2. In the browser, list the headings with your screen reader (Insert+F6
+   in JAWS).
+   Expected: "Contents", "About this guide", "Why use NoteFetch?" and so
+   on, with the parts at level 2 and the tutorials at level 3.
+   Is the list of headings clear and easy to move through?
+
+ANSWER:
+
+3. Close the browser tab and go back to NoteFetch. Press Ctrl+Comma for
+   Settings, then F1.
+   Expected: the guide opens again. Close it, come back to Settings, and
+   press Escape.
+   Did F1 work from Settings, and did focus come back to Settings?
+
+ANSWER:
+
+4. Press Alt+H for the Help menu.
+   Expected: "NoteFetch guide F1", then "Test a spoken announcement" and
+   "About NoteFetch".
+   Press A for About.
+   Expected: "NoteFetch version 0.1.0. Download your Plaud recordings,
+   transcripts and summaries. Free, under the MIT licence. Press F1 for the
+   guide." It is also in the Log.
+   Was it so?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 2: READING THE GUIDE
+
+This is the part only you can judge. Please read at least "About this
+guide", "Why use NoteFetch?", Tutorial 1, Tutorial 2 and the quick
+reference, and skim the rest. It follows your Clipman and Photo Scribe
+guides.
+
+5. Does the tone feel right: warm, human, and clear for a new user?
+
+ANSWER:
+
+6. Is anything wrong, missing, or described differently from how NoteFetch
+   really behaves? Please say which heading it is under.
+
+ANSWER:
+
+7. The quick reference is a set of lists under level 3 headings ("In the
+   Recordings list", "Anywhere in the main window" and so on), not a
+   table. Does that read well, or would you prefer a table with proper
+   headers, as in Photo Scribe?
+
+ANSWER:
+
+8. Each tutorial has "What you will learn", "Worked example" and "What
+   just happened" as level 4 headings. Helpful, or too many headings?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 3: HOW MUCH IS SPOKEN
+
+9. Press Ctrl+Comma for Settings, then Alt+E for "Spoken announcements".
+   Choose "Errors and completion only" and press Enter for OK.
+   Press Ctrl+S to sync.
+   Expected: no "Syncing with Plaud." and no progress spoken, but "Sync
+   finished." is spoken at the end, with the Finished sound. The Log still
+   has every line.
+   Was it so?
+
+ANSWER:
+
+10. Set "Spoken announcements" to "Off" in the same way, and press Ctrl+S.
+    Expected: nothing is spoken, the Finished sound still plays, and the
+    Log has it all.
+    Was it so?
+
+ANSWER:
+
+11. Set "Spoken announcements" back to "All".
+    Press Alt+H, then T for "Test a spoken announcement".
+    Expected: "This is a test announcement from NoteFetch. If you heard
+    this, announcements work."
+    Was it spoken?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 4: ERROR MESSAGES
+
+Each message should say what happened and what to do next.
+
+12. Press Alt+L, then N for New folder. Type the name of a folder you
+    already have, such as one you made in an earlier test, and press Enter.
+    (If you have none, make one called "test" first, then do this step.)
+    Expected: "There is already a folder called "...". Choose a different
+    name." with the Refused sound.
+    Was it so, and is it clear?
+
+ANSWER:
+
+13. Press Alt+C for the list, arrow to a downloaded recording whose status
+    is "No transcript" or "Audio only", and press Ctrl+T.
+    (Skip this if every recording has a transcript.)
+    Expected: it says there is no transcript, and why.
+    Was it clear?
+
+ANSWER:
+
+14. Optional, and only if you are happy to: turn off your Wi-Fi or unplug
+    the network, then press Ctrl+S in NoteFetch.
+    Expected: after a few tries, a message beginning "Could not reach
+    Plaud", ending "Check your internet connection, then try again.", with
+    the Refused sound. Turn the network back on, and press Ctrl+S again:
+    the sync works.
+    Was it so?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 5: NVDA (only if NVDA is installed)
+
+The plan asks for one round with NVDA before release. Please quit JAWS and
+start NVDA, then start NoteFetch with "Start NoteFetch test.cmd".
+
+15. Press Tab through the main window.
+    Expected: "Show", "Folder", "Filter by name", "Recordings", the three
+    buttons and "Log" are each named as with JAWS.
+    Was it so?
+
+ANSWER:
+
+16. In the list, arrow through a few recordings.
+    Expected: each row's name, folder, date, duration and status.
+    How does NVDA read the rows?
+
+ANSWER:
+
+17. Press Ctrl+S.
+    Expected: NVDA speaks "Syncing with Plaud." and "Sync finished.", as
+    JAWS does.
+    Did NVDA speak them?
+
+ANSWER:
+
+18. Press the Applications key on a downloaded recording, then Escape. Press
+    F2, then Escape. Press F1, then close the browser.
+    Did the menu, the rename box and the guide work with NVDA?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 6: THE README (reading, at your own pace)
+
+README.md in the NoteFetch folder is what people will see first on the
+GitHub page, written in StableSound's style. Please open it in your text
+editor.
+
+19. Is it accurate and does it read well? Anything to add or remove?
+
+ANSWER:
+
+
+ANYTHING ELSE
+Anything you noticed that is not covered above.
+
+ANSWER:

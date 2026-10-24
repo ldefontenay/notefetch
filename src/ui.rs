@@ -69,6 +69,8 @@ const IDM_CANCEL: i32 = 2022;
 const IDM_FIND: i32 = 2023;
 const IDM_OPEN_OUTPUT: i32 = 2024;
 const IDM_TEST_SPEECH: i32 = 2030;
+const IDM_HELP: i32 = 2031;
+const IDM_ABOUT: i32 = 2032;
 /// Enter in the list: the focused recording's default action.
 const IDM_DEFAULT: i32 = 2040;
 const IDM_PLAY: i32 = 2041;
@@ -269,6 +271,13 @@ unsafe extern "system" fn dialog_proc(hwnd: HWND, message: u32, wparam: WPARAM, 
         }
         WM_APP_ASK_FIRST => {
             ask_first_sync(hwnd);
+            1
+        }
+        // F1 in a window opened from this one (Settings, Move to folder and
+        // the rest) reaches here, since Windows passes an unanswered WM_HELP
+        // to the owner. F1 here is the accelerator.
+        WM_HELP => {
+            open_help(hwnd);
             1
         }
         WM_INITMENUPOPUP => {
@@ -558,6 +567,20 @@ fn command(hwnd: HWND, id: i32, code: u32) {
         }
         IDM_SETTINGS => open_settings(hwnd),
         IDM_EXIT => close(hwnd),
+        IDM_HELP => open_help(hwnd),
+        IDM_ABOUT => {
+            with_ui(|ui| {
+                say(
+                    ui,
+                    concat!(
+                        "NoteFetch version ",
+                        env!("CARGO_PKG_VERSION"),
+                        ". Download your Plaud recordings, transcripts and summaries. Free, under the MIT licence. Press F1 for the guide."
+                    ),
+                    Importance::Completion,
+                )
+            });
+        }
         IDM_TEST_SPEECH => {
             with_ui(|ui| {
                 say(ui, "This is a test announcement from NoteFetch. If you heard this, announcements work.", Importance::Completion)
@@ -565,6 +588,23 @@ fn command(hwnd: HWND, id: i32, code: u32) {
         }
         _ => {}
     }
+}
+
+/// F1, and the Help menu: the guide in the browser. Logged, and spoken only
+/// with every announcement on, since the browser is about to take focus.
+fn open_help(hwnd: HWND) {
+    // One press of F1 opens one tab, should Windows send both the
+    // accelerator and WM_HELP for it.
+    thread_local!(static LAST: std::cell::Cell<Option<std::time::Instant>> = const { std::cell::Cell::new(None) });
+    let now = std::time::Instant::now();
+    if LAST.with(|l| l.replace(Some(now))).is_some_and(|t| now - t < std::time::Duration::from_secs(1)) {
+        return;
+    }
+    let result = crate::help::open(hwnd);
+    with_ui(|ui| match result {
+        Ok(()) => say(ui, "Opening the NoteFetch guide in your web browser.", Importance::Routine),
+        Err(why) => say(ui, &why, Importance::Error),
+    });
 }
 
 fn start(ui: &mut Ui, command: Command, what: &str) {
@@ -1933,6 +1973,19 @@ mod tests {
         assert!(matches(&b, 0, "Uncategorised", "") && !matches(&a, 0, "Uncategorised", ""));
         assert!(matches(&a, 0, "All folders", "week"));
         assert!(!matches(&a, 0, "All folders", "training"));
+    }
+
+    /// The version Windows shows in the exe's properties, and the one the
+    /// release workflow checks the tag against, are the same.
+    #[test]
+    fn the_version_resource_matches_cargo() {
+        let rc = include_str!("../notefetch.rc");
+        let v = env!("CARGO_PKG_VERSION");
+        let commas = v.replace('.', ",") + ",0";
+        assert!(rc.contains(&format!("FILEVERSION    {commas}")));
+        assert!(rc.contains(&format!("PRODUCTVERSION {commas}")));
+        assert!(rc.contains(&format!("\"FileVersion\",      \"{v}.0\"")));
+        assert!(rc.contains(&format!("\"ProductVersion\",   \"{v}\"")));
     }
 
     #[test]

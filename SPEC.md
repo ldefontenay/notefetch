@@ -100,11 +100,11 @@ The keys listed under "In the recordings list" work only when the list has focus
 - Ctrl+F: move to the filter box.
 - Ctrl+O: open the output folder in File Explorer.
 - Ctrl+comma: settings.
-- F1: help.
+- F1: the user guide, in the browser. It also works in Settings and the other small windows.
 - Escape: cancel the running operation. It does not close the app.
 - Alt+F4: exit. If a download is running, the app asks first.
 
-The app also has a menu bar (File, Recording, Folder, Actions, Help) that lists every command with its shortcut, so commands can be discovered without the help file. The Recording menu holds the same commands as the context menu.
+The app also has a menu bar (File, Recording, Folder, Actions, Help) that lists every command with its shortcut, so commands can be discovered without the help file. The Recording menu holds the same commands as the context menu. The Help menu holds "NoteFetch guide" (F1), "Test a spoken announcement", and "About NoteFetch", which says the version in the Log and aloud rather than in a message box.
 
 ## Sync
 
@@ -264,7 +264,7 @@ Changing the output folder, when the old one holds downloaded recordings, asks w
 - `notefetch.db`: SQLite state, in `%LOCALAPPDATA%\NoteFetch`.
 - `auth.bin`: the OAuth client registration and tokens, encrypted with Windows DPAPI for the current user, in `%APPDATA%\NoteFetch`.
 - `notefetch.log`: only if logging to file is turned on (off by default).
-- `notefetch-help.html`: written out when help is opened, from a copy compiled into the exe.
+- `notefetch-help.html`: the user guide, in `%LOCALAPPDATA%\NoteFetch`, written out afresh each time it is opened, from a copy compiled into the exe (`src/help.html`), and opened as a `file:///` URL in the default browser.
 
 ## Accessibility requirements
 

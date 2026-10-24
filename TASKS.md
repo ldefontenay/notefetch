@@ -124,20 +124,21 @@ Much of this is already shown by plaud-cli's code (see PLAN.md), so the spike co
 
 ## Milestone 6: announcements, help and polish
 
-- [ ] UI Automation notification events for start, progress (throttled), completion and errors, with the three announcement levels.
+- [x] UI Automation notification events for start, progress (throttled), completion and errors, with the three announcement levels. (Built in milestones 3 to 5; the levels are heard in `test-milestone-6.txt`.)
 - [x] A sound palette in StableSound's style (PLAN.md, 23 October 2026): a first draft Laurent can hear through a developer flag, then wired in for what he did only, with a setting for sounds and volume.
 - [x] Laurent's verdict on the sounds in `test-milestone-6-sounds.txt`: the sounds pass; four changes to when they play.
-- [ ] Laurent's results in `test-milestone-6-sounds-round-2.txt`.
-- [ ] `help.html` compiled into the exe and written out on F1: a humanised user guide with little tutorials, along the lines of Laurent's Clipman and Photo Scribe guides (PLAN.md, 23 October 2026). Semantic headings, a keyboard reference as a list, and no tables unless they have proper headers.
-- [ ] Error messages reviewed so that every one says what happened and what to do next.
-- [ ] Test script and `test-milestone-6.txt`, run with JAWS and NVDA.
+- [x] Laurent's results in `test-milestone-6-sounds-round-2.txt`: all seven steps as expected. The sounds are signed off.
+- [x] `help.html` compiled into the exe and written out on F1: a humanised user guide with little tutorials, along the lines of Laurent's Clipman and Photo Scribe guides (PLAN.md, 23 October 2026). Semantic headings, a keyboard reference as a list, and no tables unless they have proper headers.
+- [x] Error messages reviewed so that every one says what happened and what to do next.
+- [x] Test script `test-milestone-6.txt` written.
+- [ ] Laurent's results in `test-milestone-6.txt`, with JAWS and NVDA.
 
 ## Milestone 7: release
 
-- [ ] GitHub Actions workflow on a Windows runner: build, test, clippy, and on a version tag attach `notefetch.exe` and `notefetch.zip` to the release.
-- [ ] Version resource and application manifest in the `.rc` file.
-- [ ] README in StableSound's style: the download links first, then the problem, how to use it, accessibility, antivirus and SmartScreen, what has actually been tested, files written, building, known issues, and the licence.
+- [x] GitHub Actions workflow on a Windows runner: build, test, clippy, and on a version tag attach `notefetch.exe` and `notefetch.zip` to a draft release. (`.github/workflows/build.yml`.)
+- [x] Version resource and application manifest in the `.rc` file. (Since milestone 2; a test now keeps the version in step with Cargo.toml.)
+- [x] First draft of the README in StableSound's style: the download links first, then the problem, how to use it, accessibility, antivirus and SmartScreen, what has actually been tested, files written, building, known issues, and the licence.
 - [ ] Write to Plaud through their developer contact page: describe the app, check it is within their terms, and ask about use of the name.
-- [ ] Check SignPath's eligibility for free open-source code signing.
-- [ ] Scan the whole git history for secrets and test data before making the repository public.
+- [x] Check SignPath's eligibility for free open-source code signing. (Likely eligible once public and released; see PLAN.md, 24 October 2026.)
+- [ ] Scan the whole git history for secrets and test data before making the repository public. (First scan 24 October 2026: clean. Run again just before.)
 - [ ] Make the repository public.

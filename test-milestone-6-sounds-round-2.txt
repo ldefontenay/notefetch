@@ -21,22 +21,21 @@ SECTION 1: CHANGES
    Was it so?
 
 ANSWER:
-
+Yes
 2. Press Alt+L, then N. Type sound test and press Enter.
    Expected: "Created the folder "sound test"." and Done.
    Was it so?
 
 ANSWER:
-
+Yes
 3. Press Alt+C for the list, arrow to a downloaded recording in
    Uncategorised, and press Ctrl+Shift+M. Arrow to "sound test" and press
    Enter.
    Expected: "Moved ..." and Done. Then press Ctrl+Shift+M again, arrow to
    Uncategorised and press Enter, to put it back: Done again.
    Was it so?
-
 ANSWER:
-
+Yes
 4. Press F2 on any downloaded recording, add a letter to its name, and
    press Enter.
    Expected: JAWS says it was renamed, with no sound. Press F2 and put the
@@ -44,7 +43,7 @@ ANSWER:
    Was it silent?
 
 ANSWER:
-
+Yes
 5. Press Alt+E for the Folder box, choose "sound test", then Alt+L and D
    for Delete folder.
    Expected: the question, with no sound before it, and focus on No. Press
@@ -53,14 +52,14 @@ ANSWER:
    Was it so?
 
 ANSWER:
-
+Yes
 6. Press Alt+E and choose "All folders". Press Alt+C, then Delete on a
    downloaded recording.
    Expected: the question, with no sound before it. Press N.
    Was it silent before the question?
 
 ANSWER:
-
+Yes
 7. Press Ctrl+S to sync, and while it runs press Ctrl+S again.
    Expected: the second one is refused straight away, with Refused, and
    when the sync finishes you still hear Finished.
@@ -68,11 +67,13 @@ ANSWER:
    Was it so?
 
 ANSWER:
+Yes, worked well as expected.
 
 ANYTHING ODD:
-
+No.
 
 ANYTHING ELSE
 Anything you noticed that is not covered above.
 
 ANSWER:
+No, excellent work.

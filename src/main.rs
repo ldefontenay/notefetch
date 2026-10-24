@@ -36,6 +36,7 @@ mod config;
 mod dialogs;
 mod download;
 mod error;
+mod help;
 mod library;
 mod mcp;
 mod naming;

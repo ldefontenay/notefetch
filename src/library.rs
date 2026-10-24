@@ -249,7 +249,7 @@ impl Library {
 
     pub fn write_metadata(&self, location: &str, m: &Metadata) -> Result<()> {
         let path = self.path_of(location).join(METADATA);
-        let text = serde_json::to_string_pretty(m).map_err(|e| Error::Disk(format!("Could not prepare metadata.json: {e}.")))?;
+        let text = serde_json::to_string_pretty(m).map_err(|e| Error::Disk(format!("Could not prepare metadata.json: {e}. Try again.")))?;
         crate::config::write_atomically(&path, text.as_bytes()).map_err(|e| disk("save", &path, &e))
     }
 
@@ -336,7 +336,7 @@ impl Library {
             return Ok(location.to_string());
         }
         if !parent.is_dir() {
-            return Err(Error::Disk(format!("The folder \"{folder}\" no longer exists.")));
+            return Err(Error::Disk(format!("The folder \"{folder}\" no longer exists. Press F5 to refresh the list, then try again.")));
         }
         if to.exists() {
             return Err(Error::Disk(format!(
@@ -353,7 +353,7 @@ impl Library {
         reserved(&name)?;
         let path = self.root.join(&name);
         if path.exists() {
-            return Err(Error::Disk(format!("There is already a folder called \"{name}\".")));
+            return Err(Error::Disk(format!("There is already a folder called \"{name}\". Choose a different name.")));
         }
         std::fs::create_dir_all(&path).map_err(|e| disk("create the folder", &path, &e))?;
         Ok(name)
@@ -366,7 +366,7 @@ impl Library {
         let from = self.root.join(old);
         let to = self.root.join(&new);
         if to.exists() && !same_folder(&from, &to) {
-            return Err(Error::Disk(format!("There is already a folder called \"{new}\".")));
+            return Err(Error::Disk(format!("There is already a folder called \"{new}\". Choose a different name.")));
         }
         std::fs::rename(&from, &to).map_err(|e| disk("rename the folder", &from, &e))?;
         Ok(new)
@@ -390,7 +390,7 @@ impl Library {
         match std::fs::remove_dir(&dir) {
             Ok(()) => Ok(moved),
             Err(_) => Err(Error::Disk(format!(
-                "Its recordings were moved into {UNCATEGORISED}, but the folder \"{name}\" still holds other files, so it was left in place."
+                "Its recordings were moved into {UNCATEGORISED}, but the folder \"{name}\" still holds other files, so it was left in place. Press Ctrl+O to open the output folder and see what is in it."
             ))),
         }
     }
@@ -404,7 +404,7 @@ impl Library {
         let to = to_root.join(location);
         if to.exists() {
             return Err(Error::Disk(format!(
-                "The new output folder already holds a recording called \"{}\", so \"{}\" was left where it is.",
+                "The new output folder already holds a recording called \"{}\", so \"{}\" was left where it is. Rename one of them, then move it into the new output folder in File Explorer and press F5.",
                 base_of(location),
                 base_of(location)
             )));

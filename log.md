@@ -2,6 +2,47 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-10-24: The user guide is written, and milestone 6 is ready to test
+
+### The short version
+
+- **Sounds round 2 passed,** all seven steps. Thank you. The sounds are signed off, with your words in PLAN.md.
+- **The user guide is written** and opens with F1, from anywhere in NoteFetch, including Settings. It follows your Clipman and Photo Scribe guides: eleven little tutorials with worked examples, then troubleshooting, the keys and the files.
+- **Every error message now says what to do next.** I read every one in the code and fixed about a dozen that did not.
+- **The release groundwork from milestone 7 is done too:** an automatic build on GitHub, a first README, a scan of the whole history for secrets (clean), and SignPath's free code signing checked (NoteFetch looks eligible once public).
+- **Please run test-milestone-6.txt.** 19 steps, about 40 minutes, plus NVDA if you have it, plus reading the guide and the README at your own pace. Your verdict on the guide is the main thing.
+- 94 tests pass and clippy is clean. All committed.
+
+### Before you start
+
+- A copy of NoteFetch from your last test was still open. I did not close it. I moved its file aside so I could build the new version, which Windows allows while it runs, and it carries on unharmed. Please close it with Alt+F4 before the test; the new version starts only once it is closed. I will tidy the old file away afterwards.
+
+### The guide
+
+- Parts are level 2 headings and tutorials level 3, as in Photo Scribe. Each tutorial has "What you will learn", "Worked example" and "What just happened" as level 4 headings. The test asks whether those are helpful or too many.
+- The quick reference is a set of lists, not a table, because a list item reads the task and its key in one line. The test asks which you prefer.
+- The worked examples are a term of lectures: renaming "Untitled" to "Memory, week 4", a folder for Cognitive neuroscience, a cancelled lecture to delete, and so on.
+- The byline is "By Laurent Cadet de Fontenay, with assistance from Claude", as in your other guides.
+- The Help menu now has "NoteFetch guide", "Test a spoken announcement" and "About NoteFetch", which says the version in the Log rather than in a message box.
+
+### Error messages
+
+What changed, for example:
+
+- A reply from Plaud that NoteFetch cannot read used to name an internal tool, such as "list_files". It now says: "NoteFetch could not understand Plaud's reply. Try again later. If it keeps happening, Plaud may have changed how it answers, and a newer version of NoteFetch may be needed."
+- "There is already a folder called ..." now adds "Choose a different name."
+- A folder or recording that has vanished now says to press F5 to refresh the list.
+
+### The release work
+
+- **The automatic build:** every time I push, GitHub builds NoteFetch, runs the tests and clippy on a fresh Windows machine. When we tag a version, it also makes a draft release with the exe and the zip, for you to check and publish by hand. Nothing is published by itself.
+- **The README** is in README.md, in StableSound's style, without its em dashes. Section 6 of the test asks you to read it.
+- **Still yours to decide, later:** writing to Plaud about the app and the name, checking the trademark registers, and making the repository public. I have not contacted anyone.
+
+### What I could not check
+
+- I did not open the new NoteFetch on your desktop, because your copy was open and you may have been using the computer. So F1 opening the browser, and F1 from Settings, are untested until your round. The menu letters and the guide's links, keys and spelling are checked by tests.
+
 ## 2026-10-24: The sounds passed, and the missing ones are fixed
 
 ### The short version
