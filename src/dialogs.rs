@@ -1,5 +1,5 @@
-//! The Settings window and the first-sync question, both modal dialogs from
-//! `notefetch.rc`. SPEC.md "Settings" and "Sync".
+//! The Settings window, the first-sync question and About NoteFetch, all
+//! modal dialogs from `notefetch.rc`. SPEC.md "Settings", "Sync" and "Help".
 //!
 //! Neither touches the worker: each returns what was chosen, and the main
 //! window sends it on. The few things Settings must ask the main window while
@@ -44,6 +44,8 @@ const IDC_SET_LOG_FILE: i32 = 1314;
 const IDC_SET_ACCOUNT: i32 = 1315;
 const IDC_SET_SOUNDS: i32 = 1316;
 const IDC_SET_VOLUME: i32 = 1317;
+const IDD_ABOUT: u16 = 150;
+const IDC_ABOUT_TEXT: i32 = 1501;
 const IDD_FIRST: u16 = 140;
 const IDC_FIRST_INTRO: i32 = 1401;
 const IDC_FIRST_ALL: i32 = 1402;
@@ -55,6 +57,7 @@ const BM_GETCHECK: u32 = 0x00F0;
 const BM_SETCHECK: u32 = 0x00F1;
 const BST_CHECKED: usize = 1;
 const EN_CHANGE: u32 = 0x0300;
+const EM_SETSEL: u32 = 0x00B1;
 
 const ANNOUNCE_CHOICES: [(&str, Announcements); 3] = [
     ("All", Announcements::All),
@@ -371,6 +374,50 @@ struct FirstState {
     /// Write a line to the Log and speak it as an error.
     say: Box<dyn Fn(&str)>,
     result: Option<FirstSync>,
+}
+
+/// What About NoteFetch says. The credit is the guide's byline (Laurent,
+/// milestone 6).
+pub const ABOUT: &str = concat!(
+    "NoteFetch version ",
+    env!("CARGO_PKG_VERSION"),
+    ". Download your Plaud recordings, transcripts and summaries. ",
+    "By Laurent Cadet de Fontenay, with assistance from Claude. ",
+    "Free, under the MIT licence. Press F1 for the guide."
+);
+
+/// About NoteFetch: the text in a read-only box, which a screen reader reads
+/// in full, and OK. Laurent asked for this in place of an announcement, which
+/// was easy to miss (milestone 6).
+pub fn about(owner: HWND) {
+    // SAFETY: a modal window owned by `owner`, on this thread.
+    unsafe {
+        let instance = GetModuleHandleW(None).ok().map(Into::into);
+        DialogBoxParamW(instance, resource(IDD_ABOUT), Some(owner), Some(about_proc), LPARAM(0));
+    }
+}
+
+unsafe extern "system" fn about_proc(hwnd: HWND, message: u32, wparam: WPARAM, _lparam: LPARAM) -> isize {
+    match message {
+        WM_INITDIALOG => {
+            set_text(hwnd, IDC_ABOUT_TEXT, ABOUT);
+            focus(hwnd, IDC_ABOUT_TEXT);
+            // Caret at the start with nothing selected, so the text is read
+            // as text, not as a selection.
+            send(item(hwnd, IDC_ABOUT_TEXT), EM_SETSEL, 0, 0);
+            // Zero: the focus is set above.
+            0
+        }
+        WM_COMMAND => {
+            let id = (wparam.0 & 0xFFFF) as i32;
+            if id == IDOK.0 || id == IDCANCEL.0 {
+                end(hwnd);
+                return 1;
+            }
+            0
+        }
+        _ => 0,
+    }
 }
 
 /// Ask how much of the Plaud recordings the first sync should download.

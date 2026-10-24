@@ -717,6 +717,7 @@ dependencies = [
  "tokio",
  "url",
  "windows",
+ "windows-core",
 ]
 
 [[package]]

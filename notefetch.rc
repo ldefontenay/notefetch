@@ -89,6 +89,8 @@
 #define IDC_SET_ACCOUNT    1315
 #define IDC_SET_SOUNDS     1316
 #define IDC_SET_VOLUME     1317
+#define IDD_ABOUT           150
+#define IDC_ABOUT_TEXT     1501
 #define IDD_FIRST           140
 #define IDC_FIRST_INTRO    1401
 #define IDC_FIRST_ALL      1402
@@ -121,6 +123,19 @@ BEGIN
 
     LTEXT       "Lo&g:", -1, 7, 225, 100, 8
     EDITTEXT    IDC_LOG, 7, 235, 386, 50, ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL | WS_GROUP | WS_TABSTOP
+END
+
+// About NoteFetch (Help menu). The text is a single-line read-only box,
+// which a screen reader reads in full when it gets focus. Alt letter: D.
+// OK has none: it is Enter, and Escape closes the window too.
+IDD_ABOUT DIALOGEX 0, 0, 260, 52
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About NoteFetch"
+FONT 9, "Segoe UI", 400, 0, 0x1
+BEGIN
+    LTEXT           "&Details:", -1, 7, 7, 246, 8
+    EDITTEXT        IDC_ABOUT_TEXT, 7, 17, 246, 12, ES_AUTOHSCROLL | ES_READONLY | WS_GROUP | WS_TABSTOP
+    DEFPUSHBUTTON   "OK", IDOK, 203, 33, 50, 14, WS_GROUP | WS_TABSTOP
 END
 
 // Move to folder (Ctrl+Shift+M). SPEC.md "Folders". Rules 1 and 3 above

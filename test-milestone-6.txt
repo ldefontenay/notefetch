@@ -29,7 +29,7 @@ SECTION 1: OPENING THE GUIDE
    Did the guide open, once, in your browser?
 
 ANSWER:
-
+Yes
 2. In the browser, list the headings with your screen reader (Insert+F6
    in JAWS).
    Expected: "Contents", "About this guide", "Why use NoteFetch?" and so
@@ -37,7 +37,7 @@ ANSWER:
    Is the list of headings clear and easy to move through?
 
 ANSWER:
-
+Yes
 3. Close the browser tab and go back to NoteFetch. Press Ctrl+Comma for
    Settings, then F1.
    Expected: the guide opens again. Close it, come back to Settings, and
@@ -45,7 +45,7 @@ ANSWER:
    Did F1 work from Settings, and did focus come back to Settings?
 
 ANSWER:
-
+Yes.
 4. Press Alt+H for the Help menu.
    Expected: "NoteFetch guide F1", then "Test a spoken announcement" and
    "About NoteFetch".
@@ -56,10 +56,10 @@ ANSWER:
    Was it so?
 
 ANSWER:
-
+No message was spoken by Jaws, it just went back to the list of recordings. The message did appear in the log. Users are unlikely to know to go and look there. It would be better, and more typical, for the about message to appear in a read only edit field (message box that then gets exited by pressing escape or enter, consisting of a read only edit field and an ok button. Also, please indulge my vanity and credit us in the about message, same as in the guide. I want to build up a rep for vibecoding innovative, solid, accessible little apps.
 ANYTHING ODD:
 
-
+No.
 SECTION 2: READING THE GUIDE
 
 This is the part only you can judge. Please read at least "About this
@@ -70,26 +70,26 @@ guides.
 5. Does the tone feel right: warm, human, and clear for a new user?
 
 ANSWER:
-
+Yes, I may edit and refine it for a later version, but its more than good enough for now. Thanks.
 6. Is anything wrong, missing, or described differently from how NoteFetch
    really behaves? Please say which heading it is under.
 
 ANSWER:
-
+Not that I could identify. Happy to sign off.
 7. The quick reference is a set of lists under level 3 headings ("In the
    Recordings list", "Anywhere in the main window" and so on), not a
    table. Does that read well, or would you prefer a table with proper
    headers, as in Photo Scribe?
 
 ANSWER:
-
+Fine as is.
 8. Each tutorial has "What you will learn", "Worked example" and "What
    just happened" as level 4 headings. Helpful, or too many headings?
 
 ANSWER:
-
+Its good.
 ANYTHING ODD:
-
+No.
 
 SECTION 3: HOW MUCH IS SPOKEN
 
@@ -100,26 +100,24 @@ SECTION 3: HOW MUCH IS SPOKEN
    finished." is spoken at the end, with the Finished sound. The Log still
    has every line.
    Was it so?
-
 ANSWER:
-
+Yes.
 10. Set "Spoken announcements" to "Off" in the same way, and press Ctrl+S.
     Expected: nothing is spoken, the Finished sound still plays, and the
     Log has it all.
     Was it so?
 
 ANSWER:
-
+Yes
 11. Set "Spoken announcements" back to "All".
     Press Alt+H, then T for "Test a spoken announcement".
     Expected: "This is a test announcement from NoteFetch. If you heard
     this, announcements work."
     Was it spoken?
-
 ANSWER:
-
+Yes.
 ANYTHING ODD:
-
+Ultimately, I'd like to get rid of the "test spoken announcements" item under help, especially if my testing with NVDA is all done and everything speaks as it should.
 
 SECTION 4: ERROR MESSAGES
 
@@ -133,7 +131,7 @@ Each message should say what happened and what to do next.
     Was it so, and is it clear?
 
 ANSWER:
-
+Yes
 13. Press Alt+C for the list, arrow to a downloaded recording whose status
     is "No transcript" or "Audio only", and press Ctrl+T.
     (Skip this if every recording has a transcript.)
@@ -141,7 +139,7 @@ ANSWER:
     Was it clear?
 
 ANSWER:
-
+Yes
 14. Optional, and only if you are happy to: turn off your Wi-Fi or unplug
     the network, then press Ctrl+S in NoteFetch.
     Expected: after a few tries, a message beginning "Could not reach
@@ -151,9 +149,9 @@ ANSWER:
     Was it so?
 
 ANSWER:
-
+Yes.
 ANYTHING ODD:
-
+No.
 
 SECTION 5: NVDA (only if NVDA is installed)
 
@@ -166,28 +164,28 @@ start NVDA, then start NoteFetch with "Start NoteFetch test.cmd".
     Was it so?
 
 ANSWER:
-
+Yes. Reads nicely. Note that in the recordings list view, the selected recording is read twice when tabbing to the listview.
 16. In the list, arrow through a few recordings.
     Expected: each row's name, folder, date, duration and status.
     How does NVDA read the rows?
 
 ANSWER:
-
+Very well, sounds just like Jaws.
 17. Press Ctrl+S.
     Expected: NVDA speaks "Syncing with Plaud." and "Sync finished.", as
     JAWS does.
     Did NVDA speak them?
 
 ANSWER:
-
+No. I made sure that spoken announcements was set to all. Silence, then the finish sound, then the currently selected recording line read out three times. Test spoken announcements in the help menu also does not work.
 18. Press the Applications key on a downloaded recording, then Escape. Press
     F2, then Escape. Press F1, then close the browser.
     Did the menu, the rename box and the guide work with NVDA?
 
 ANSWER:
-
+All three worked well. I noticed that pressing the tab key in the rename edit field moves to an edit field allowing the next item to be renamed. This might work visually, but could be confusing for a screenreader user.
 ANYTHING ODD:
-
+All noted above. Please see if you can fix the NVDA issues without breaking the excellent Jaws functionality and we'll note the learning in the skill for creating accessible apps used here.
 
 SECTION 6: THE README (reading, at your own pace)
 
@@ -198,9 +196,10 @@ editor.
 19. Is it accurate and does it read well? Anything to add or remove?
 
 ANSWER:
-
+All good for now.
 
 ANYTHING ELSE
 Anything you noticed that is not covered above.
 
 ANSWER:
+The NVDA issues are the main thing. Please lets work on that and capture the learning to retrofit other apps later and better design new ones.

@@ -1,0 +1,151 @@
+NoteFetch milestone 6, round 2: NVDA, and checking JAWS still works
+
+About 30 minutes: 15 with JAWS, then 15 with NVDA.
+
+What is new:
+
+- NVDA now speaks NoteFetch's announcements. NoteFetch notices when NVDA is
+  running and talks to it in the way NVDA listens for. With JAWS it uses the
+  same method as before, slightly changed, so section 1 checks that nothing
+  has broken.
+- The list no longer reads the selected recording again after a sync or a
+  refresh, and the window fills its list before it appears.
+- Tab in the rename box now finishes the rename, as Enter does, and stays on
+  the same recording.
+- About NoteFetch is now a small window with the credit, and an OK button.
+
+I tested the NVDA part here myself while you were away, by reading what NVDA
+said in its own log, so I expect it to work. I could not test JAWS, which is
+why JAWS comes first.
+
+Everything runs on the usual test copy. Please write your answers after each
+ANSWER line, and save the file when you are done.
+
+
+SECTION 1: JAWS (with NVDA not running)
+
+1. Press Enter on "Start NoteFetch test.cmd".
+   Expected: "NoteFetch dialog", the list and the first recording, read once.
+   Then, if "Sync when NoteFetch starts" is on, "Syncing with Plaud." and
+   "Sync finished." (or "Sync finished. Everything is up to date.").
+   Were the announcements spoken, and the first recording read once only?
+
+ANSWER:
+
+2. Press Ctrl+S.
+   Expected: "Syncing with Plaud.", then "Sync finished." with the Finished
+   sound. The selected recording is not read again afterwards.
+   Was it so?
+
+ANSWER:
+
+3. Press Alt+H, then T for "Test a spoken announcement".
+   Expected: "This is a test announcement from NoteFetch. If you heard
+   this, announcements work."
+   Was it spoken?
+
+ANSWER:
+
+4. Press Alt+H, then A for "About NoteFetch".
+   Expected: a window "About NoteFetch" opens, and JAWS reads "Details",
+   read-only edit, then "NoteFetch version 0.1.0. Download your Plaud
+   recordings, transcripts and summaries. By Laurent Cadet de Fontenay, with
+   assistance from Claude. Free, under the MIT licence. Press F1 for the
+   guide." Tab reaches OK. Press Escape: you are back in the list.
+   Was the whole text read, and is the wording right?
+
+ANSWER:
+
+5. Press Ctrl+Comma for Settings. Press Alt+D for "Days to keep checking",
+   delete the number with Backspace, and press Enter.
+   Expected: "Type the number of days to keep checking, such as 14, then
+   choose OK again." with the Refused sound, and focus back in the days box.
+   Type 14 and press Escape to leave Settings unchanged.
+   Was the message spoken while Settings was open?
+
+ANSWER:
+
+6. In the list, arrow to a downloaded recording and press F2. Press Tab.
+   Expected: the rename box closes, nothing is renamed (the name did not
+   change), and you are on the same recording in the list. Try Shift+Tab
+   the same way.
+   Was it so?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 2: NVDA
+
+Please quit JAWS and start NVDA, then close NoteFetch with Alt+F4 and start
+it again with "Start NoteFetch test.cmd".
+
+7. As NoteFetch starts.
+   Expected: "NoteFetch dialog", "Recordings: list", the first recording,
+   once, then the sync announcements as in step 1.
+   Was each spoken, and the recording read once only?
+
+ANSWER:
+
+8. Press Shift+Tab, then Tab, to come back to the list.
+   Expected: "Recordings: list" and the selected recording, once.
+   Was it read once?
+
+ANSWER:
+
+9. Press Ctrl+S.
+   Expected: "Syncing with Plaud.", "Sync finished." and the Finished sound,
+   and the recording not read again.
+   Was it so?
+
+ANSWER:
+
+10. Press Alt+H, then T.
+    Expected: NVDA reads the list again as the menu closes, then the test
+    announcement.
+    Was the test announcement spoken?
+
+ANSWER:
+
+11. Press Ctrl+A.
+    Expected: "All ... recordings selected." Press an arrow key to select
+    just one again.
+    Was it spoken?
+
+ANSWER:
+
+12. Repeat step 5 (the empty days box in Settings) with NVDA.
+    Was the message spoken?
+
+ANSWER:
+
+13. Repeat step 4 (About NoteFetch) and step 6 (Tab in the rename box) with
+    NVDA.
+    Did both behave as with JAWS?
+
+ANSWER:
+
+14. Set "Spoken announcements" in Settings to "Errors and completion only",
+    press Ctrl+S, and listen. Then set it back to "All".
+    Expected: no "Syncing with Plaud.", but "Sync finished." is spoken.
+    Was it so?
+
+ANSWER:
+
+ANYTHING ODD:
+
+
+SECTION 3: THE TEST ANNOUNCEMENT ITEM
+
+15. You said you would like to remove "Test a spoken announcement" from the
+    Help menu once NVDA works. If steps 10 and 3 worked, shall I remove it
+    now? It would also go from the guide.
+
+ANSWER:
+
+
+ANYTHING ELSE
+Anything you noticed that is not covered above.
+
+ANSWER:

@@ -2,6 +2,41 @@
 
 Newest entry first. Each entry starts with a level 2 heading holding the date and a short title, so you can jump between entries with your screen reader's heading keys.
 
+## 2026-10-24: NVDA now speaks, and About is a window
+
+### The short version
+
+- **Thank you for the round.** The guide, the error messages, the announcement levels and F1 are signed off, with your words in PLAN.md.
+- **NVDA now speaks NoteFetch's announcements.** I found out why it was silent without needing you: NVDA never receives the kind of announcement JAWS uses from a window like NoteFetch's. When NVDA is running, NoteFetch now uses the method NVDA does listen for. JAWS keeps the old method, slightly changed.
+- **The recording is no longer read two or three times.** After a sync, NoteFetch emptied and refilled the list, and NVDA re-read the selected row each time, cutting off "Sync finished." Now only what changed is changed. At start-up the list now fills before the window appears.
+- **Tab in the rename box** finishes the rename, as Enter does, and stays on the same recording.
+- **About NoteFetch** is a small window: a read-only box with the version and "By Laurent Cadet de Fontenay, with assistance from Claude", and OK.
+- **Please run test-milestone-6-round-2.txt.** 15 steps, about 30 minutes. JAWS first, because that is the part I could not check.
+- 94 tests pass, clippy is clean, and the probe finds no faults in the main window or About. All committed.
+
+### What I did with NVDA on your computer
+
+- NVDA was running when I started. To see exactly what it said, I restarted it twice with its logging turned up, ran NoteFetch's test copy and pressed keys in it, and read NVDA's log. NVDA will have spoken aloud while I did. I also opened Calculator once, to check that NVDA hears other programs' announcements (it does).
+- Afterwards I put NVDA's settings file back exactly as it was and started NVDA normally. It is running now, as you left it.
+
+### What was wrong with NVDA, briefly
+
+- JAWS and NVDA listen for announcements in different ways. NoteFetch's way reached JAWS but never reached NVDA at all: NVDA's own log showed nothing arriving, while Calculator's arrived fine.
+- When NVDA is running, NoteFetch now writes what it wants said into a hidden text box in whichever NoteFetch window is in front, and tells NVDA it changed. NVDA reads it. Lines said together are joined, and wait about a seventh of a second, so a menu closing does not cut them off.
+- The rest is in PLAN.md, "Milestone 6 results, and NVDA", and in the accessible apps skill, so other apps can be fixed the same way.
+
+### For other apps
+
+- The skill now has the NVDA method, with code, the list lesson ("change only what differs"), the Tab-in-rename fix, and two small tools I wrote to check announcements and focus without a screen reader. Any of your other apps that announce the way NoteFetch did will likely be silent with NVDA too, and can be fixed the same way.
+
+### One small change you should know about
+
+- The new JAWS method needs a part of the Windows library to be named in the project's list of dependencies. It is not a new dependency: it was already built into NoteFetch as part of the Windows library, and nothing new is downloaded or shipped. I hope that is all right.
+
+### The test announcement item
+
+- You would like "Test a spoken announcement" removed once NVDA works. I have left it in for this round, since steps 3 and 10 use it. The test asks whether to remove it now.
+
 ## 2026-10-24: The user guide is written, and milestone 6 is ready to test
 
 ### The short version

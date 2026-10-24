@@ -22,14 +22,15 @@ use windows::Win32::System::Memory::{GMEM_MOVEABLE, GlobalAlloc, GlobalLock, Glo
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::Controls::{
     ICC_LISTVIEW_CLASSES, INITCOMMONCONTROLSEX, InitCommonControlsEx, LIST_VIEW_ITEM_STATE_FLAGS, LVCF_SUBITEM,
-    LVCF_TEXT, LVCF_WIDTH, LVCOLUMNW, LVIF_PARAM, LVIF_TEXT, LVIS_FOCUSED, LVIS_SELECTED, LVITEMW, LVM_DELETEALLITEMS,
-    LVM_ENSUREVISIBLE, LVM_GETITEMCOUNT, LVM_GETNEXTITEM, LVM_INSERTCOLUMNW, LVM_INSERTITEMW,
+    LVCF_TEXT, LVCF_WIDTH, LVCOLUMNW, LVIF_PARAM, LVIF_TEXT, LVIS_FOCUSED, LVIS_SELECTED, LVITEMW, LVM_DELETEITEM,
+    LVM_ENSUREVISIBLE, LVM_GETITEMCOUNT, LVM_GETITEMSTATE, LVM_GETITEMTEXTW, LVM_GETNEXTITEM, LVM_INSERTCOLUMNW,
+    LVM_INSERTITEMW, LVM_SETITEMW,
     LVM_EDITLABELW, LVM_GETEDITCONTROL, LVM_GETITEMRECT, LVM_SETEXTENDEDLISTVIEWSTYLE, LVM_SETITEMSTATE, LVM_SETITEMTEXTW,
     LVN_BEGINLABELEDITW, LVN_ENDLABELEDITW, LVN_ITEMCHANGED, LVNI_FOCUSED, LVNI_SELECTED, LVIR_LABEL, LVS_EX_FULLROWSELECT,
     NMHDR, NMLISTVIEW, NMLVDISPINFOW,
 };
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    GetFocus, GetKeyState, SetFocus, VK_CONTROL, VK_DELETE, VK_ESCAPE, VK_F2, VK_RETURN, VK_SHIFT,
+    GetFocus, GetKeyState, SetFocus, VK_CONTROL, VK_DELETE, VK_ESCAPE, VK_F2, VK_RETURN, VK_SHIFT, VK_TAB,
 };
 use windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, COINIT_DISABLE_OLE1DDE, CoInitializeEx};
 use windows::Win32::UI::Shell::{DefSubclassProc, RemoveWindowSubclass, SetWindowSubclass, ShellExecuteW};
@@ -120,6 +121,15 @@ const SELECT_TIMER: usize = 2;
 /// out every newly selected row, and in milestone 3 the announcement raised
 /// at once was not heard. `[untested]` whether waiting lets it through.
 const SELECT_PAUSE_MS: u32 = 300;
+/// The longest the window waits to appear until its list is filled.
+const FIRST_FILL_MS: u64 = 500;
+/// What NVDA is to say waits this long, gathering everything said in the
+/// meantime into one: its live region is read once, when NVDA gets to it, so
+/// a second line written straight after the first would replace it. The
+/// pause also lets the focus settle after a menu closes, which NVDA reads,
+/// cutting short anything already speaking.
+const LIVE_TIMER: usize = 3;
+const LIVE_PAUSE_MS: u32 = 150;
 /// Filtering waits this long after the last key, so each letter does not
 /// rebuild the list and make the screen reader chatter.
 const FILTER_PAUSE_MS: u32 = 400;
@@ -151,6 +161,10 @@ struct Ui {
     cancel: Option<Cancel>,
     /// The announcement waiting for SELECT_TIMER.
     pending_select: Option<String>,
+    /// What NVDA is to say when LIVE_TIMER fires.
+    pending_live: Vec<String>,
+    /// The first list from the worker has arrived.
+    filled: bool,
     /// A sign-in question is already showing or on its way.
     asking: bool,
     /// When the sign-in Plaud refused was saved. A sign-in saved since
@@ -221,8 +235,35 @@ pub fn run() -> i32 {
         };
         let accel = LoadAcceleratorsW(Some(instance.into()), resource(IDR_ACCEL)).ok();
         let list = item(dialog, IDC_LIST);
+        // Fill the list before the window appears, waiting at most
+        // FIRST_FILL_MS for the worker's first list. Focused while still
+        // empty, the list then gained its first row a moment later, and NVDA
+        // read that row out twice (milestone 6). The message loop keeps
+        // running meanwhile, so nothing is blocked.
+        let until = Instant::now() + Duration::from_millis(FIRST_FILL_MS);
+        let mut quit = false;
+        while !quit && !with_ui(|ui| ui.filled).unwrap_or(true) {
+            let left = until.saturating_duration_since(Instant::now());
+            if left.is_zero() {
+                break;
+            }
+            MsgWaitForMultipleObjects(None, false, left.as_millis() as u32, QS_ALLINPUT);
+            let mut waiting = MSG::default();
+            while PeekMessageW(&mut waiting, None, 0, 0, PM_REMOVE).as_bool() {
+                if waiting.message == WM_QUIT {
+                    quit = true;
+                    break;
+                }
+                let _ = TranslateMessage(&waiting);
+                DispatchMessageW(&waiting);
+            }
+        }
+        if quit {
+            return 0;
+        }
         let _ = ShowWindow(dialog, SW_SHOW);
         let _ = SetForegroundWindow(dialog);
+        let _ = SetFocus(Some(list));
 
         let mut message = MSG::default();
         loop {
@@ -234,6 +275,15 @@ pub fn run() -> i32 {
             // None while a name is being edited in the list, so Ctrl+S or F5
             // cannot set something running in the middle of typing.
             let editing = send(list, LVM_GETEDITCONTROL, 0, 0) != 0;
+            // Tab and Shift+Tab finish a name being edited, as Enter does.
+            // Left to the list, they open the next or previous recording's
+            // name for editing, which suits the eye but moves a screen reader
+            // user to a different name with no warning (Laurent, milestone 6
+            // with NVDA). Changed here because the list sees the key before
+            // any subclass of its edit box does.
+            if editing && message.message == WM_KEYDOWN && message.wParam.0 == VK_TAB.0 as usize {
+                message.wParam = WPARAM(VK_RETURN.0 as usize);
+            }
             if let Some(a) = accel
                 && !editing
                 && TranslateAcceleratorW(dialog, a, &message) != 0
@@ -355,6 +405,19 @@ unsafe extern "system" fn dialog_proc(hwnd: HWND, message: u32, wparam: WPARAM, 
             });
             1
         }
+        WM_TIMER if wparam.0 == LIVE_TIMER => {
+            // SAFETY: the timer belongs to this window.
+            unsafe {
+                let _ = KillTimer(Some(hwnd), LIVE_TIMER);
+            }
+            with_ui(|ui| {
+                let text = std::mem::take(&mut ui.pending_live).join(" ");
+                if !text.is_empty() {
+                    announce::say_live(hwnd, &text);
+                }
+            });
+            1
+        }
         WM_CLOSE => {
             close(hwnd);
             1
@@ -429,6 +492,8 @@ fn init(dialog: HWND) {
             activity: Activity::Connecting,
             cancel: Some(startup),
             pending_select: None,
+            pending_live: Vec::new(),
+            filled: false,
             asking: false,
             expired: None,
             sound: None,
@@ -439,10 +504,6 @@ fn init(dialog: HWND) {
             first_sync: None,
         });
     });
-    // SAFETY: focus on a control of this window.
-    unsafe {
-        let _ = SetFocus(Some(list));
-    }
 }
 
 fn fill_folders(dialog: HWND, folders: &[String], keep: Option<String>) {
@@ -568,19 +629,7 @@ fn command(hwnd: HWND, id: i32, code: u32) {
         IDM_SETTINGS => open_settings(hwnd),
         IDM_EXIT => close(hwnd),
         IDM_HELP => open_help(hwnd),
-        IDM_ABOUT => {
-            with_ui(|ui| {
-                say(
-                    ui,
-                    concat!(
-                        "NoteFetch version ",
-                        env!("CARGO_PKG_VERSION"),
-                        ". Download your Plaud recordings, transcripts and summaries. Free, under the MIT licence. Press F1 for the guide."
-                    ),
-                    Importance::Completion,
-                )
-            });
-        }
+        IDM_ABOUT => crate::dialogs::about(hwnd),
         IDM_TEST_SPEECH => {
             with_ui(|ui| {
                 say(ui, "This is a test announcement from NoteFetch. If you heard this, announcements work.", Importance::Completion)
@@ -888,7 +937,18 @@ fn speak(ui: &mut Ui, text: &str, importance: Importance) {
         Announcements::ErrorsAndCompletion => importance != Importance::Routine,
         Announcements::Off => false,
     };
-    if wanted {
+    if !wanted {
+        return;
+    }
+    if announce::nvda_running() {
+        if ui.pending_live.is_empty() {
+            // SAFETY: a timer on this window.
+            unsafe {
+                SetTimer(Some(ui.dialog), LIVE_TIMER, LIVE_PAUSE_MS, None);
+            }
+        }
+        ui.pending_live.push(text.to_string());
+    } else {
         announce::say(ui.dialog, text);
     }
 }
@@ -945,6 +1005,7 @@ fn take_snapshot(ui: &mut Ui, s: Snapshot) {
     }
     ui.snapshot = s;
     apply_filter(ui);
+    ui.filled = true;
 }
 
 fn matches(row: &Row, show: usize, folder: &str, filter: &str) -> bool {
@@ -985,7 +1046,14 @@ fn apply_filter(ui: &mut Ui) {
         })
         .collect();
 
-    send(ui.list, LVM_DELETEALLITEMS, 0, 0);
+    // Change only what differs, so a sync that changed nothing tells the
+    // screen reader nothing. Emptying and refilling the list moved the focus
+    // to its first row and back each time, and NVDA read the focused row out
+    // once for each (milestone 6).
+    let count = send(ui.list, LVM_GETITEMCOUNT, 0, 0).max(0) as usize;
+    for n in (ui.visible.len()..count).rev() {
+        send(ui.list, LVM_DELETEITEM, n, 0);
+    }
     for (n, &r) in ui.visible.iter().enumerate() {
         let row = &ui.snapshot.rows[r];
         // A recording on disk and in no category is in Uncategorised; one not
@@ -996,16 +1064,25 @@ fn apply_filter(ui: &mut Ui) {
             (None, None) => "",
         };
         let cells = [row.name.as_str(), folder, &row.date, &row.duration, row.status];
-        let mut first = wide(cells[0]);
-        let it = LVITEMW {
-            mask: LVIF_TEXT | LVIF_PARAM,
-            iItem: n as i32,
-            pszText: PWSTR(first.as_mut_ptr()),
-            lParam: LPARAM(r as isize),
-            ..Default::default()
-        };
-        send(ui.list, LVM_INSERTITEMW, 0, &it as *const _ as isize);
-        for (c, text) in cells.iter().enumerate().skip(1) {
+        let fresh = n >= count;
+        if fresh {
+            let mut first = wide(cells[0]);
+            let it = LVITEMW {
+                mask: LVIF_TEXT | LVIF_PARAM,
+                iItem: n as i32,
+                pszText: PWSTR(first.as_mut_ptr()),
+                lParam: LPARAM(r as isize),
+                ..Default::default()
+            };
+            send(ui.list, LVM_INSERTITEMW, 0, &it as *const _ as isize);
+        } else {
+            let it = LVITEMW { mask: LVIF_PARAM, iItem: n as i32, lParam: LPARAM(r as isize), ..Default::default() };
+            send(ui.list, LVM_SETITEMW, 0, &it as *const _ as isize);
+        }
+        for (c, text) in cells.iter().enumerate() {
+            if (fresh && c == 0) || (!fresh && cell_text(ui.list, n, c) == *text) {
+                continue;
+            }
             let mut t = wide(text);
             let sub = LVITEMW { iSubItem: c as i32, pszText: PWSTR(t.as_mut_ptr()), ..Default::default() };
             send(ui.list, LVM_SETITEMTEXTW, n, &sub as *const _ as isize);
@@ -1017,9 +1094,11 @@ fn apply_filter(ui: &mut Ui) {
     }
     let mut any_selected = false;
     for (n, &r) in ui.visible.iter().enumerate() {
-        if selected.contains(&ui.snapshot.rows[r].id) {
-            set_state(ui.list, n as isize, LVIS_SELECTED, LVIS_SELECTED);
-            any_selected = true;
+        let want = selected.contains(&ui.snapshot.rows[r].id);
+        any_selected |= want;
+        if has_state(ui.list, n, LVIS_SELECTED) != want {
+            let state = if want { LVIS_SELECTED } else { LIST_VIEW_ITEM_STATE_FLAGS(0) };
+            set_state(ui.list, n as isize, state, LVIS_SELECTED);
         }
     }
     // Focus the same recording, or failing that the row where it was.
@@ -1030,9 +1109,29 @@ fn apply_filter(ui: &mut Ui) {
     // Select the focused row too when nothing selected is left, for example
     // after a delete: otherwise the next Delete or Ctrl+D finds nothing.
     let state = if any_selected { LVIS_FOCUSED } else { LIST_VIEW_ITEM_STATE_FLAGS(LVIS_FOCUSED.0 | LVIS_SELECTED.0) };
-    set_state(ui.list, target as isize, state, state);
+    if !has_state(ui.list, target, state) {
+        set_state(ui.list, target as isize, state, state);
+    }
     send(ui.list, LVM_ENSUREVISIBLE, target, 0);
     ui.focus_id = Some(ui.snapshot.rows[ui.visible[target]].id.clone());
+}
+
+/// The text in one cell of the list.
+fn cell_text(list: HWND, index: usize, column: usize) -> String {
+    let mut buffer = [0u16; 512];
+    let it = LVITEMW {
+        iSubItem: column as i32,
+        pszText: PWSTR(buffer.as_mut_ptr()),
+        cchTextMax: buffer.len() as i32,
+        ..Default::default()
+    };
+    let n = send(list, LVM_GETITEMTEXTW, index, &it as *const _ as isize).max(0) as usize;
+    String::from_utf16_lossy(&buffer[..n.min(buffer.len())])
+}
+
+/// Whether a row has every one of `state`'s flags.
+fn has_state(list: HWND, index: usize, state: LIST_VIEW_ITEM_STATE_FLAGS) -> bool {
+    send(list, LVM_GETITEMSTATE, index, state.0 as isize) as u32 & state.0 == state.0
 }
 
 fn set_state(list: HWND, index: isize, state: LIST_VIEW_ITEM_STATE_FLAGS, mask: LIST_VIEW_ITEM_STATE_FLAGS) {

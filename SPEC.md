@@ -104,7 +104,7 @@ The keys listed under "In the recordings list" work only when the list has focus
 - Escape: cancel the running operation. It does not close the app.
 - Alt+F4: exit. If a download is running, the app asks first.
 
-The app also has a menu bar (File, Recording, Folder, Actions, Help) that lists every command with its shortcut, so commands can be discovered without the help file. The Recording menu holds the same commands as the context menu. The Help menu holds "NoteFetch guide" (F1), "Test a spoken announcement", and "About NoteFetch", which says the version in the Log and aloud rather than in a message box.
+The app also has a menu bar (File, Recording, Folder, Actions, Help) that lists every command with its shortcut, so commands can be discovered without the help file. The Recording menu holds the same commands as the context menu. The Help menu holds "NoteFetch guide" (F1), "Test a spoken announcement", and "About NoteFetch". About is a small window: a single-line read-only box, labelled "Details", holding the version, what NoteFetch does, the credit "By Laurent Cadet de Fontenay, with assistance from Claude", the licence and "Press F1 for the guide", and an OK button. Enter or Escape closes it. Laurent asked for this in milestone 6, since an announcement was easily missed.
 
 ## Sync
 
@@ -130,7 +130,7 @@ These let the user work out which recording is which, give it a meaningful name,
 
 ### Renaming
 
-- F2 edits the name in place, as in File Explorer. Only the name part is edited; the date and time suffix is kept automatically, and so is a clash number such as " (2)" while the new name still clashes. A name that no longer clashes loses its number.
+- F2 edits the name in place, as in File Explorer. Enter or Tab confirms, Escape cancels. Tab does not move on to the next recording's name as it does in File Explorer, which would move a screen reader user to a different name without warning (Laurent, milestone 6). Only the name part is edited; the date and time suffix is kept automatically, and so is a clash number such as " (2)" while the new name still clashes. A name that no longer clashes loses its number.
 - Only downloaded recordings can be renamed, since the name is the folder's name. Renaming, moving, deleting and the folder commands work while a sync or download runs, except on a recording being downloaded at that moment, or a folder holding one; the Log then says to try again when the download finishes. A recording deleted or marked Don't download while it waits to be downloaded is left out of that sync. Laurent asked for this in milestone 4.
 - Renaming changes the folder and every file inside it to the new name, and records the new name in the database and `metadata.json`.
 - Renaming is local only. Plaud's MCP server is read-only, so the name in the Plaud app does not change.
@@ -235,7 +235,7 @@ Settings choose which parts to download: audio, transcript, summary, and the oth
 
 ## Announcements
 
-- Start, finish and errors are announced through UI Automation notification events, and the same text always goes to the Log.
+- Start, finish and errors are announced, and the same text always goes to the Log. With NVDA running, through a hidden live region in the active NoteFetch window (an MSAA live region change event), gathering what is said within 150 ms into one; otherwise through UI Automation notification events, raised on NoteFetch's own provider hosted by the main window. PLAN.md, milestone 6, says why there are two.
 - Progress is announced at most once every few seconds, for example "Downloaded 3 of 12". Every item is logged.
 - Settings allow announcements to be "All", "Errors and completion only" or "Off".
 - A small palette of short sounds, in StableSound's style, answers what the user did: an action done, a download or sync finished, something refused, and a question or sign-in needed. Automatic work, such as the sync on start, is silent unless something goes wrong. Sounds can be turned off, and have a volume. Laurent asked for this after milestone 4.
